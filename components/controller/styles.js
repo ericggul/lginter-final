@@ -2,22 +2,28 @@ import styled from 'styled-components';
 
 export const Container = styled.div`
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   background: #E8E8E8;
   display: flex;
   flex-direction: column;
   padding: 2vh 2vw;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 `;
 
 export const TopSection = styled.div`
   display: grid;
-  grid-template-columns: 15vw 1fr 28vw;
+  grid-template-columns: minmax(260px, 320px) 1fr;
   gap: 2vw;
-  height: 45vh;
+  height: auto;
   margin-bottom: 2vh;
+  
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+    gap: 2vh;
+  }
 `;
 
 export const MainContent = styled.div`
@@ -27,7 +33,16 @@ export const MainContent = styled.div`
 `;
 
 export const BottomSection = styled.div`
-  height: 42vh;
+  height: auto;
+  margin-top: 2vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2vw;
+  
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+    gap: 2vh;
+  }
 `;
 
 // 왼쪽: 사용자 수 카드
@@ -158,6 +173,7 @@ export const ScreenGroupLabel = styled.div`
 
 export const ScreenDeviceGrid = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 1vw;
 `;
 
@@ -189,7 +205,14 @@ export const UserGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2vh 2vw;
-  height: calc(42vh - 4vh);
+  height: auto;
+  
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const UserCard = styled.div`

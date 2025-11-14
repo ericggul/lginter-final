@@ -3,9 +3,10 @@ import { DEFAULT_ENV } from './stateStore';
 import { normalizeEnv } from './logic/controllerMerge';
 import { CONTROLLER_SYSTEM_PROMPT } from '@/utils/prompts/controller.prompt';
 
-export async function requestControllerDecision({ userId, userContext, lastDecision }) {
+export async function requestControllerDecision({ userId, userContext, lastDecision, systemPrompt }) {
   const result = await decideEnv({
-    systemPrompt: CONTROLLER_SYSTEM_PROMPT,
+    // Prefer provided override; fall back to existing legacy prompt (used only in non-structured mode)
+    systemPrompt: systemPrompt || CONTROLLER_SYSTEM_PROMPT,
     latestConversation: [],
     currentProgram: {
       version: lastDecision?.version || 0,

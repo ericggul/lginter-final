@@ -5,9 +5,14 @@ const DEFAULT_TIMEOUT_MS = 6000; // faster failover to avoid UX stalls
 const USE_STRUCTURED = true;
 console.log('USE_STRUCTURED', USE_STRUCTURED);
 
-async function decideWithStructured({ currentProgram, currentUser }) {
+async function decideWithStructured({ currentProgram, currentUser, systemPrompt }) {
   const { decideController } = await import('@/ai/deciders/controller');
-  const safe = await decideController({ currentProgram, currentUser, previousMusicId: currentProgram?.env?.music });
+  const safe = await decideController({
+    currentProgram,
+    currentUser,
+    previousMusicId: currentProgram?.env?.music,
+    systemPrompt,
+  });
   const { params, reason, flags, emotionKeyword } = safe || {};
   
   console.log('safe', safe);
@@ -31,7 +36,7 @@ function withTimeout(promise, ms = DEFAULT_TIMEOUT_MS) {
 export async function decideEnv({ systemPrompt, latestConversation, currentProgram, currentUser }) {
   if (USE_STRUCTURED) {
     try {
-      return await withTimeout(decideWithStructured({ currentProgram, currentUser }), DEFAULT_TIMEOUT_MS);
+      return await withTimeout(decideWithStructured({ currentProgram, currentUser, systemPrompt }), DEFAULT_TIMEOUT_MS);
     } catch (e) {
       // fall through to legacy path
     }

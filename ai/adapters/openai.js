@@ -12,8 +12,13 @@ export async function callControllerTool({ systemPrompt, conversation = [], user
       description: 'Generate environment decision within policy bounds',
       parameters: toJsonSchema(),
     },
+    
   };
 
+  console.log('systemPrompt', systemPrompt);
+  console.log('conversation', conversation);
+  console.log('userPayload', userPayload);
+  
   const body = {
     model: MODEL,
     messages: [

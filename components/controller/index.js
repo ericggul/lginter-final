@@ -1,6 +1,7 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSocketController from '@/utils/hooks/useSocketController';
 import useControllerFlow from './hooks/useControllerFlow';
+import { CONTROLLER_SYSTEM_MIN_PROMPT } from '@/ai/prompts/controller';
 import {
   Container,
   TopSection,
@@ -30,7 +31,10 @@ import {
 
 export default function ControllerView() {
   const sockets = useSocketController();
-  const orchestrator = useControllerFlow({ emit: sockets.emit });
+  // Admin-editable prompt used in structured-output path
+  const [promptOverride, setPromptOverride] = useState(CONTROLLER_SYSTEM_MIN_PROMPT);
+  const [promptDraft, setPromptDraft] = useState(CONTROLLER_SYSTEM_MIN_PROMPT);
+  const orchestrator = useControllerFlow({ emit: sockets.emit, systemPrompt: promptOverride });
   useEffect(() => {
     sockets.updateHandlers?.({
       onNewUser: orchestrator.onNewUser,
@@ -43,6 +47,7 @@ export default function ControllerView() {
   const snapshot = orchestrator.snapshot || {};
   const users = snapshot.users || [];
   const assignments = snapshot.assignments || {};
+  const lastDecision = snapshot.lastDecision || null;
 
   return (
     <Container>
@@ -59,28 +64,106 @@ export default function ControllerView() {
           </ResetButton>
         </div>
 
-        <SettingsPanel>
-          <SettingsTitle>결정된 4가지 설정 스테이트</SettingsTitle>
-          <SettingsGrid>
-            <SettingCard>
-              <SettingLabel>설정 온도:</SettingLabel>
-              <SettingValue>{assignments.temperature?.value ?? ''}</SettingValue>
-            </SettingCard>
-            <SettingCard>
-              <SettingLabel>설정 습도:</SettingLabel>
-              <SettingValue>{assignments.humidity?.value ?? ''}</SettingValue>
-            </SettingCard>
-            <SettingCard>
-              <SettingLabel>설정 조명 컬러:</SettingLabel>
-              <SettingValue>{assignments.light?.value ?? ''}</SettingValue>
-            </SettingCard>
-            <SettingCard>
-              <SettingLabel>설정 음악:</SettingLabel>
-              <SettingValue>{assignments.music?.value ?? ''}</SettingValue>
-            </SettingCard>
-          </SettingsGrid>
-        </SettingsPanel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2vh' }}>
+          <SettingsPanel>
+            <SettingsTitle>AI Prompt & 결과(관리자용)</SettingsTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem', zIndex: 9999 }}>
+              <div>
+                <SettingLabel>시스템 프롬프트(구조화 출력용)</SettingLabel>
+                <textarea
+                  value={promptDraft}
+                  onChange={(e) => setPromptDraft(e.target.value)}
+                  style={{
+                    width: '100%',
+                    minHeight: '20rem',
+                    fontFamily: 'inherit',
+                    fontSize: '1rem',
+                    padding: '1rem',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    background: 'white',
+                    color: 'inherit',
+                    zIndex: 1000,
+                    resize: 'vertical',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+                  <button
+                    onClick={() => setPromptOverride(promptDraft)}
+                    style={{
+                      background: '#2D6AE3',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '0.75rem 1.2rem',
+                      fontSize: '0.95rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(45,106,227,0.25)',
+                    }}
+                  >
+                    프롬프트 적용
+                  </button>
+                </div>
+              </div>
+              <div>
+                <SettingLabel>최근 결정 결과(JSON)</SettingLabel>
+                <pre
+                  style={{
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    width: '100%',
+                    minHeight: '18rem',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    background: 'rgba(255,255,255,0.04)',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  {JSON.stringify(
+                    lastDecision
+                      ? {
+                          params: lastDecision.env,
+                          reason: lastDecision.reason,
+                          flags: lastDecision.flags,
+                          emotionKeyword: lastDecision.emotionKeyword,
+                        }
+                      : {},
+                    null,
+                    2
+                  )}
+                </pre>
+              </div>
+            </div>
+          </SettingsPanel>
 
+          <SettingsPanel>
+            <SettingsTitle>결정된 4가지 설정 스테이트</SettingsTitle>
+            <SettingsGrid>
+              <SettingCard>
+                <SettingLabel>설정 온도:</SettingLabel>
+                <SettingValue>{assignments.temperature?.value ?? ''}</SettingValue>
+              </SettingCard>
+              <SettingCard>
+                <SettingLabel>설정 습도:</SettingLabel>
+                <SettingValue>{assignments.humidity?.value ?? ''}</SettingValue>
+              </SettingCard>
+              <SettingCard>
+                <SettingLabel>설정 조명 컬러:</SettingLabel>
+                <SettingValue>{assignments.light?.value ?? ''}</SettingValue>
+              </SettingCard>
+              <SettingCard>
+                <SettingLabel>설정 음악:</SettingLabel>
+                <SettingValue>{assignments.music?.value ?? ''}</SettingValue>
+              </SettingCard>
+            </SettingsGrid>
+          </SettingsPanel>
+        </div>
+      </TopSection>
+
+      <BottomSection>
         <ScreenStatusPanel>
           <ScreenStatusTitle>스크린 상태 체크(오류 상황)</ScreenStatusTitle>
 
@@ -112,29 +195,29 @@ export default function ControllerView() {
             </ScreenDeviceGrid>
           </ScreenGroup>
         </ScreenStatusPanel>
-      </TopSection>
 
-      <BottomSection>
-        <UserSelectionTitle>각 사용자 선택 사항</UserSelectionTitle>
-        <UserGrid>
-          {users.slice(0, 6).map((user, idx) => (
-            <UserCard key={user.userId || idx}>
-              <UserCardLabel>{user.name || `M${idx + 1}`}</UserCardLabel>
-              <UserCardContent>
-                {user.needs?.temperature && <div>온도: {user.needs.temperature}</div>}
-                {user.needs?.humidity && <div>습도: {user.needs.humidity}</div>}
-                {user.needs?.light && <div>조명: {user.needs.light}</div>}
-                {user.needs?.music && <div>음악: {user.needs.music}</div>}
-              </UserCardContent>
-            </UserCard>
-          ))}
-          {Array.from({ length: Math.max(0, 6 - users.length) }).map((_, idx) => (
-            <UserCard key={`empty-${idx}`}>
-              <UserCardLabel>M{users.length + idx + 1}</UserCardLabel>
-              <UserCardContent />
-            </UserCard>
-          ))}
-        </UserGrid>
+        <SettingsPanel>
+          <SettingsTitle>각 사용자 선택 사항</SettingsTitle>
+          <UserGrid>
+            {users.slice(0, 6).map((user, idx) => (
+              <UserCard key={user.userId || idx}>
+                <UserCardLabel>{user.name || `M${idx + 1}`}</UserCardLabel>
+                <UserCardContent>
+                  {user.needs?.temperature && <div>온도: {user.needs.temperature}</div>}
+                  {user.needs?.humidity && <div>습도: {user.needs.humidity}</div>}
+                  {user.needs?.light && <div>조명: {user.needs.light}</div>}
+                  {user.needs?.music && <div>음악: {user.needs.music}</div>}
+                </UserCardContent>
+              </UserCard>
+            ))}
+            {Array.from({ length: Math.max(0, 6 - users.length) }).map((_, idx) => (
+              <UserCard key={`empty-${idx}`}>
+                <UserCardLabel>M{users.length + idx + 1}</UserCardLabel>
+                <UserCardContent />
+              </UserCard>
+            ))}
+          </UserGrid>
+        </SettingsPanel>
       </BottomSection>
     </Container>
   );

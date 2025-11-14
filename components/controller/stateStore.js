@@ -77,6 +77,11 @@ export function buildSnapshot(controllerState, usersMap) {
           ...controllerState.lastDecision,
           env: { ...controllerState.lastDecision.env },
           mergedFrom: [...(controllerState.lastDecision.mergedFrom || [])],
+          // Surface meta so admins can view flags/emotion without dev tooling
+          flags: controllerState.lastDecision.flags
+            ? { ...controllerState.lastDecision.flags }
+            : undefined,
+          emotionKeyword: controllerState.lastDecision.emotionKeyword || '',
         }
       : null,
   };

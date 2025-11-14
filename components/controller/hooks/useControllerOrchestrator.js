@@ -6,7 +6,7 @@ import { computeFairAverage } from '../logic/controllerMerge';
 const DECISION_DEBOUNCE_MS = 500;
 const HEARTBEAT_TIMEOUT = 30 * 1000;
 
-export default function useControllerOrchestrator({ emit }) {
+export default function useControllerOrchestrator({ emit, systemPrompt }) {
   const controllerStateRef = useRef(createControllerState());
   const usersRef = useRef(new Map());
   const preferencesRef = useRef(new Map());
@@ -43,6 +43,7 @@ export default function useControllerOrchestrator({ emit }) {
           userId,
           userContext: userRecord,
           lastDecision: state.lastDecision,
+          systemPrompt,
         });
 
         persistPreference(preferencesRef.current, { id: entryId, userId, params: individualEnv }, now);
@@ -57,6 +58,9 @@ export default function useControllerOrchestrator({ emit }) {
         
         const decisionId = `decision-${now}`;
         applyAggregatedEnv(state, mergedEnv, mergedFrom, decisionId, now, aggregatedReason);
+        // Capture meta from latest decision so UI can display without dev tools
+        state.lastDecision.flags = flags || { offTopic: false, abusive: false };
+        state.lastDecision.emotionKeyword = emotionKeyword || '';
 
         updateUserDecision(usersMap, userId, {
           individual: individualEnv,
@@ -83,6 +87,8 @@ export default function useControllerOrchestrator({ emit }) {
         const decisionId = `fallback-${now}`;
 
         applyAggregatedEnv(controllerStateRef.current, fallbackEnv, [userId], decisionId, now, fallbackReason);
+        controllerStateRef.current.lastDecision.flags = { offTopic: false, abusive: false };
+        controllerStateRef.current.lastDecision.emotionKeyword = '';
         updateUserDecision(usersRef.current, userId, {
           individual: fallbackEnv,
           applied: fallbackEnv,
@@ -103,7 +109,7 @@ export default function useControllerOrchestrator({ emit }) {
         });
       }
     },
-    [emit, publishSnapshot]
+    [emit, publishSnapshot, systemPrompt]
   );
 
   const scheduleDecision = useCallback(
