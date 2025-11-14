@@ -1,7 +1,7 @@
 import { decideEnv } from '@/src/services/openai.service';
 import { DEFAULT_ENV } from './stateStore';
 import { normalizeEnv } from './logic/controllerMerge';
-import { CONTROLLER_SYSTEM_PROMPT } from '@/utils/prompts/controller.prompt';
+import { CONTROLLER_SYSTEM_PROMPT } from '@/ai/prompts/controller';
 
 export async function requestControllerDecision({ userId, userContext, lastDecision, systemPrompt }) {
   const result = await decideEnv({

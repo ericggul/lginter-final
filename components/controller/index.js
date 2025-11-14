@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import useSocketController from '@/utils/hooks/useSocketController';
 import useControllerFlow from './hooks/useControllerFlow';
-import { CONTROLLER_SYSTEM_MIN_PROMPT } from '@/ai/prompts/controller';
+import { CONTROLLER_SYSTEM_MIN_PROMPT, CONTROLLER_SYSTEM_PROMPT } from '@/ai/prompts/controller';
 import {
   Container,
   TopSection,
@@ -32,8 +32,8 @@ import {
 export default function ControllerView() {
   const sockets = useSocketController();
   // Admin-editable prompt used in structured-output path
-  const [promptOverride, setPromptOverride] = useState(CONTROLLER_SYSTEM_MIN_PROMPT);
-  const [promptDraft, setPromptDraft] = useState(CONTROLLER_SYSTEM_MIN_PROMPT);
+  const [promptOverride, setPromptOverride] = useState('');
+  const [promptDraft, setPromptDraft] = useState('');
   const orchestrator = useControllerFlow({ emit: sockets.emit, systemPrompt: promptOverride });
   useEffect(() => {
     sockets.updateHandlers?.({
@@ -69,6 +69,38 @@ export default function ControllerView() {
             <SettingsTitle>AI Prompt & 결과(관리자용)</SettingsTitle>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem', zIndex: 9999 }}>
               <div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setPromptDraft(CONTROLLER_SYSTEM_PROMPT)}
+                    style={{
+                      background: '#EFEFEF',
+                      color: '#222',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      borderRadius: '8px',
+                      padding: '0.5rem 0.9rem',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    긴 버전 불러오기
+                  </button>
+                  <button
+                    onClick={() => setPromptDraft(CONTROLLER_SYSTEM_MIN_PROMPT)}
+                    style={{
+                      background: '#EFEFEF',
+                      color: '#222',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      borderRadius: '8px',
+                      padding: '0.5rem 0.9rem',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    짧은 버전 불러오기
+                  </button>
+                </div>
                 <SettingLabel>시스템 프롬프트(구조화 출력용)</SettingLabel>
                 <textarea
                   value={promptDraft}
