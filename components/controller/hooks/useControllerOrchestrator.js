@@ -47,12 +47,14 @@ export default function useControllerOrchestrator({ emit }) {
 
         persistPreference(preferencesRef.current, { id: entryId, userId, params: individualEnv }, now);
         const activeEntries = getActivePreferences(preferencesRef.current, now);
+        console.log('activeEntries', activeEntries);
         const mergedEnv = computeFairAverage(activeEntries);
         const mergedFrom = activeEntries.map((entry) => entry.id);
 
         const aggregatedReason =
           activeEntries.length > 1 ? `Merged from ${activeEntries.length} inputs: ${reason}` : reason;
-
+        console.log('aggregatedReason', aggregatedReason)
+        
         const decisionId = `decision-${now}`;
         applyAggregatedEnv(state, mergedEnv, mergedFrom, decisionId, now, aggregatedReason);
 

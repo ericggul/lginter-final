@@ -1,12 +1,17 @@
 // Single entrypoint for OpenAI decisions. JS-only.
 
 const DEFAULT_TIMEOUT_MS = 6000; // faster failover to avoid UX stalls
-const USE_STRUCTURED = String(process.env.NEXT_PUBLIC_AI_STRUCTURED || '').toLowerCase() === 'true';
+// const USE_STRUCTURED = String(process.env.NEXT_PUBLIC_AI_STRUCTURED || '').toLowerCase() === 'true';
+const USE_STRUCTURED = true;
+console.log('USE_STRUCTURED', USE_STRUCTURED);
 
 async function decideWithStructured({ currentProgram, currentUser }) {
   const { decideController } = await import('@/ai/deciders/controller');
   const safe = await decideController({ currentProgram, currentUser, previousMusicId: currentProgram?.env?.music });
   const { params, reason, flags, emotionKeyword } = safe || {};
+  
+  console.log('safe', safe);
+
   return {
     updatedProgram: { text: reason || '', version: (currentProgram?.version || 0) + 1, reason: reason || 'ai-structured' },
     params,
