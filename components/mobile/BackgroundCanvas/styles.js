@@ -87,7 +87,7 @@ export const KeywordLayer = styled.div`
   --kw-spacing-y: clamp(72px, 14vh, 120px);
   --kw-spacing-x: clamp(110px, 22vw, 180px);
   opacity: ${(p) => (p.$visible ? 1 : 0)};
-  transition: opacity 320ms ease;
+  transition: none; /* avoid group fade that masks per-item stagger */
   mix-blend-mode: normal;
 `;
 
@@ -98,6 +98,13 @@ export const KeywordItem = styled.div`
   font-size: clamp(1.3rem, 5.5vw, 2.4rem);
   color: #000;
   text-shadow: none;
+  will-change: opacity;
+  opacity: ${(p) => p.$visible ? 1 : 0};
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  ${(p) => p.$pos === 'top' ? `transition-delay: 0ms;` : ''}
+  ${(p) => p.$pos === 'right' ? `transition-delay: 1300ms;` : ''}
+  ${(p) => p.$pos === 'bottom' ? `transition-delay: 2600ms;` : ''}
+  ${(p) => p.$pos === 'left' ? `transition-delay: 3900ms;` : ''}
   ${(p) => p.$pos === 'top' ? `
     top: var(--kw-center-y);
     left: var(--kw-center-x);
@@ -326,6 +333,12 @@ export const KeyframesGlobal = createGlobalStyle`
     62.5% { transform: translate(-50.2%, -49.7%) scale(1.002) rotate(0.1deg); }
     75% { transform: translate(-49.6%, -50.1%) scale(1.006) rotate(-0.3deg); }
     87.5% { transform: translate(-50.4%, -50.4%) scale(1.003) rotate(0.2deg); }
+  }
+
+  /* Appear-and-hold animation for final keywords (no movement, stays visible) */
+  @keyframes keywordAppear {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
   }
 
   @keyframes sharpBloomEffect {

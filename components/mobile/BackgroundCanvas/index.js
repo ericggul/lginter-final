@@ -20,6 +20,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const [showCenterGlow, setShowCenterGlow] = useState(false)
   const [keywordLabels, setKeywordLabels] = useState([])
   const [showKeywords, setShowKeywords] = useState(false)
+  const [hasShownKeywords, setHasShownKeywords] = useState(false)
   const [showMoodWordsDelayed, setShowMoodWordsDelayed] = useState(false)
   const [isVoiceActive, setIsVoiceActive] = useState(false)
   const moodLoop = useMemo(() => [...MOOD_WORDS, MOOD_WORDS[0]], [])
@@ -216,6 +217,16 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
     }
   }, [showMoodWords, mounted])
 
+  // Latch keyword visibility: trigger only after all 4 labels are ready, and on the next frame
+  const labelsReady = (keywordLabels?.filter(Boolean).length || 0) >= 4
+  useEffect(() => {
+    if (showKeywords && labelsReady && !hasShownKeywords) {
+      const id = requestAnimationFrame(() => setHasShownKeywords(true))
+      return () => cancelAnimationFrame(id)
+    }
+    return undefined
+  }, [showKeywords, labelsReady, hasShownKeywords])
+
   if (!mounted) {
     return (
       <S.PreMountCover $bg={'linear-gradient(to bottom, #FFF5F7 0%, #F5E6F5 30%, #E8D5E0 60%, rgb(125, 108, 118) 100%)'} />
@@ -388,30 +399,20 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
             </S.MoodTrack>
           </S.MoodWords>
         )}
-        {showKeywords && (
-          <S.KeywordLayer $visible={showKeywords}>
-            {keywordLabels[0] ? (
-              <S.KeywordItem $pos="top" $visible={showKeywords}>
-                {keywordLabels[0]}
-              </S.KeywordItem>
-            ) : null}
-            {keywordLabels[1] ? (
-              <S.KeywordItem $pos="left" $visible={showKeywords}>
-                {keywordLabels[1]}
-              </S.KeywordItem>
-            ) : null}
-            {keywordLabels[2] ? (
-              <S.KeywordItem $pos="bottom" $visible={showKeywords}>
-                {keywordLabels[2]}
-              </S.KeywordItem>
-            ) : null}
-            {keywordLabels[3] ? (
-              <S.KeywordItem $pos="right" $visible={showKeywords}>
-                {keywordLabels[3]}
-              </S.KeywordItem>
-            ) : null}
-          </S.KeywordLayer>
-        )}
+        <S.KeywordLayer $visible={hasShownKeywords}>
+          <S.KeywordItem $pos="top" $visible={hasShownKeywords}>
+            {keywordLabels[0] ?? ''}
+          </S.KeywordItem>
+          <S.KeywordItem $pos="right" $visible={hasShownKeywords}>
+            {keywordLabels[3] ?? ''}
+          </S.KeywordItem>
+          <S.KeywordItem $pos="bottom" $visible={hasShownKeywords}>
+            {keywordLabels[2] ?? ''}
+          </S.KeywordItem>
+          <S.KeywordItem $pos="left" $visible={hasShownKeywords}>
+            {keywordLabels[1] ?? ''}
+          </S.KeywordItem>
+        </S.KeywordLayer>
         </S.BlobWrapper>
       </S.Root>
       {/* Panel removed: mirrored blob follows main blob levers automatically */}
