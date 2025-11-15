@@ -88,6 +88,7 @@ export const KeywordLayer = styled.div`
   --kw-spacing-x: clamp(110px, 22vw, 180px);
   opacity: ${(p) => (p.$visible ? 1 : 0)};
   transition: none; /* avoid group fade that masks per-item stagger */
+  ${(p) => p.$pulse ? `animation: keywordGroupPulse 1200ms ease-in-out 1 forwards;` : ''}
   mix-blend-mode: normal;
 `;
 
@@ -338,6 +339,13 @@ export const KeyframesGlobal = createGlobalStyle`
   /* Appear-and-hold animation for final keywords (no movement, stays visible) */
   @keyframes keywordAppear {
     0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* After all four keywords are shown, fade all together to 0 then back to 1 */
+  @keyframes keywordGroupPulse {
+    0% { opacity: 1; }
+    45% { opacity: 0; }
     100% { opacity: 1; }
   }
 

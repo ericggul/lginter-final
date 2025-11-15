@@ -21,6 +21,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const [keywordLabels, setKeywordLabels] = useState([])
   const [showKeywords, setShowKeywords] = useState(false)
   const [hasShownKeywords, setHasShownKeywords] = useState(false)
+  const [keywordsPulse, setKeywordsPulse] = useState(false)
   const [showMoodWordsDelayed, setShowMoodWordsDelayed] = useState(false)
   const [isVoiceActive, setIsVoiceActive] = useState(false)
   const moodLoop = useMemo(() => [...MOOD_WORDS, MOOD_WORDS[0]], [])
@@ -227,6 +228,18 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
     return undefined
   }, [showKeywords, labelsReady, hasShownKeywords])
 
+  // After staggered reveal completes, run one-time group pulse (fade to 0 then back to 1)
+  useEffect(() => {
+    if (!hasShownKeywords || keywordsPulse) return
+    const ITEM_FADE_MS = 900
+    const DELAY_STEP_MS = 900
+    const LAST_DELAY_MS = DELAY_STEP_MS * 3
+    const totalRevealMs = LAST_DELAY_MS + ITEM_FADE_MS
+    const HOLD_AFTER_REVEAL_MS = 3000
+    const t = setTimeout(() => setKeywordsPulse(true), totalRevealMs + HOLD_AFTER_REVEAL_MS + 60)
+    return () => clearTimeout(t)
+  }, [hasShownKeywords, keywordsPulse])
+
   if (!mounted) {
     return (
       <S.PreMountCover $bg={'linear-gradient(to bottom, #FFF5F7 0%, #F5E6F5 30%, #E8D5E0 60%, rgb(125, 108, 118) 100%)'} />
@@ -399,7 +412,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
             </S.MoodTrack>
           </S.MoodWords>
         )}
-        <S.KeywordLayer $visible={hasShownKeywords}>
+        <S.KeywordLayer $visible={hasShownKeywords} $pulse={keywordsPulse}>
           <S.KeywordItem $pos="top" $visible={hasShownKeywords}>
             {keywordLabels[0] ?? ''}
           </S.KeywordItem>
