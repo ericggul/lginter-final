@@ -46,7 +46,7 @@ export const Cluster = styled.div`
 export const OrbitWrap = styled.div`
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: calc(50% - var(--cluster-offset-y, 6%));
   transform: translate(-50%, -50%);
   width: ${(p) => p.$d}px;
   height: ${(p) => p.$d}px;
@@ -83,7 +83,7 @@ export const KeywordLayer = styled.div`
   pointer-events: none;
   z-index: 5;
   --kw-center-x: 50%;
-  --kw-center-y: 40%;
+  --kw-center-y: 34%;
   --kw-spacing-y: clamp(72px, 14vh, 120px);
   --kw-spacing-x: clamp(110px, 22vw, 180px);
   opacity: ${(p) => (p.$visible ? 1 : 0)};
@@ -188,7 +188,7 @@ export const MoodWord = styled.div`
 export const NewOrbWrap = styled.div`
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: calc(50% - var(--cluster-offset-y, 6%));
   transform: translate(-50%, -50%);
   z-index: 0;
   width: ${(p) => (p.$d != null ? `${p.$d}px` : 'auto')};
@@ -212,7 +212,7 @@ export const NewOrbShape = styled.div`
 export const FinalOrbWrap = styled.div`
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: calc(50% - var(--cluster-offset-y, 6%));
   transform: translate(-50%, -50%);
   z-index: 0;
   animation: orbitCW 16s linear infinite;
@@ -237,7 +237,7 @@ export const FinalOrbShape = styled.div`
 export const CenterGlow = styled.div`
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: calc(50% - var(--cluster-offset-y, 6%));
   transform: translate(-50%, -50%);
   width: ${(p) => (p.$d != null ? `${p.$d}px` : 'auto')};
   height: ${(p) => (p.$d != null ? `${p.$d}px` : 'auto')};
@@ -255,7 +255,7 @@ export const BGGlow = styled.div`
   aspect-ratio: 1;
   border-radius: 50%;
   left: 64%;
-  top: 66%;
+  top: 55%;
   transform: translate(-50%, -50%);
   z-index: 0;
   pointer-events: none;

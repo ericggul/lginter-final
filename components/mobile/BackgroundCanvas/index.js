@@ -288,6 +288,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           $opacity={blobAlpha}
           $opacityMs={blobOpacityMs}
           $brightness={brightnessIncrease}
+          style={{ '--cluster-offset-y': '14%' }}
         >
           <S.BGGlow />
           <S.Cluster $spin={clusterSpin}>
@@ -314,9 +315,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
                     <S.FinalOrbShape $w={Math.round(blobSize * 1.01)} $h={Math.round(blobSize * 1.05)} $br={Math.round(blobSize * 1.05)} />
                   </S.FinalOrbWrap>
                 )}
-                {showCenterGlow && (
-                  <S.CenterGlow $d={Math.round(blobSize * 1.10)} />
-                )}
+                
               </>
             )}
             <div
@@ -361,6 +360,9 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
               <div className="ring-boost" />
             </div>
           </S.Cluster>
+          {showCenterGlow && (
+            <S.CenterGlow $d={Math.round(blobSize * 1.10)} />
+          )}
           {/* Mirrored mask blob: same size and levers as the main blob, opposite rim direction */}
           <div
             className={`blob mirror${isListeningFlag ? ' frozen' : ''}`}
