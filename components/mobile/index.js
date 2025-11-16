@@ -249,6 +249,7 @@ export default function MobileControls() {
               <InnerOrb />
               <LargeRing />
               <LargeRing $delay />
+              <LargeRing $delay2 />
               <CornerLabel>재시작</CornerLabel>
             </CornerArea>
           </CornerWrap>
@@ -274,7 +275,7 @@ const CornerArea = styled(PressHitArea)`
   ${(p) => p.$side === 'left' ? '--center-x: 18%;' : '--center-x: 82%;'}
   --center-y: 78%;
   --glow-size: 640px;  /* soft white background glow diameter */
-  --core-size: 64px;   /* inner core size */
+  --core-size: 128px;  /* inner core size (ripple center) */
 `;
 
 const CornerLabel = styled.div`
@@ -365,7 +366,7 @@ const LargeRing = styled(PressRingPulse)`
   filter: blur(7px);
   animation: ${subtleRipple} 3000ms ease-out infinite;
   opacity: 0.35;
-  ${(p) => p.$delay ? 'animation-delay: 1300ms;' : ''}
+  ${(p) => p.$delay2 ? 'animation-delay: 2000ms;' : p.$delay ? 'animation-delay: 1000ms;' : ''}
   z-index: 1;
 `;
 
