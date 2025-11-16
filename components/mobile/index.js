@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import OrchestratingScreen from "./sections/OrchestratingScreen";
@@ -50,6 +50,13 @@ export default function MobileControls() {
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
   const [orchestratingLock, setOrchestratingLock] = useState(false);
   const orchestrateMinMs = 5500;
+  // Final keyword timings (from BackgroundCanvas/styles.js):
+  // Last item delay ~3900ms + item transition 900ms = 4800ms to fully visible
+  // Group pulse blink ~1200ms then wait additional 3000ms before showing buttons
+  const keywordSequenceMs = 4800;
+  const keywordPulseMs = 1200;
+  const buttonsDelayAfterPulseMs = 9000; // target: total ~15s after final keyword (4800 + 1200 + 9000)
+  const buttonsAppearDelayMs = keywordSequenceMs + keywordPulseMs + buttonsDelayAfterPulseMs; // ~15000ms
 
   const { isListening, startVoiceRecognition } = useSpeechRecognition({
     onStart: () => {
@@ -114,12 +121,12 @@ export default function MobileControls() {
   useEffect(() => {
     if (recommendations && !loading && !orchestratingLock) {
       setShowResetButton(false);
-      const t = setTimeout(() => setShowResetButton(true), 2000);
+      const t = setTimeout(() => setShowResetButton(true), buttonsAppearDelayMs);
       return () => clearTimeout(t);
     }
     setShowResetButton(false);
     return undefined;
-  }, [recommendations, loading, orchestratingLock]);
+  }, [recommendations, loading, orchestratingLock, buttonsAppearDelayMs]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -238,13 +245,13 @@ export default function MobileControls() {
       {showResetButton && (
         <>
           {/* Left: Exit (design only) */}
-          <CornerWrap $side="left">
+          <CornerWrap $side="left" $fadeIn>
             <CornerArea $side="left">
               <CornerLabel>종료</CornerLabel>
             </CornerArea>
           </CornerWrap>
           {/* Right: Restart (functional: same as previous reset) */}
-          <CornerWrap $side="right">
+          <CornerWrap $side="right" $fadeIn>
             <CornerArea $side="right" onClick={handleReset} role="button" aria-label="restart and try again">
               <InnerOrb />
               <LargeRing />
@@ -259,12 +266,21 @@ export default function MobileControls() {
   );
 }
 
+const buttonsFadeIn = keyframes`
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
 const CornerWrap = styled.div`
   position: fixed;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
   ${(p) => p.$side === 'left' ? 'left: clamp(16px, 6vw, 28px);' : 'right: clamp(16px, 6vw, 28px);'}
   z-index: 2600;
   pointer-events: auto;
+  ${(p) => p.$fadeIn && css`
+    opacity: 0;
+    animation: ${buttonsFadeIn} 900ms ease forwards;
+  `}
 `;
 
 const CornerArea = styled(PressHitArea)`
