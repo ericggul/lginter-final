@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import OrchestratingScreen from "./sections/OrchestratingScreen";
@@ -17,6 +17,7 @@ import ListeningOverlay from "./sections/ListeningOverlay";
 import ReasonPanel from './views/ReasonPanel';
 import InputForm from './views/InputForm';
 import { fonts } from "./sections/styles/tokens";
+import { RingPulse as PressRingPulse, HitArea as PressHitArea } from './sections/PressOverlay/styles';
 
 import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
 // public 자산 사용: 문자열 경로로 next/image에 전달
@@ -235,42 +236,137 @@ export default function MobileControls() {
       </ContentWrapper>
       <BlobControls />
       {showResetButton && (
-        <ResetButtonWrap>
-          <ResetButton type="button" onClick={handleReset}>
-            다시 입력하기
-          </ResetButton>
-        </ResetButtonWrap>
+        <>
+          {/* Left: Exit (design only) */}
+          <CornerWrap $side="left">
+            <CornerArea $side="left">
+              <CornerLabel>종료</CornerLabel>
+            </CornerArea>
+          </CornerWrap>
+          {/* Right: Restart (functional: same as previous reset) */}
+          <CornerWrap $side="right">
+            <CornerArea $side="right" onClick={handleReset} role="button" aria-label="restart and try again">
+              <InnerOrb />
+              <LargeRing />
+              <LargeRing $delay />
+              <CornerLabel>재시작</CornerLabel>
+            </CornerArea>
+          </CornerWrap>
+        </>
       )}
     </AppContainer>
   );
 }
 
-const ResetButtonWrap = styled.div`
+const CornerWrap = styled.div`
   position: fixed;
-  bottom: clamp(32px, 12vh, 80px);
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+  ${(p) => p.$side === 'left' ? 'left: clamp(16px, 6vw, 28px);' : 'right: clamp(16px, 6vw, 28px);'}
   z-index: 2600;
   pointer-events: auto;
 `;
 
-const ResetButton = styled.button`
-  padding: 0.85rem 2.6rem;
-  border-radius: 999px;
-  border: none;
-  font-family: ${fonts.ui};
-  font-weight: 700;
-  font-size: 1rem;
-  color: white;
-  background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
-  box-shadow: 0 12px 30px rgba(147, 51, 234, 0.35);
-  cursor: pointer;
-  transition: transform 160ms ease, box-shadow 160ms ease;
+const CornerArea = styled(PressHitArea)`
+  width: 220px;
+  height: 220px;
+  position: relative;
+  overflow: visible;
+  ${(p) => p.$side === 'left' ? '--center-x: 18%;' : '--center-x: 82%;'}
+  --center-y: 78%;
+  --glow-size: 640px;  /* soft white background glow diameter */
+  --core-size: 64px;   /* inner core size */
+`;
 
-  &:active {
-    transform: translateY(2px);
-    box-shadow: 0 6px 18px rgba(147, 51, 234, 0.25);
+const CornerLabel = styled.div`
+  position: absolute;
+  left: var(--center-x, 50%);
+  top: var(--center-y, 50%);
+  transform: translate(-50%, -50%);
+  font-family: ${fonts.ui};
+  font-weight: 500;
+  font-size: 1.0rem;
+  color:rgb(90, 90, 90);
+  user-select: none;
+  white-space: nowrap;
+  z-index: 2;
+`;
+
+const innerDrift = keyframes`
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+  50% { transform: translate(calc(-50% + 2px), calc(-50% - 2px)) scale(1.04); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+`;
+
+const InnerOrb = styled.div`
+  position: absolute;
+  left: var(--center-x, 50%);
+  top: var(--center-y, 50%);
+  transform: translate(-50%, -50%);
+  width: var(--core-size);
+  height: var(--core-size);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,0.98) 0%,
+    rgba(255,255,255,0.7) 48%,
+    rgba(255,255,255,0.35) 62%,
+    rgba(255,255,255,0.0) 76%
+  );
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  animation: ${innerDrift} 3200ms ease-in-out infinite;
+  z-index: 1;
+`;
+
+const SubtleOrb = styled.div`
+  position: absolute;
+  left: var(--center-x, 50%);
+  top: var(--center-y, 50%);
+  transform: translate(-50%, -50%);
+  width: var(--glow-size);
+  height: var(--glow-size);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,0.90) 0%,
+    rgba(255,255,255,0.55) 42%,
+    rgba(255,255,255,0.22) 62%,
+    rgba(255,255,255,0.00) 88%
+  );
+  filter: blur(26px);
+  mix-blend-mode: screen;
+  animation: ${innerDrift} 3600ms ease-in-out infinite;
+  z-index: 0;
+`;
+
+const subtleRipple = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.5;
+    filter: blur(6px);
   }
+  35% { opacity: 0.3; }
+  55% { opacity: 0.12; }
+  70%, 100% {
+    transform: translate(-50%, -50%) scale(2.1);
+    opacity: 0;
+    filter: blur(10px);
+  }
+`;
+
+const LargeRing = styled(PressRingPulse)`
+  left: var(--center-x, 50%);
+  top: var(--center-y, 50%);
+  transform: translate(-50%, -50%);
+  width: 180px;
+  height: 180px;
+  filter: blur(7px);
+  animation: ${subtleRipple} 3000ms ease-out infinite;
+  opacity: 0.35;
+  ${(p) => p.$delay ? 'animation-delay: 1300ms;' : ''}
+  z-index: 1;
 `;
 
 const BrandLogoWrap = styled.div`
