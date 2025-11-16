@@ -6,7 +6,7 @@ export default function SW1Controls() {
   const [climateData, setClimateData] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
   const [dotCount, setDotCount] = useState(0);
-  const BACKGROUND_URL = "/sw1_blobimage/sw1-frame.png"; // frame image moved to public/sw1_blobimage/sw1-frame.png
+  const BACKGROUND_URL = null; // remove background PNG (big pink blobs)
   const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
 
   const handleDeviceDecision = useCallback((data) => {
@@ -58,6 +58,7 @@ export default function SW1Controls() {
       </S.TopStatus>
       <S.Stage>
         <S.GradientEllipse />
+        <S.CenterMark src="/figma/Ellipse%202767.png" alt="" />
         <S.SmallBlobsLayer>
           <S.SmallBlobA>
             <S.SmallBlobLabel>

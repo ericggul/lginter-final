@@ -14,23 +14,23 @@ const drift = keyframes`
 `;
 
 const pulse = keyframes`
-  /* Center ~16vmin, amplitude +30% from current (0.6 -> 0.78) */
-  0%   { --holeInner: 15.22vmin; }
-  50%  { --holeInner: 16.78vmin; }
-  100% { --holeInner: 15.22vmin; }
+  /* Tighter inward squeeze toward center text */
+  0%   { --holeInner: 12.5vmin; }
+  50%  { --holeInner: 10.8vmin; }
+  100% { --holeInner: 12.5vmin; }
 `;
 
 const rimPulse = keyframes`
-  /* Center ~9vmin, amplitude +50% from current (1.8 -> 2.7) */
-  0%   { --outerFeather: 6.3vmin; }
-  50%  { --outerFeather: 11.7vmin; }
-  100% { --outerFeather: 6.3vmin; }
+  /* Make outer edge spread outward at peak: smaller feather = larger visible radius */
+  0%   { --outerFeather: 6vmin; }
+  50%  { --outerFeather: 3.6vmin; }
+  100% { --outerFeather: 6vmin; }
 `;
 
 const rimScale = keyframes`
-  /* Size swell amplitude +50% (1.06 -> 1.09) */
+  /* Increase global radius swell for stronger outer expansion */
   0%   { --blobScale: 1; }
-  50%  { --blobScale: 1.09; }
+  50%  { --blobScale: 1.14; }
   100% { --blobScale: 1; }
 `;
 
@@ -70,6 +70,8 @@ export const Stage = styled.div`
   width: 100vw;
   height: 100vh;
   pointer-events: none;
+  /* reference size for the largest small blob (D) */
+  --largestBlobSize: clamp(445px, 52.65vmin, 1215px);
 `;
 
 export const GradientEllipse = styled.div`
@@ -79,15 +81,14 @@ export const GradientEllipse = styled.div`
   width: 2552px;
   height: 2553px;
   transform: translate(-50%, -50%) rotate(90deg) scale(var(--blobScale));
-  background: radial-gradient(closest-side at 50% 50%, #FFC1BA 2.4%, rgba(187, 180, 156, 0.62) 67.31%, #FBB2D3 86.06%, #FFFFFF 100%);
-  /* Lower saturation slightly and set brightness to +8% net with soft bloom */
-  filter: blur(60px) saturate(0.8) brightness(1.08);
+  background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFC7C1 21.15%, rgba(255, 218, 246, 0.76) 63.46%, rgba(234, 213, 255, 0.3) 85.58%, rgba(255, 255, 255, 0) 100%);
+  filter: blur(50px);
   border-radius: 50%;
   z-index: 1;
   pointer-events: none;
   /* Create a soft transparent hole in the center and feather the outer edge */
-  --holeInner: 14vmin; /* radius where fully transparent begins (tweak as needed) */
-  --holeFeather: 6vmin; /* softness of the inner edge */
+  --holeInner: 11vmin; /* radius where fully transparent begins (tighter to center text) */
+  --holeFeather: 5vmin; /* slightly crisper inner edge */
   --outerFeather: 8vmin; /* softness of the outer edge */
   -webkit-mask-image: radial-gradient(circle closest-side at 50% 50%,
     rgba(255,255,255,0) var(--holeInner),
@@ -162,6 +163,18 @@ export const CenterTextWrap = styled.div`
   transform: translate(-50%, -50%);
   text-align: center;
   z-index: 5;
+`;
+
+export const CenterMark = styled.img`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* 50% of the largest small blob diameter */
+  width: calc(var(--largestBlobSize) * 0.5);
+  height: calc(var(--largestBlobSize) * 0.5);
+  pointer-events: none;
+  z-index: 4; /* behind text, above background */
 `;
 
 export const CenterTemp = styled.div`
@@ -240,52 +253,92 @@ const SmallBlobBase = styled.div`
     inset: 0;
     border-radius: 50%;
     background: var(--bg);
+    background-size: 280% 280%;
     filter: blur(43.4px);
     transform: rotate(var(--rot, 0deg));
     opacity: 0.9;
     box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
+    will-change: background-position;
   }
+`;
+
+/* Subtle gradient drift (waves) to make color mix look natural */
+const gDriftX = keyframes`
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+`;
+const gDriftY = keyframes`
+  0%   { background-position: 50%   0%; }
+  50%  { background-position: 50% 100%; }
+  100% { background-position: 50%   0%; }
+`;
+const gDriftDiag1 = keyframes`
+  0%   { background-position:   0%   0%; }
+  50%  { background-position: 100% 100%; }
+  100% { background-position:   0%   0%; }
+`;
+const gDriftDiag2 = keyframes`
+  0%   { background-position: 100%   0%; }
+  50%  { background-position:   0% 100%; }
+  100% { background-position: 100%   0%; }
 `;
 
 /* a: top-left */
 export const SmallBlobA = styled(SmallBlobBase)`
-  --rot: -56.03deg;
+  --rot: 148.82deg;
   --top: 24%;
   --left: 22%;
   /* +35% larger from previous */
   --size: clamp(445px, 44.55vmin, 1053px);
-  --bg: linear-gradient(180deg, rgba(255, 173, 213, 0.48) 0%, rgba(249, 207, 180, 0.48) 60.58%);
-  animation: ${floatA} 18s ease-in-out infinite;
+  --bg: linear-gradient(180deg, rgba(140, 80, 250, 0.68) 0%, rgba(255, 225, 200, 0.34) 100%);
+  &::before {
+    box-shadow: inset 0 0 0 3px #FFFFFF;
+    animation: ${gDriftDiag1} 16s ease-in-out infinite alternate;
+  }
+  animation: ${floatA} 15.3s ease-in-out infinite;
 `;
 
 /* b: top-right */
 export const SmallBlobB = styled(SmallBlobBase)`
-  --rot: 75deg;
+  --rot: 46.33deg;
   --top: 24%;
   --left: 78%;
   --size: clamp(445px, 48.6vmin, 1134px);
-  --bg: linear-gradient(180deg, rgba(255, 138, 182, 0.48) 0%, rgba(221, 233, 227, 0.48) 67.89%);
-  animation: ${floatB} 20s ease-in-out infinite;
+  --bg: linear-gradient(180deg, rgba(162, 31, 232, 0.66) 0%, rgba(255, 230, 201, 0.55) 100%);
+  &::before {
+    box-shadow: inset 0 0 0 3px #FFFFFF;
+    animation: ${gDriftY} 18s ease-in-out infinite alternate;
+  }
+  animation: ${floatB} 17s ease-in-out infinite;
 `;
 
 /* c: bottom-left */
 export const SmallBlobC = styled(SmallBlobBase)`
-  --rot: 30deg;
+  --rot: -115.82deg;
   --top: 72%;
   --left: 30%;
   --size: clamp(445px, 46.575vmin, 1093.5px);
-  --bg: linear-gradient(180deg, rgba(249, 206, 180, 0.72) 6.25%, rgba(221, 233, 227, 0.72) 38.5%);
-  animation: ${floatC} 20s ease-in-out infinite;
+  --bg: linear-gradient(180deg, rgba(235, 65, 194, 0.78) 0%, rgba(249, 206, 180, 0.3) 94.23%);
+  &::before {
+    box-shadow: inset 0 0 0 3px #FFFFFF;
+    animation: ${gDriftX} 14s ease-in-out infinite alternate;
+  }
+  animation: ${floatC} 17s ease-in-out infinite;
 `;
 
 /* d: bottom-right */
 export const SmallBlobD = styled(SmallBlobBase)`
-  --rot: 45deg;
+  --rot: 26.49deg;
   --top: 72%;
   --left: 74%;
   --size: clamp(445px, 52.65vmin, 1215px);
-  --bg: linear-gradient(180deg, rgba(255, 173, 213, 0.61) 0%, rgba(249, 207, 180, 0.61) 60.58%);
-  animation: ${floatD} 22s ease-in-out infinite;
+  --bg: linear-gradient(180deg, rgba(235, 65, 105, 0.79) 0%, rgba(249, 221, 180, 0.34) 100%);
+  &::before {
+    box-shadow: inset 0 0 0 3px #FFFFFF;
+    animation: ${gDriftDiag2} 19.5s ease-in-out infinite alternate;
+  }
+  animation: ${floatD} 18.7s ease-in-out infinite;
 `;
 
 /* labels centered inside small blobs */
@@ -302,6 +355,14 @@ export const SmallBlobLabel = styled.div`
   /* 30% smaller than center temp clamp(25px,4.5vmin,65px) ≈ 70% factor */
   font-size: clamp(17px, 3.15vmin, 45px);
   z-index: 1; /* above blurred background (::before) */
+  /* Visually thicker text without changing font-weight */
+  -webkit-text-stroke: 1.2px rgba(170, 153, 153, 0.85);
+  text-shadow:
+    -0.6px  0   0 rgba(37, 23, 23, 0.38),
+     0.6px  0   0 rgba(0, 0, 0, 0.38),
+     0    -0.6px 0 rgba(0,0,0,0.38),
+     0     0.6px 0 rgba(0,0,0,0.38),
+     0     0    6px rgba(255,255,255,0.28);
 `;
 
 /* 4-way sectioning relative to centered text */
@@ -366,9 +427,12 @@ const driftD = keyframes`
 
 /* a: top-left */
 export const BlobA = styled(SectionBlob)`
-  --rot: -56.03deg;
+  --rot: 148.82deg;
   --size: calc(var(--baseMax) * 0.48); /* < 50% of base */
-  background: linear-gradient(180deg, rgba(255, 173, 213, 0.48) 0%, rgba(249, 207, 180, 0.48) 60.58%);
+  background: linear-gradient(180deg, rgba(140, 80, 250, 0.68) 0%, rgba(255, 225, 200, 0.34) 100%);
+  border: 3px solid #FFFFFF;
+  filter: blur(43.4px);
+  font-weight: 700;
   animation:
     ${scalePulse} 7s ease-in-out infinite alternate,
     ${driftA} 10s ease-in-out infinite alternate;
@@ -379,6 +443,7 @@ export const BlobB = styled(SectionBlob)`
   --rot: 75deg;
   --size: calc(var(--baseMax) * 0.42);
   background: linear-gradient(180deg, rgba(255, 138, 182, 0.48) 0%, rgba(221, 233, 227, 0.48) 67.89%);
+  font-weight: 700;
   animation:
     ${scalePulse} 7.5s ease-in-out infinite alternate,
     ${driftB} 11s ease-in-out infinite alternate;
@@ -389,6 +454,7 @@ export const BlobC = styled(SectionBlob)`
   --rot: 30deg;
   --size: calc(var(--baseMax) * 0.35);
   background: linear-gradient(180deg, rgba(249, 206, 180, 0.72) 6.25%, rgba(221, 233, 227, 0.72) 38.5%);
+  font-weight: 700;
   animation:
     ${scalePulse} 8s ease-in-out infinite alternate,
     ${driftC} 12s ease-in-out infinite alternate;
@@ -399,6 +465,7 @@ export const BlobD = styled(SectionBlob)`
   --rot: 45deg;
   --size: calc(var(--baseMax) * 0.28);
   background: linear-gradient(180deg, rgba(255, 173, 213, 0.61) 0%, rgba(249, 207, 180, 0.61) 60.58%);
+  font-weight: 700;
   animation:
     ${scalePulse} 8.5s ease-in-out infinite alternate,
     ${driftD} 12.5s ease-in-out infinite alternate;
