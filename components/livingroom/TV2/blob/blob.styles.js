@@ -123,12 +123,22 @@ export const Panel = styled.div`
 
 export const BlobLayer = styled.div`
   position: absolute; inset: 0; pointer-events: none;
-  /* Figma 원 디자인은 중앙/중간 링은 또렷하고
-     바깥쪽만 부드럽게 퍼지기 때문에 레이어 전체 블러는 제거 */
   filter: none;
   display: grid;
   place-items: center; /* 항상 중앙 정렬 */
   transition: opacity 1200ms ease-in-out;
+`;
+
+// 블롭이 자연스럽게 커졌다가 작아지는 숨쉬는 모션
+const blobBreath = keyframes`
+  0%, 100% {
+    transform: translate(var(--blob-tx, 0), var(--blob-ty, 0))
+               scale(calc(var(--blob-scale-base, 1)));
+  }
+  50% {
+    transform: translate(var(--blob-tx, 0), var(--blob-ty, 0))
+               scale(calc(var(--blob-scale-base, 1) * 1.06));
+  }
 `;
 
 export const BlobCircle = styled.div`
@@ -137,12 +147,12 @@ export const BlobCircle = styled.div`
   aspect-ratio: 1 / 1;
   width: min(120%, 60vmin);
   border-radius: 50%;
-  /* 패널 확장 정도에 비례해 크기만 살짝 호흡 + Leva로 추가 scale/위치 조정 */
-  transform: translate(var(--blob-tx, 0), var(--blob-ty, 0))
-             scale(calc(var(--blob-scale-base, 1) * (0.96 + (var(--grow, 0) * 0.10))));
+  /* 기본 transform 은 애니메이션에서 제어 (Leva 값 포함) */
+  transform-origin: center;
   /* 블롭 전체 외곽을 부드럽게 풀어주는 심플 블러 */
   filter: blur(var(--blob-blur, 14px));
-  transition: transform 900ms ease-in-out, background 900ms ease-in-out, filter 900ms ease-in-out;
+  transition: background 900ms ease-in-out, filter 900ms ease-in-out;
+  animation: ${blobBreath} 8s ease-in-out infinite;
 
   /* Figma 기준:
      - 중앙: 살짝 탁한 베이지/카키톤
