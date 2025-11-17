@@ -57,8 +57,9 @@ export const LeftPanel = styled.div`
   /* 앨범 카드 위치 (조금 더 오른쪽 & 상단으로) */
   --album-x: 64%;
   --album-y: 46%;
-  /* starting azimuth for angular sweep to align with orange→white seam */
-  --sweep-start: 110deg;
+  /* starting azimuth for angular sweep – 약간만 회전해서
+     하얀 영역 경계가 거의 수평에 가깝게 보이도록 조정 */
+  --sweep-start: 90deg;
   background: linear-gradient(180deg, #F28A3A 0%, #F28A3A 40%, #B0B7E8 100%);
   color: #fff;
   &::after{
@@ -190,24 +191,24 @@ export const AngularSweep = styled.div`
   z-index: 0;
   background: conic-gradient(from var(--sweep-start) at 56% 46%,
     /* 0~21deg 구간의 갈색을 제거하고 완전히 흰색으로 유지 */
-#fefaf4  0%,
-    #F5813F 0%,
+    #fefaf4 0%,
+rgb(245, 170, 120) 0%,
     /* 나머지 각도/컬러 범위는 그대로 유지 */
     #F5813F 21%,
     #F5813F 32%,
     #AEAEC5 70%,
-rgb(255, 251, 245) 100%);
+    rgb(255, 251, 245) 100%);
   filter: blur(0px) saturate(1.05);
   mix-blend-mode: normal;
   opacity: .9;
-  animation: ${spinSweep} 12s linear infinite;
+  animation: none;
 `;
 
 export const AngularSharp = styled.div`
   position: absolute; inset: -35%; pointer-events: none;
   transform-origin: 50% 50%;
   z-index: 0;
-  background: F6E4CD ;
+  background:F5813F;
   /* Conic mask creates a crisp wedge (no blur) that rotates with the element */
   -webkit-mask-image: conic-gradient(from var(--sweep-start) at 56% 46%,
     rgba(0,0,0,0) 0deg,
@@ -220,7 +221,7 @@ export const AngularSharp = styled.div`
     rgba(0,0,0,1) 18deg,
     rgba(0,0,0,0) 22deg 360deg);
   mix-blend-mode: screen;
-  animation: ${spinSweep} 12s linear infinite;
+  animation: none;
   opacity: .85;
 `;
 
