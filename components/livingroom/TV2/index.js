@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { BlobCircle } from "./blob/blob.styles";
@@ -16,6 +17,35 @@ export default function TV2Controls() {
   }),[]);
 
   const cssVars = useBlobVars(env);
+
+  // Leva 패널로 TV2 우측 블롭의 그라데이션/크기/위치 조절
+  const blobControl = useControls('TV2 Blob', {
+    innerColor: { value: '#cbc6a3' },
+    ringColor: { value: '#ffccc3' },
+    haloColor: { value: '#ffffff00' },
+    innerStop: { value: 20, min: 0, max: 100 },
+    ringStart: { value: 53, min: 0, max: 100 },
+    ringEnd:   { value: 26, min: 0, max: 100 },
+    haloStart: { value: 55, min: 0, max: 100 },
+    haloBlur:  { value: 50, min: 0, max: 100 }, // 이제 블롭 자체 블러 강도에 사용 (기본값 크게 상향)
+    scaleBase: { value: 1.6, min: 0.5, max: 2.5 },
+    offsetX:   { value: -23, min: -30, max: 30 },
+    offsetY:   { value: -11, min: -30, max: 30 },
+  });
+
+  const blobStyle = {
+    '--blob-inner-color': blobControl.innerColor,
+    '--blob-ring-color': blobControl.ringColor,
+    '--blob-outer-color': blobControl.haloColor,
+    '--blob-inner-stop': `${blobControl.innerStop}%`,
+    '--blob-ring-inner-stop': `${blobControl.ringStart}%`,
+    '--blob-ring-outer-stop': `${blobControl.ringEnd}%`,
+    '--blob-halo-start': `${blobControl.haloStart}%`, // (현재는 미사용이지만 값은 유지)
+    '--blob-blur': `${blobControl.haloBlur}px`,
+    '--blob-scale-base': blobControl.scaleBase,
+    '--blob-tx': `${blobControl.offsetX}%`,
+    '--blob-ty': `${blobControl.offsetY}%`,
+  };
 
   return (
     <S.Root>
@@ -55,7 +85,7 @@ export default function TV2Controls() {
             </S.ClimateRow>
           </S.ClimateGroup>
           <S.BlobSpot>
-            <BlobCircle style={{ '--main':'var(--p3-main)', '--a':'var(--p3-a)', '--b':'var(--p3-b)', ...cssVars, filter: 'saturate(1.2) blur(var(--blur,6px))' }} />
+            <BlobCircle style={blobStyle} />
           </S.BlobSpot>
         </S.RightPanel>
       </S.Content>

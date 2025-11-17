@@ -273,6 +273,8 @@ export const RightPanel = styled.div`
 export const ClimateGroup = styled.div`
   /* 우측 범위가 넓어진 만큼 살짝 왼쪽으로 이동 + 전체를 조금 위로 */
   position: absolute; left: 3%; top: 36%;
+  /* 블러 처리된 블롭보다 항상 위 레이어로 */
+  z-index: 2;
   display: grid; gap: 4vh;
   color: #fff;
   filter: drop-shadow(0 10px 40px rgba(0,0,0,0.15));
@@ -293,7 +295,10 @@ export const ClimateIcon = styled.div`
 export const BlobSpot = styled.div`
   /* 원 영역을 약간 왼쪽으로 끌어와 화면 중앙 쪽으로 배치 */
   position: absolute; right: -2%; top: 18%;
-  width: 84vmin; height: 84vmin; display: grid; place-items: center; pointer-events:none;
+  width: 84vmin; height: 84vmin;
+  display: grid; place-items: center;
+  pointer-events:none;
+  z-index: 1;
 `;
 
 
