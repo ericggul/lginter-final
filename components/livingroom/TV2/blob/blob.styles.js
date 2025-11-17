@@ -132,12 +132,14 @@ export const BlobLayer = styled.div`
 // 블롭이 자연스럽게 커졌다가 작아지는 숨쉬는 모션
 const blobBreath = keyframes`
   0%, 100% {
+    /* 살짝 더 작아진 상태를 기준으로 시작/끝 */
     transform: translate(var(--blob-tx, 0), var(--blob-ty, 0))
-               scale(calc(var(--blob-scale-base, 1)));
+               scale(calc(var(--blob-scale-base, 1) * 0.92));
   }
   50% {
+    /* 정점에서 확실히 커졌다가 */
     transform: translate(var(--blob-tx, 0), var(--blob-ty, 0))
-               scale(calc(var(--blob-scale-base, 1) * 1.06));
+               scale(calc(var(--blob-scale-base, 1) * 1.12));
   }
 `;
 
@@ -152,7 +154,7 @@ export const BlobCircle = styled.div`
   /* 블롭 전체 외곽을 부드럽게 풀어주는 심플 블러 */
   filter: blur(var(--blob-blur, 14px));
   transition: background 900ms ease-in-out, filter 900ms ease-in-out;
-  animation: ${blobBreath} 8s ease-in-out infinite;
+  animation: ${blobBreath} 6s ease-in-out infinite;
 
   /* Figma 기준:
      - 중앙: 살짝 탁한 베이지/카키톤
