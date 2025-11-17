@@ -189,12 +189,15 @@ export const AngularSweep = styled.div`
   transform-origin: 50% 50%;
   z-index: 0;
   background: conic-gradient(from var(--sweep-start) at 56% 46%,
-    #A15C2E 0%,
+    /* 0~21deg 구간의 갈색을 제거하고 완전히 흰색으로 유지 */
+#fefaf4  0%,
+    #F5813F 0%,
+    /* 나머지 각도/컬러 범위는 그대로 유지 */
     #F5813F 21%,
     #F5813F 32%,
     #AEAEC5 70%,
-    #F6E4CD 100%);
-  filter: blur(28px) saturate(1.05);
+rgb(255, 251, 245) 100%);
+  filter: blur(0px) saturate(1.05);
   mix-blend-mode: normal;
   opacity: .9;
   animation: ${spinSweep} 12s linear infinite;
@@ -204,7 +207,7 @@ export const AngularSharp = styled.div`
   position: absolute; inset: -35%; pointer-events: none;
   transform-origin: 50% 50%;
   z-index: 0;
-  background: rgba(255,255,255,0.95);
+  background: F6E4CD ;
   /* Conic mask creates a crisp wedge (no blur) that rotates with the element */
   -webkit-mask-image: conic-gradient(from var(--sweep-start) at 56% 46%,
     rgba(0,0,0,0) 0deg,
