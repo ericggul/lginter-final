@@ -10,7 +10,9 @@ export const Root = styled.div`
 `;
 
 export const Header = styled.div`
-  position: absolute; top: 0; left: 0; right: 0; height: 10vh; min-height: 64px;
+  position: absolute; top: 0; left: 0; right: 0;
+  /* 상단 파란 박스를 조금 더 두껍게 */
+  height: 15vh; min-height: 96px;
   display: flex; align-items: center; gap: 2vw; padding: 0 3vw;
   color: #fff;
   background: linear-gradient(90deg, rgba(102,157,255,1) 0%, rgba(143,168,224,1) 45%, rgba(196,201,206,1) 100%);
@@ -19,23 +21,32 @@ export const Header = styled.div`
 `;
 
 export const HeaderIcon = styled.div`
-  width: 32px; height: 32px; min-width: 32px;
+  /* 아이콘 크기를 이전/현재 값의 중간 정도로 설정 */
+  width: clamp(72px, 11vmin, 180px);
+  height: clamp(72px, 11vmin, 180px);
+  min-width: clamp(72px, 11vmin, 180px);
   border-radius: 50%;
   display: grid; place-items: center;
   color: #fff;
-  svg { width: 28px; height: 28px; }
+  svg {
+    width: 70%;
+    height: 70%;
+  }
 `;
 
 export const HeaderTitle = styled.div`
-  font-size: clamp(18px, 2.2vw, 32px);
-  font-weight: 600;
+  /* 텍스트 크기도 중간 수준으로 조정 */
+  font-size: clamp(37px, 5.5vmin, 100px);
+  font-weight: 500;
   letter-spacing: 0.02em;
 `;
 
 export const Content = styled.div`
-  position: absolute; inset: 10vh 0 0 0; /* below header */
-  display: grid; grid-template-columns: 3fr 2fr;
-  height: calc(100vh - 10vh);
+  /* 헤더 높이에 맞춰 바로 아래에서 시작 */
+  position: absolute; inset: 15vh 0 0 0;
+  /* 우측(원 영역)을 기존보다 약간만 넓게 유지 */
+  display: grid; grid-template-columns: 2.7fr 2.3fr;
+  height: calc(100vh - 15vh);
 `;
 
 export const LeftPanel = styled.div`
@@ -43,9 +54,12 @@ export const LeftPanel = styled.div`
   overflow: hidden;
   padding: 4vh 4vw;
   /* Base gradient and sweeping band per spec */
-  --album-x: 58%; --album-y: 46%;
-  /* starting azimuth for angular sweep to align with orange→white seam */
-  --sweep-start: 110deg;
+  /* 앨범 카드 위치 (조금 더 오른쪽 & 상단으로) */
+  --album-x: 64%;
+  --album-y: 46%;
+  /* starting azimuth for angular sweep – 약간만 회전해서
+     하얀 영역 경계가 거의 수평에 가깝게 보이도록 조정 */
+  --sweep-start: 90deg;
   background: linear-gradient(180deg, #F28A3A 0%, #F28A3A 40%, #B0B7E8 100%);
   color: #fff;
   &::after{
@@ -133,16 +147,20 @@ export const LeftSweepWide = styled(LeftSweep)`
 
 export const MusicRow = styled.div`
   position: absolute;
-  left: calc(var(--album-x) - 30vw);
-  top: calc(var(--album-y) - 8%);
+  /* 상단 조명 아이콘/텍스트의 좌측 패딩(3vw)에 맞춰 정렬 */
+  left: 3vw;
+  /* 사각형과 세로 중심을 맞추도록 살짝 위쪽으로 조정 */
+  top: calc(var(--album-y) - 4vh);
   display: flex; align-items: center; gap: 1.4vw;
-  font-size: clamp(18px, 2.6vw, 36px);
+  /* 장르 텍스트도 중간 수준으로 */
+  font-size: clamp(37px, 5.5vmin, 100px);
   font-weight: 500;
   opacity: .95;
 `;
 
 export const MusicIcon = styled.div`
-  svg { width: clamp(22px, 2.4vw, 32px); height: clamp(22px, 2.4vw, 32px); color: #fff; }
+  /* 음악 아이콘도 중간 크기로 */
+  svg { width: clamp(72px, 11vmin, 180px); height: clamp(72px, 11vmin, 180px); color: #fff; }
 `;
 
 const spinSweep = keyframes`
@@ -172,22 +190,25 @@ export const AngularSweep = styled.div`
   transform-origin: 50% 50%;
   z-index: 0;
   background: conic-gradient(from var(--sweep-start) at 56% 46%,
-    #A15C2E 0%,
+    /* 0~21deg 구간의 갈색을 제거하고 완전히 흰색으로 유지 */
+    #fefaf4 0%,
+rgb(245, 170, 120) 0%,
+    /* 나머지 각도/컬러 범위는 그대로 유지 */
     #F5813F 21%,
     #F5813F 32%,
     #AEAEC5 70%,
-    #F6E4CD 100%);
-  filter: blur(28px) saturate(1.05);
+    rgb(255, 251, 245) 100%);
+  filter: blur(0px) saturate(1.05);
   mix-blend-mode: normal;
   opacity: .9;
-  animation: ${spinSweep} 12s linear infinite;
+  animation: none;
 `;
 
 export const AngularSharp = styled.div`
   position: absolute; inset: -35%; pointer-events: none;
   transform-origin: 50% 50%;
   z-index: 0;
-  background: rgba(255,255,255,0.95);
+  background:F5813F;
   /* Conic mask creates a crisp wedge (no blur) that rotates with the element */
   -webkit-mask-image: conic-gradient(from var(--sweep-start) at 56% 46%,
     rgba(0,0,0,0) 0deg,
@@ -200,14 +221,15 @@ export const AngularSharp = styled.div`
     rgba(0,0,0,1) 18deg,
     rgba(0,0,0,0) 22deg 360deg);
   mix-blend-mode: screen;
-  animation: ${spinSweep} 12s linear infinite;
+  animation: none;
   opacity: .85;
 `;
 
 export const AlbumCard = styled.div`
   position: absolute; left: var(--album-x); top: var(--album-y);
   transform: translate(-50%, -50%);
-  width: min(34vh, 32vw); aspect-ratio: 1 / 1; border-radius: 20px;
+  /* 더 작게 줄여서 텍스트와 균형 맞춤 */
+  width: min(24vh, 20vw); aspect-ratio: 1 / 1; border-radius: 20px;
   background: radial-gradient(120% 120% at 35% 25%, #c7e3ff 0%, #c9d2e8 40%, #f7efe8 100%);
   box-shadow:
     0 20px 50px rgba(0,0,0,0.25),
@@ -220,10 +242,12 @@ export const AlbumCard = styled.div`
 export const TrackTitle = styled.div`
   position: absolute;
   left: var(--album-x);
-  top: calc(var(--album-y) + min(34vh, 32vw) * 0.62);
+  /* 카드 바로 아래쪽에 오도록 조금 위로 올림 */
+  top: calc(var(--album-y) + min(24vh, 20vw) * 0.6);
   transform: translateX(-50%);
-  font-size: clamp(18px, 2.0vw, 30px);
-  font-weight: 700;
+  /* 음악 제목은 살짝 더 작게, medium 두께로 */
+  font-size: clamp(34px, 5.1vmin, 92px);
+  font-weight: 500;
   color: rgba(255,255,255,0.98);
   text-shadow: 0 8px 20px rgba(0,0,0,0.2);
 `;
@@ -231,9 +255,11 @@ export const TrackTitle = styled.div`
 export const Artist = styled.div`
   position: absolute;
   left: var(--album-x);
-  top: calc(var(--album-y) + min(34vh, 32vw) * 0.62 + 3.2vh);
+  /* 트랙 타이틀과의 간격을 조금 줄여 더 가깝게 배치 */
+  top: calc(var(--album-y) + min(24vh, 20vw) * 0.7 + 2.5vh);
   transform: translateX(-50%);
-  font-size: clamp(12px, 1.2vw, 18px);
+  /* 하단 아티스트 텍스트는 한 단계 더 작게 */
+  font-size: clamp(24px, 3.8vmin, 68px);
   color: rgba(255,255,255,0.9);
 `;
 
@@ -245,24 +271,34 @@ export const RightPanel = styled.div`
 `;
 
 export const ClimateGroup = styled.div`
-  position: absolute; left: 6%; top: 40%;
+  /* 우측 범위가 넓어진 만큼 살짝 왼쪽으로 이동 + 전체를 조금 위로 */
+  position: absolute; left: 3%; top: 36%;
+  /* 블러 처리된 블롭보다 항상 위 레이어로 */
+  z-index: 2;
   display: grid; gap: 4vh;
   color: #fff;
   filter: drop-shadow(0 10px 40px rgba(0,0,0,0.15));
 `;
 
 export const ClimateRow = styled.div`
-  display: flex; align-items: center; gap: 1.2vw;
-  font-size: clamp(20px, 2.6vw, 44px);
+  /* 아이콘과 텍스트 사이 간격을 조금 좁힘 */
+  display: flex; align-items: center; gap: 0.9vw;
+  /* 온도/습도 텍스트도 중간 수준으로 */
+  font-size: clamp(37px, 5.6vmin, 103px);
 `;
 
 export const ClimateIcon = styled.div`
-  svg { width: clamp(22px, 2.6vw, 40px); height: clamp(22px, 2.6vw, 40px); color: #fff; }
+  /* 온도/습도 아이콘도 중간 크기로 */
+  svg { width: clamp(72px, 11.0vmin, 180px); height: clamp(72px, 11.0vmin, 180px); color: #fff; }
 `;
 
 export const BlobSpot = styled.div`
-  position: absolute; right: -10%; top: 20%;
-  width: 80vmin; height: 80vmin; display: grid; place-items: center; pointer-events:none;
+  /* 원 영역을 약간 왼쪽으로 끌어와 화면 중앙 쪽으로 배치 */
+  position: absolute; right: -2%; top: 18%;
+  width: 84vmin; height: 84vmin;
+  display: grid; place-items: center;
+  pointer-events:none;
+  z-index: 1;
 `;
 
 

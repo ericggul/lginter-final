@@ -67,7 +67,8 @@ export const Cell = styled.div`
 `;
 
 export const Value = styled.div`
-  font-size: clamp(14px, 2.0vw, 28px);
+  /* 오른쪽 오버레이 값도 중간 크기로 */
+  font-size: clamp(37px, 5.5vmin, 100px);
   transform: scale(calc(0.85 + (var(--grow,0) * 0.9)));
   transform-origin: center;
   transition: transform 240ms ease;
@@ -75,12 +76,12 @@ export const Value = styled.div`
 
 export const Reason = styled.div`
   position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%);
-  font-size: clamp(12px, 1.4vw, 18px); opacity: 0; will-change: transform, opacity;
+  font-size: clamp(28px, 4.3vmin, 76px); opacity: 0; will-change: transform, opacity;
 `;
 
 export const Typing = styled.div`
   position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%);
-  font-size: clamp(12px, 1.2vw, 16px); opacity: 0.85; white-space: nowrap; overflow:hidden;
+  font-size: clamp(28px, 4.3vmin, 76px); opacity: 0.85; white-space: nowrap; overflow:hidden;
   border-right: 2px solid rgba(255,255,255,0.8);
   /* typing will be scheduled via Cell nth-child overrides */
 `;

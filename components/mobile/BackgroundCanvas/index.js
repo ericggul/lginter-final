@@ -250,7 +250,9 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const pressEase = pressProgress * pressProgress * (3.0 - 2.0 * pressProgress)
   
   // 모바일 페이지에서 크기와 위치 (fixed)
-  const blobTop = '60%'
+  // 기본 값(60%)은 기존 모든 단계의 위치를 유지하고,
+  // 마지막 키워드/최종 오브 단계에서만 살짝 위로 올린 값(56%)을 사용한다.
+  const blobTop = (hasShownKeywords || showFinalOrb) ? '56%' : '60%'
   
   const baseBlobSize = 350
   const idleScaleFactor = 320 / baseBlobSize
@@ -414,7 +416,14 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
             </S.MoodTrack>
           </S.MoodWords>
         )}
-        <S.KeywordLayer $visible={hasShownKeywords} $pulse={keywordsPulse}>
+        <S.KeywordLayer
+          $visible={hasShownKeywords}
+          $pulse={keywordsPulse}
+          style={{
+            // 최종 키워드가 보일 때만 중심을 살짝 위로 올린다.
+            '--kw-center-y': hasShownKeywords ? '31%' : '34%',
+          }}
+        >
           <S.KeywordItem $pos="top" $visible={hasShownKeywords}>
             {keywordLabels[0] ?? ''}
           </S.KeywordItem>
