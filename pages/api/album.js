@@ -19,7 +19,39 @@ export default async function handler(req, res) {
     const simplify = (s) => String(s).toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
     const want = simplify(name);
 
+    // Allow numeric filenames (1.png ~ 16.png) via mapping from canonical names/ids
+    const NAME_TO_NUM = {
+      lifeisscott: '1', lifeis: '1',
+      glowscott: '2', glow: '2',
+      cleansoulcalming: '3', cleansoul: '3',
+      borealis: '4',
+      happystroll: '5',
+      ukuleledance: '6', ukeleledance: '6',
+      happyalley: '7',
+      sunnysideup: '8',
+      newbeginnings: '9',
+      solstice: '10',
+      solace: '11',
+      thetravellingsymphony: '12', travellingsymphony: '12', travelingsymphony: '12',
+      amberlight: '13',
+      echoes: '14',
+      shouldersofgiants: '15',
+      akindofhope: '16'
+    };
+
     let chosen = null;
+
+    // 0) Try numeric mapping first
+    const mapped = NAME_TO_NUM[want];
+    if (mapped) {
+      const asData = path.join(albumDir, `${mapped}.png`);
+      try { await fsp.access(asData); chosen = asData; } catch {}
+      if (!chosen) {
+        const asPublic = path.join(publicDir, `${mapped}.png`);
+        try { await fsp.access(asPublic); chosen = asPublic; } catch {}
+      }
+    }
+
     for (const f of files) {
       if (!f.toLowerCase().endsWith('.png')) continue;
       const base = f.slice(0, -4);
