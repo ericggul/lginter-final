@@ -1,6 +1,5 @@
 const devices = [
-  { title: "Entrance / MV2", src: "/entrance/mv2" }, // wide banner at top
-  { title: "Entrance / MW1", src: "/entrance/mw1" },
+  { title: "Entrance / MW1", src: "/entrance/mw1" }, // wide banner at top
   { title: "Entrance / SBM1", src: "/entrance/sbm1" },
   { title: "Entrance / TV1", src: "/entrance/tv1" },
   { title: "LivingRoom / SW1", src: "/livingroom/sw1" },
@@ -13,7 +12,7 @@ export default function AllDevicesLab() {
   const rows = Math.ceil(rest.length / 3);
   return (
     <div style={{ padding: 0, margin: 0 }}>
-      {/* Top wide MV2 banner */}
+      {/* Top wide banner */}
       <iframe
         key={first.src}
         src={first.src}
