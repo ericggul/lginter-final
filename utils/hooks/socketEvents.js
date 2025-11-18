@@ -11,6 +11,10 @@ export const EVENTS = {
 
   // Server broadcasts
   DEVICE_DECISION: "device-decision",
+  LIGHT_APPLIED: "light-applied",
+
+  // SW2 specific (lighting control)
+  SW2_LIGHT_COLOR: "sw2-light-color",
 
   // Streamlined server broadcasts
   NEW_NAME: "new-name",
