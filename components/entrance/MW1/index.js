@@ -1,36 +1,32 @@
-import { useState, useMemo } from "react";
+import { useRef, useState } from "react";
 import useSocketMW1 from "@/utils/hooks/useSocketMW1";
 import * as S from './styles';
-import { createSocketHandlers } from './logic';
+import { useMW1VideoLogic } from "./logic";
 
 export default function MW1Controls() {
-  const [welcomeData, setWelcomeData] = useState(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const videoRef = useRef(null);
+  const [isActive, setIsActive] = useState(false);
+  const [src, setSrc] = useState("/video/idle.mp4");
+  const [videoKey, setVideoKey] = useState('idle');
 
-  const handlers = useMemo(() => createSocketHandlers({ setWelcomeData, setIsVisible }), [setWelcomeData, setIsVisible]);
-  const { socket } = useSocketMW1({ onEntranceNewVoice: handlers.onEntranceNewVoice });
+  const { handleEnded, onEntranceNewUser } = useMW1VideoLogic({
+    isActive, setIsActive, setSrc, setVideoKey, idleSrc: "/video/idle.mp4", activeSrc: "/video/active.mp4"
+  });
+
+  useSocketMW1({ onEntranceNewUser });
 
   return (
     <S.Container>
-      <S.BackgroundTopRight />
-      <S.BackgroundBottomLeft />
-      {!isVisible && (
-        <S.DefaultTextWrap>
-          <S.Title>Media Wall</S.Title>
-          <S.Subtitle>입장을 기다리고 있습니다...</S.Subtitle>
-        </S.DefaultTextWrap>
-      )}
-
-      {isVisible && welcomeData && (
-        <S.WelcomeCard>
-          <S.EmojiLarge>🎉</S.EmojiLarge>
-          <S.WelcomeTitle>환영합니다!</S.WelcomeTitle>
-          <S.WelcomeText>"{welcomeData.text || welcomeData.emotion}"</S.WelcomeText>
-          {welcomeData.emotion && (
-            <S.EmotionText>감정: {welcomeData.emotion}</S.EmotionText>
-          )}
-        </S.WelcomeCard>
-      )}
+      <S.FullscreenVideo
+        key={videoKey}
+        ref={videoRef}
+        src={src}
+        autoPlay
+        muted
+        playsInline
+        onEnded={handleEnded}
+        loop={!isActive}
+      />
     </S.Container>
   );
 }

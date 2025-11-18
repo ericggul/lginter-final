@@ -1,20 +1,23 @@
-export function createSocketHandlers({ setWelcomeData, setIsVisible }) {
-  const onEntranceNewVoice = (data) => {
-    console.log('🎤 MW1 Component received entrance-new-voice:', data);
-    setWelcomeData({
-      name: data.userId || '손님',
-      text: data.text,
-      emotion: data.emotion
-    });
-    setIsVisible(true);
+import { useCallback, useEffect, useRef } from "react";
 
-    setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(() => setWelcomeData(null), 500);
-    }, 8000);
-  };
+// Centralize MW1 video switching logic
+export function useMW1VideoLogic({ isActive, setIsActive, setSrc, setVideoKey, idleSrc, activeSrc }) {
+  const activeRef = useRef(isActive);
+  useEffect(() => { activeRef.current = isActive; }, [isActive]);
 
-  return { onEntranceNewVoice };
+  const handleEnded = useCallback(() => {
+    if (activeRef.current) {
+      setIsActive(false);
+      setSrc(idleSrc);
+      setVideoKey('idle-' + Date.now());
+    }
+  }, [setIsActive, setSrc, setVideoKey, idleSrc]);
+
+  const onEntranceNewUser = useCallback(() => {
+    setIsActive(true);
+    setSrc(activeSrc);
+    setVideoKey('active-' + Date.now());
+  }, [setIsActive, setSrc, setVideoKey, activeSrc]);
+
+  return { handleEnded, onEntranceNewUser };
 }
-
-

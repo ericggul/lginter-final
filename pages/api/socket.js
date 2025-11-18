@@ -55,7 +55,6 @@ export default function handler(req, res) {
 
     // Device-specific init → map to rooms (keep event names)
     socket.on("mw1-init", () => socket.join("entrance"));
-    socket.on("mv2-init", () => socket.join("entrance"));
     socket.on("sbm1-init", () => socket.join("entrance"));
     socket.on("tv1-init", () => socket.join("entrance"));
     socket.on("sw1-init", () => socket.join("livingroom"));
