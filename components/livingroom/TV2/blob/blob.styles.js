@@ -123,10 +123,24 @@ export const Panel = styled.div`
 
 export const BlobLayer = styled.div`
   position: absolute; inset: 0; pointer-events: none;
-  filter: blur(var(--blur, 6px));
+  filter: none;
   display: grid;
   place-items: center; /* 항상 중앙 정렬 */
   transition: opacity 1200ms ease-in-out;
+`;
+
+// 블롭이 자연스럽게 커졌다가 작아지는 숨쉬는 모션
+const blobBreath = keyframes`
+  0%, 100% {
+    /* 살짝 더 작아진 상태를 기준으로 시작/끝 */
+    transform: translate(var(--blob-tx, 0), var(--blob-ty, 0))
+               scale(calc(var(--blob-scale-base, 1) * 0.92));
+  }
+  50% {
+    /* 정점에서 확실히 커졌다가 */
+    transform: translate(var(--blob-tx, 0), var(--blob-ty, 0))
+               scale(calc(var(--blob-scale-base, 1) * 1.12));
+  }
 `;
 
 export const BlobCircle = styled.div`
@@ -135,47 +149,26 @@ export const BlobCircle = styled.div`
   aspect-ratio: 1 / 1;
   width: min(120%, 60vmin);
   border-radius: 50%;
-  /* 패널 확장 정도에 비례해 크기/채도/명도 강화 */
-  transform: scale(calc(1 + (var(--grow, 0) * 0.12)));
-  /* 더 높은 기본 채도 + 성장 시 강하게 */
-  filter: saturate(calc(1.25 + (var(--grow, 0) * 0.75))) brightness(calc(1 - (var(--grow, 0) * 0.12)));
-  transition: filter 600ms ease-in-out, transform 600ms ease-in-out, background 1200ms ease-in-out;
-  /* blob_origin 기반 레이어드 그라디언트 (주색만 변수로) */
-  background:
-    radial-gradient(farthest-side at var(--p1x,72%) var(--p1y,52%), var(--main) 0%, transparent 60%),
-    radial-gradient(farthest-side at var(--p2x,46%) var(--p2y,68%), var(--a) 0%, transparent 70%),
-    radial-gradient(farthest-side at var(--p3x,32%) var(--p3y,28%), var(--b) 0%, transparent 75%);
-  opacity: 0.95;
-  will-change: transform, filter;
-  animation: l1 9s ease-in-out infinite alternate, l2 11s ease-in-out infinite alternate, b1 10s ease-in-out infinite alternate;
-  animation-delay: var(--delay, 0s);
-  /* rim and halo */
-  &::before{
-    content:''; position:absolute; inset:-1vmin; border-radius:50%;
-    background: radial-gradient(farthest-side at 50% 50%, rgba(255,255,255,0) 92%, rgba(255,255,255,0.75) 97%, rgba(255,255,255,0) 100%);
-    filter: blur(10px); opacity:.65; mix-blend-mode:screen; pointer-events:none;
-  }
-  &::after{
-    content:''; position:absolute; inset:-12vmin; border-radius:50%;
-    background: radial-gradient(farthest-side, rgba(255,255,255,0.85), rgba(255,255,255,0.15) 55%, rgba(255,255,255,0.00) 80%);
-    filter: blur(22px); opacity:.9; pointer-events:none;
-  }
+  /* 기본 transform 은 애니메이션에서 제어 (Leva 값 포함) */
+  transform-origin: center;
+  /* 블롭 전체 외곽을 부드럽게 풀어주는 심플 블러 */
+  filter: blur(var(--blob-blur, 14px));
+  transition: background 900ms ease-in-out, filter 900ms ease-in-out;
+  animation: ${blobBreath} 6s ease-in-out infinite;
 
-  @keyframes l1 {
-    0%   { --p1x: 74%; --p1y: 50%; }
-    50%  { --p1x: 56%; --p1y: 40%; }
-    100% { --p1x: 68%; --p1y: 66%; }
-  }
-  @keyframes l2 {
-    0%   { --p2x: 44%; --p2y: 70%; }
-    50%  { --p2x: 60%; --p2y: 56%; }
-    100% { --p2x: 38%; --p2y: 76%; }
-  }
-  @keyframes b1 {
-    0%   { --s1: 26%; --s1o: 56%; --s2: 42%; --s2o: 78%; }
-    50%  { --s1: 38%; --s1o: 68%; --s2: 52%; --s2o: 84%; }
-    100% { --s1: 24%; --s1o: 54%; --s2: 40%; --s2o: 76%; }
-  }
+  /* Figma 기준:
+     - 중앙: 살짝 탁한 베이지/카키톤
+     - 중간: 핑크빛이 강한 링
+     - 바깥: 어두운 회색빛이 퍼지다가 투명해짐 */
+  background:
+    radial-gradient(circle at 50% 50%,
+      var(--blob-inner-color, rgba(203, 198, 163, 1)) 0%,
+      var(--blob-inner-color, rgba(203, 198, 163, 1)) var(--blob-inner-stop, 32%),
+      var(--blob-ring-color, rgba(247, 187, 176, 1)) var(--blob-ring-inner-stop, 46%),
+      var(--blob-ring-color, rgba(247, 187, 176, 1)) var(--blob-ring-outer-stop, 68%),
+      rgba(0, 0, 0, 0.0) 100%);
+
+  /* 더 이상 별도 halo 레이어는 사용하지 않음 – 단일 블롭만 블러 처리 */
 `;
 
 

@@ -1,4 +1,5 @@
 import styled, { createGlobalStyle } from 'styled-components';
+import { fonts } from '../sections/styles/tokens';
 
 export const Root = styled.div`
   position: fixed;
@@ -10,6 +11,9 @@ export const Root = styled.div`
   pointer-events: none;
   overflow: hidden;
   background: ${(p) => p.$bg || 'transparent'};
+  /* 배경 레이어에 올라가는 모든 텍스트(키워드, 무드 단어 등)를
+     프리텐다드 UI 폰트로 강제 지정해서 기기별 폰트 깨짐을 방지 */
+  font-family: ${fonts.ui};
 `;
 
 export const PreMountCover = styled.div`
@@ -83,6 +87,8 @@ export const KeywordLayer = styled.div`
   pointer-events: none;
   z-index: 5;
   --kw-center-x: 50%;
+  /* 기본 중심 위치 (기존 값 유지). 실제 이동은 컴포넌트에서
+     최종 단계일 때만 inline-style로 override 한다. */
   --kw-center-y: 34%;
   --kw-spacing-y: clamp(72px, 14vh, 120px);
   --kw-spacing-x: clamp(110px, 22vw, 180px);
@@ -94,7 +100,9 @@ export const KeywordLayer = styled.div`
 
 export const KeywordItem = styled.div`
   position: absolute;
-  font-family: inherit;
+  /* 키워드 폰트가 일부 기기에서 시스템 기본 서체로 보이는 문제를 막기 위해
+     직접 Pretendard UI 폰트를 지정 */
+  font-family: ${fonts.ui};
   font-weight: 800;
   font-size: clamp(1.3rem, 5.5vw, 2.4rem);
   color: #000;
@@ -175,7 +183,7 @@ export const MoodTrack = styled.div`
 `;
 
 export const MoodWord = styled.div`
-  font-family: inherit;
+  font-family: ${fonts.ui};
   font-weight: 500;
   font-size: clamp(1.4rem, 6vw, 2.6rem);
   letter-spacing: -0.01em;

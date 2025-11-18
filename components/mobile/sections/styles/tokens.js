@@ -8,7 +8,9 @@ export const fonts = {
 
 export const spacing = {
   container: {
-    paddingTop: 'calc(env(safe-area-inset-top, 0px) + clamp(96px, 14vh, 180px))',
+    // 상단 질문 텍스트를 실제 기기에서 더 위쪽으로 배치하기 위해
+    // 전체 상단 패딩을 한 번 더 줄여서 화면 상단에 더 가깝게 보이도록 조정
+    paddingTop: 'calc(env(safe-area-inset-top, 0px) + clamp(56px, 9vh, 120px))',
     paddingRight: 'clamp(28px,7vw,72px)',
     paddingBottom: 'clamp(40px,8vh,96px)',
     paddingLeft: 'clamp(28px,7vw,72px)'
@@ -18,7 +20,10 @@ export const spacing = {
     subtextMarginTop: '0.6rem'
   },
   press: {
-    bottom: 'clamp(88px, 18vh, 144px)'
+    // 실제 모바일에서 보이스 인풋 하얀 점이 여전히 위쪽에 보여
+    // 화면 하단에 더 가깝게 오도록 bottom 값을 추가로 줄였다.
+    // (safe-area를 고려해 약간의 여유 여백만 남김)
+    bottom: 'calc(env(safe-area-inset-bottom, 0px) + clamp(32px, 7vh, 72px))'
   }
 };
 
