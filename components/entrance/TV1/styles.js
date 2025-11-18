@@ -23,6 +23,8 @@ export const Canvas = styled.div`
   width: 3840px;
   height: 2160px;
   transform-origin: top center;
+  /* Scale entire design by viewport width (max 1:1 at 3840px) */
+  transform: scale(min(1, calc(100vw / 3840)));
   /* Hint to the browser that transform scaling is frequent */
   will-change: transform;
   /* Maintain the design aspect-ratio for layout tools and future CSS sizing */

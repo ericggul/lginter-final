@@ -35,8 +35,16 @@ export const InterestBox = styled.div`
   height: 320px;
   border-radius: 300px;
   border: 1px solid #FFF;
-  background: linear-gradient(99deg, rgba(91, 76, 255, 0.09) 23.61%, rgba(55, 255, 252, 0.05) 73.24%, rgba(66, 255, 142, 0.07) 92.2%);
-  background-size: 280% 280%;
+  /* Boost contrast by introducing complementary warm hues and bright whites */
+  background: linear-gradient(
+    110deg,
+    rgba(91, 76, 255, 0.42) 10%,
+    rgba(255, 255, 255, 0.88) 28%,
+    rgba(255, 132, 94, 0.42) 52%,
+    rgba(55, 255, 252, 0.32) 74%,
+    rgba(66, 255, 142, 0.38) 92%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: 0 16px 10.3px 0 rgba(255, 255, 255, 0.38) inset, 0 -28px 30.9px 0 rgba(255, 255, 255, 0.69) inset;
@@ -72,8 +80,16 @@ export const PlayfulBox = styled.div`
   height: 320px;
   border-radius: 300px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(243.46deg, rgba(255, 120, 37, 0.1932) 3.42%, rgba(255, 254, 172, 0.168) 65.14%, rgba(127, 225, 255, 0.1344) 88.72%);
-  background-size: 280% 280%;
+  /* Increase contrast with bright whites and deeper oranges/sky */
+  background: linear-gradient(
+    240deg,
+    rgba(255, 255, 255, 0.92) 10%,
+    rgba(255, 148, 41, 0.58) 28%,
+    rgba(255, 255, 255, 0.88) 48%,
+    rgba(127, 225, 255, 0.52) 72%,
+    rgba(255, 233, 110, 0.62) 92%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -110,8 +126,15 @@ export const UpsetBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(151.58deg, rgba(152, 195, 231, 0.22) 9.45%, rgba(115, 75, 180, 0.22) 53.21%, rgba(223, 141, 255, 0.22) 80.72%);
-  background-size: 280% 280%;
+  /* Add warm amber to contrast the cool purples/blues */
+  background: linear-gradient(
+    151.58deg,
+    rgba(152, 195, 231, 0.34) 8%,
+    rgba(115, 75, 180, 0.38) 38%,
+    rgba(255, 166, 102, 0.44) 66%,
+    rgba(223, 141, 255, 0.36) 92%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -135,8 +158,16 @@ export const ProudBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(223.05deg, rgba(88, 197, 255, 0.3) 13.85%, rgba(255, 245, 166, 0.3) 53.4%, rgba(198, 255, 141, 0.3) 90.85%);
-  background-size: 280% 280%;
+  /* Stronger light/dark interplay with a magenta accent */
+  background: linear-gradient(
+    223.05deg,
+    rgba(255, 255, 255, 0.92) 10%,
+    rgba(88, 197, 255, 0.55) 28%,
+    rgba(255, 130, 234, 0.42) 52%,
+    rgba(198, 255, 141, 0.58) 76%,
+    rgba(255, 255, 255, 0.88) 92%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -160,8 +191,15 @@ export const ShyBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(223.05deg, rgba(249, 255, 162, 0.35) 18.66%, rgba(198, 255, 141, 0.35) 49.39%, rgba(140, 255, 215, 0.35) 90.85%);
-  background-size: 280% 280%;
+  /* Gentle whites with playful pink against greens for contrast */
+  background: linear-gradient(
+    223.05deg,
+    rgba(255, 255, 255, 0.92) 14%,
+    rgba(249, 255, 162, 0.62) 30%,
+    rgba(255, 125, 170, 0.45) 58%,
+    rgba(140, 255, 215, 0.58) 82%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -185,8 +223,15 @@ export const ChaoticBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(223.05deg, rgba(140, 255, 215, 0.31) 13.85%, rgba(255, 160, 141, 0.31) 90.85%);
-  background-size: 280% 280%;
+  /* High-contrast teal, violet, and salmon with white flashes */
+  background: linear-gradient(
+    223.05deg,
+    rgba(255, 255, 255, 0.92) 12%,
+    rgba(140, 255, 215, 0.58) 32%,
+    rgba(166, 120, 255, 0.45) 56%,
+    rgba(255, 160, 141, 0.62) 82%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -210,8 +255,15 @@ export const HappyBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(131.16deg, rgba(255, 0, 217, 0.1855) 17.16%, rgba(104, 255, 182, 0.07) 72.86%, rgba(234, 255, 127, 0.182) 94.13%);
-  background-size: 280% 280%;
+  /* Increase white vs pink contrast in the moving gradient */
+  background: linear-gradient(
+    131.16deg,
+    rgba(255, 255, 255, 0.92) 12%,
+    rgba(255, 74, 158, 0.58) 34%,
+    rgba(255, 255, 255, 0.88) 62%,
+    rgba(255, 60, 120, 0.52) 88%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -248,8 +300,16 @@ export const AnnoyedBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(98.92deg, rgba(91, 76, 255, 0.092) 23.61%, rgba(55, 255, 252, 0.046) 73.24%, rgba(66, 255, 142, 0.069) 92.2%);
-  background-size: 280% 280%;
+  /* Sharper contrast with white flashes and warm tension */
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.88) 12%,
+    rgba(91, 76, 255, 0.42) 36%,
+    rgba(255, 80, 80, 0.35) 62%,
+    rgba(55, 255, 252, 0.38) 84%,
+    rgba(66, 255, 142, 0.42) 96%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -299,8 +359,16 @@ export const HungryBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(243.46deg, rgba(255, 120, 37, 0.1932) 3.42%, rgba(255, 254, 172, 0.168) 65.14%, rgba(127, 225, 255, 0.1344) 88.72%);
-  background-size: 280% 280%;
+  /* More contrast for playful energy with white flashes */
+  background: linear-gradient(
+    243.46deg,
+    rgba(255, 255, 255, 0.92) 8%,
+    rgba(255, 120, 37, 0.6) 30%,
+    rgba(255, 254, 172, 0.62) 56%,
+    rgba(255, 72, 90, 0.45) 78%,
+    rgba(127, 225, 255, 0.55) 94%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -350,8 +418,15 @@ export const SadBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(243.46deg, rgba(208, 136, 168, 0.35) 3.42%, rgba(107, 128, 255, 0.35) 45%, rgba(129, 198, 255, 0.35) 78%);
-  background-size: 280% 280%;
+  /* Add bright whites and deeper blues for stronger emotional contrast */
+  background: linear-gradient(
+    243.46deg,
+    rgba(255, 255, 255, 0.92) 10%,
+    rgba(30, 72, 255, 0.55) 34%,
+    rgba(208, 136, 168, 0.55) 58%,
+    rgba(129, 198, 255, 0.55) 82%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
@@ -375,8 +450,15 @@ export const WonderBox = styled.div`
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
-  background: linear-gradient(259.38deg, rgba(0, 0, 255, 0.1696) 14.53%, rgba(0, 98, 255, 0.064) 59.58%, rgba(0, 255, 179, 0.064) 86.83%);
-  background-size: 280% 280%;
+  /* Add white shine and vivid blue/cyan for curiosity */
+  background: linear-gradient(
+    259.38deg,
+    rgba(255, 255, 255, 0.92) 12%,
+    rgba(0, 0, 255, 0.5) 32%,
+    rgba(170, 0, 255, 0.38) 56%,
+    rgba(0, 255, 179, 0.52) 82%
+  );
+  background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
