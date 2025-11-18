@@ -10,22 +10,7 @@ export default function TV1Controls() {
   const [dotCount, setDotCount] = useState(0);
   const unifiedFont = '\'Pretendard\', \'Pretendard Variable\', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
 
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    const updateScale = () => {
-      const sx = window.innerWidth / 3840;
-      const sy = window.innerHeight / 2160;
-      const s = Math.min(1, sx, sy);
-      setScale(s > 0 ? s : 1);
-    };
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    window.addEventListener('orientationchange', updateScale);
-    return () => {
-      window.removeEventListener('resize', updateScale);
-      window.removeEventListener('orientationchange', updateScale);
-    };
-  }, []);
+  // Scaling handled via CSS (viewport width) in styles.Canvas
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -47,7 +32,7 @@ export default function TV1Controls() {
 
   return (
     <S.Root $fontFamily={unifiedFont}>
-      <S.Canvas style={{ transform: `scale(${scale})` }}>
+      <S.Canvas>
         <S.LeftNow>Now</S.LeftNow>
         <S.LeftTime2>13:00</S.LeftTime2>
         <S.LeftTime3>12:00</S.LeftTime3>
