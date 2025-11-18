@@ -13,7 +13,9 @@ import {
   updateDeviceHeartbeat,
   updateDeviceApplied
 } from "../../lib/brain/state";
-import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, DeviceHeartbeat, safe } from "../../src/core/schemas";
+import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, DeviceHeartbeat, LightColorPayload, safe } from "../../src/core/schemas";
+import { EV } from "../../src/core/events";
+import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient";
 
 export const config = {
   api: { bodyParser: false },
@@ -100,7 +102,7 @@ export default function handler(req, res) {
 
 
     // Controller → LivingRoom + Mobile(user)
-    socket.on("controller-new-decision", (raw) => {
+    socket.on("controller-new-decision", async (raw) => {
       const data = { uuid: raw?.uuid || nanoid(), ts: raw?.ts || Date.now(), ...raw };
       const v = safe(ControllerDecision, data); if (!v.ok) { console.warn("❌ invalid controller-new-decision", v.error?.message); return; }
       const payload = v.data;
@@ -134,11 +136,59 @@ export default function handler(req, res) {
         io.emit("device-decision", { device: "sw2", lightColor: payload.params?.lightColor, song: payload.params?.music, decisionId });
         io.emit("device-decision", { device: "sw1", temperature: payload.params?.temp, humidity: payload.params?.humidity, decisionId });
       }
+
+      // Apply Hue lighting if enabled and color present
+      try {
+        if (isHueEnabled() && payload?.params?.lightColor) {
+          await initHue().catch(() => {});
+          const result = await setLightColor({
+            color: payload.params.lightColor,
+            transitionMs: 700,
+          });
+          const ack = {
+            source: "controller-new-decision",
+            decisionId,
+            color: payload.params.lightColor,
+            ok: !!result?.ok,
+            applied: !!result?.applied,
+            error: result?.error,
+          };
+          io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
+          io.to("controller").emit(EV.LIGHT_APPLIED, ack);
+        }
+      } catch (e) {
+        console.warn("❌ Hue apply (controller-new-decision) failed:", e?.message || e);
+      }
     });
 
     socket.on("controller-new-voice", (data) => {
       console.log("🎮 Server received controller-new-voice:", data);
       io.to("livingroom").emit("device-new-voice", data);
+    });
+
+    // SW2 direct color control → apply Hue
+    socket.on(EV.SW2_LIGHT_COLOR, async (raw) => {
+      const data = { uuid: raw?.uuid || nanoid(), ts: raw?.ts || Date.now(), ...raw };
+      const v = safe(LightColorPayload, raw);
+      if (!v.ok) {
+        console.warn("❌ invalid sw2-light-color", v.error?.message);
+        return;
+      }
+      const payload = v.data;
+      try {
+        if (!isHueEnabled()) {
+          io.to("livingroom").emit(EV.LIGHT_APPLIED, { source: "sw2", ok: false, applied: false, disabled: true });
+          return;
+        }
+        await initHue().catch(() => {});
+        const result = await setLightColor(payload);
+        const ack = { source: "sw2", ...payload, ok: !!result?.ok, applied: !!result?.applied, error: result?.error };
+        io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
+        io.to("controller").emit(EV.LIGHT_APPLIED, ack);
+      } catch (e) {
+        console.warn("❌ Hue apply (sw2-light-color) failed:", e?.message || e);
+        io.to("livingroom").emit(EV.LIGHT_APPLIED, { source: "sw2", ...payload, ok: false, applied: false, error: e?.message || String(e) });
+      }
     });
 
     // Device health

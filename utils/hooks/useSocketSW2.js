@@ -57,18 +57,20 @@ export default function useSocketSW2(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onDeviceDecision, onDeviceNewDecision, onDeviceNewVoice } = options || {};
+    const { onDeviceDecision, onDeviceNewDecision, onDeviceNewVoice, onLightApplied } = options || {};
 
     if (onDeviceDecision) s.on('device-decision', onDeviceDecision);
     if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
     if (onDeviceNewVoice) s.on('device-new-voice', onDeviceNewVoice);
+    if (onLightApplied) s.on(EVENTS.LIGHT_APPLIED, onLightApplied);
 
     return () => {
       if (onDeviceDecision) s.off('device-decision', onDeviceDecision);
       if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
       if (onDeviceNewVoice) s.off('device-new-voice', onDeviceNewVoice);
+      if (onLightApplied) s.off(EVENTS.LIGHT_APPLIED, onLightApplied);
     };
-  }, [socket, options?.onDeviceDecision, options?.onDeviceNewDecision, options?.onDeviceNewVoice]);
+  }, [socket, options?.onDeviceDecision, options?.onDeviceNewDecision, options?.onDeviceNewVoice, options?.onLightApplied]);
 
   const emitAmbienceDecision = (music, color, assignedUser, meta = {}) => {
     // payload: { uuid, ts, type: 'ambience', music, color, assignedUser }
@@ -82,9 +84,16 @@ export default function useSocketSW2(options = {}) {
     socketRef.current?.emit(EVENTS.DEVICE_NEW_VOICE, payload);
   };
 
+  const emitLightColor = (color, opts = {}) => {
+    // opts: { brightness?: number(1-254), transitionMs?: number, targets?: { lightIds?: number[], groupId?: number } }
+    const payload = { color, ...opts };
+    socketRef.current?.emit(EVENTS.SW2_LIGHT_COLOR, payload);
+  };
+
   return { 
     socket,
     emitAmbienceDecision, 
-    emitDeviceVoice 
+    emitDeviceVoice,
+    emitLightColor
   };
 }

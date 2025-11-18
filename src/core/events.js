@@ -16,6 +16,11 @@ export const EV = {
   DEVICE_NEW_DECISION: "device-new-decision",
   DEVICE_NEW_VOICE: "device-new-voice",
 
+  // SW2 → Server (lighting)
+  SW2_LIGHT_COLOR: "sw2-light-color",
+  // Server → clients ack/notification
+  LIGHT_APPLIED: "light-applied",
+
   // Server → Entrance (broadcast)
   ENTRANCE_NEW_USER: "entrance-new-user",
   ENTRANCE_NEW_NAME: "entrance-new-name",
