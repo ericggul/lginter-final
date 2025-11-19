@@ -3,9 +3,32 @@ import styled, { createGlobalStyle, keyframes } from 'styled-components';
 export const MotionProps = createGlobalStyle`
   @property --p1x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
   @property --p1y { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
+  @property --cx  { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
+  @property --cy  { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
   @property --holeInner { syntax: '<length>'; inherits: false; initial-value: 14vmin; }
   @property --outerFeather { syntax: '<length>'; inherits: false; initial-value: 8vmin; }
   @property --blobScale { syntax: '<number>'; inherits: false; initial-value: 1; }
+`;
+
+/* BackgroundCanvas blob center swirl for D (matches SmallBlobD path/speed) */
+export const BCBlobMotion = createGlobalStyle`
+  @property --center-x {
+    syntax: '<percentage>';
+    inherits: false;
+    initial-value: 50%;
+  }
+  @property --center-y {
+    syntax: '<percentage>';
+    inherits: false;
+    initial-value: 50%;
+  }
+  @keyframes bcSwirlD {
+    0%   { --center-x: 52%; --center-y: 46%; }
+    25%  { --center-x: 54%; --center-y: 52%; }
+    50%  { --center-x: 48%; --center-y: 54%; }
+    75%  { --center-x: 46%; --center-y: 48%; }
+    100% { --center-x: 52%; --center-y: 46%; }
+  }
 `;
 
 const drift = keyframes`
@@ -14,31 +37,34 @@ const drift = keyframes`
 `;
 
 const pulse = keyframes`
-  /* Center ~16vmin, amplitude +30% from current (0.6 -> 0.78) */
-  0%   { --holeInner: 15.22vmin; }
-  50%  { --holeInner: 16.78vmin; }
-  100% { --holeInner: 15.22vmin; }
+  /* Tighter inward squeeze toward center text */
+  0%   { --holeInner: 12.5vmin; }
+  50%  { --holeInner: 10.8vmin; }
+  100% { --holeInner: 12.5vmin; }
 `;
 
 const rimPulse = keyframes`
-  /* Center ~9vmin, amplitude +50% from current (1.8 -> 2.7) */
-  0%   { --outerFeather: 6.3vmin; }
-  50%  { --outerFeather: 11.7vmin; }
-  100% { --outerFeather: 6.3vmin; }
+  /* Make outer edge spread outward at peak: smaller feather = larger visible radius */
+  0%   { --outerFeather: 6vmin; }
+  50%  { --outerFeather: 3.6vmin; }
+  100% { --outerFeather: 6vmin; }
 `;
 
 const rimScale = keyframes`
-  /* Size swell amplitude +50% (1.06 -> 1.09) */
+  /* Increase global radius swell for stronger outer expansion */
   0%   { --blobScale: 1; }
-  50%  { --blobScale: 1.09; }
+  50%  { --blobScale: 1.25; }
   100% { --blobScale: 1; }
 `;
 
 export const Root = styled.div`
   position: relative;
   width: 100vw;
-  height: 100vh;
-  background-color: #FFFFFF;
+  /* Prefer dynamic viewport height for mobile browsers */
+  height: 100dvh;
+  /* Fallback */
+  min-height: 100vh;
+  background-color: #FAEFFA;
   background-image: ${({ $backgroundUrl }) => ($backgroundUrl ? `url(${$backgroundUrl})` : 'none')};
   background-position: center center;
   background-repeat: no-repeat;
@@ -70,24 +96,26 @@ export const Stage = styled.div`
   width: 100vw;
   height: 100vh;
   pointer-events: none;
+  /* reference size for the largest small blob (D) */
+  --largestBlobSize: clamp(445px, 52.65vmin, 1215px);
 `;
 
 export const GradientEllipse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 2552px;
-  height: 2553px;
+  /* Scale with viewport min-dimension; cap for large displays */
+  width: clamp(1100px, 135vmin, 3000px);
+  height: clamp(1100px, 135vmin, 3000px);
   transform: translate(-50%, -50%) rotate(90deg) scale(var(--blobScale));
-  background: radial-gradient(closest-side at 50% 50%, #FFC1BA 2.4%, rgba(187, 180, 156, 0.62) 67.31%, #FBB2D3 86.06%, #FFFFFF 100%);
-  /* Lower saturation slightly and set brightness to +8% net with soft bloom */
-  filter: blur(60px) saturate(0.8) brightness(1.08);
+  background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFC7C1 21.15%, rgba(255, 218, 246, 0.76) 63.46%, rgba(234, 213, 255, 0.3) 85.58%, rgba(255, 255, 255, 0) 100%);
+  filter: blur(50px);
   border-radius: 50%;
   z-index: 1;
   pointer-events: none;
   /* Create a soft transparent hole in the center and feather the outer edge */
-  --holeInner: 14vmin; /* radius where fully transparent begins (tweak as needed) */
-  --holeFeather: 6vmin; /* softness of the inner edge */
+  --holeInner: 11vmin; /* radius where fully transparent begins (tighter to center text) */
+  --holeFeather: 5vmin; /* slightly crisper inner edge */
   --outerFeather: 8vmin; /* softness of the outer edge */
   -webkit-mask-image: radial-gradient(circle closest-side at 50% 50%,
     rgba(255,255,255,0) var(--holeInner),
@@ -164,6 +192,26 @@ export const CenterTextWrap = styled.div`
   z-index: 5;
 `;
 
+/* spin for the center mark image */
+const centerMarkSpin = keyframes`
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+`;
+
+export const CenterMark = styled.img`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* 50% of the largest small blob diameter */
+  width: calc(var(--largestBlobSize) * 1.2);
+  height: calc(var(--largestBlobSize) * 1.2);
+  will-change: transform;
+  animation: ${centerMarkSpin} 4s linear infinite;
+  pointer-events: none;
+  z-index: 4; /* behind text, above background */
+`;
+
 export const CenterTemp = styled.div`
   font-size: clamp(25px, 4.5vmin, 65px);
   line-height: 1.08;
@@ -201,108 +249,139 @@ export const SmallBlobsLayer = styled.div`
   z-index: 2; /* above bg ellipse, below center text (z=5) */
 `;
 
-/* subtle float keyframes per blob (no rotation so labels stay upright) */
-const floatA = keyframes`
-  0%   { transform: translate(-50%, -50%) translate(0%, 0%); }
-  50%  { transform: translate(-50%, -50%) translate(8%, -6%); }
-  100% { transform: translate(-50%, -50%) translate(0%, 0%); }
-`;
-const floatB = keyframes`
-  0%   { transform: translate(-50%, -50%) translate(0%, 0%); }
-  50%  { transform: translate(-50%, -50%) translate(-8%, 6%); }
-  100% { transform: translate(-50%, -50%) translate(0%, 0%); }
-`;
-const floatC = keyframes`
-  0%   { transform: translate(-50%, -50%) translate(0%, 0%); }
-  50%  { transform: translate(-50%, -50%) translate(6%, 8%); }
-  100% { transform: translate(-50%, -50%) translate(0%, 0%); }
-`;
-const floatD = keyframes`
-  0%   { transform: translate(-50%, -50%) translate(0%, 0%); }
-  50%  { transform: translate(-50%, -50%) translate(-6%, -8%); }
-  100% { transform: translate(-50%, -50%) translate(0%, 0%); }
-`;
-
-const SmallBlobBase = styled.div`
+/* Wrapper to place a BackgroundCanvas-style blob at the exact D position/size */
+export const BCBlobDWrap = styled.div`
   position: absolute;
-  top: var(--top);
-  left: var(--left);
-  /* translate only; rotation applied to background pseudo so text stays upright */
-  transform: translate(-50%, -50%);
-  width: var(--size);
-  height: var(--size);
-  border-radius: 50%;
-  position: absolute;
-  /* background drawn on ::before so text is not blurred */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: var(--bg);
-    filter: blur(43.4px);
-    transform: rotate(var(--rot, 0deg));
-    opacity: 0.9;
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
-  }
-`;
-
-/* a: top-left */
-export const SmallBlobA = styled(SmallBlobBase)`
-  --rot: -56.03deg;
-  --top: 24%;
-  --left: 22%;
-  /* +35% larger from previous */
-  --size: clamp(445px, 44.55vmin, 1053px);
-  --bg: linear-gradient(180deg, rgba(255, 173, 213, 0.48) 0%, rgba(249, 207, 180, 0.48) 60.58%);
-  animation: ${floatA} 18s ease-in-out infinite;
-`;
-
-/* b: top-right */
-export const SmallBlobB = styled(SmallBlobBase)`
-  --rot: 75deg;
-  --top: 24%;
-  --left: 78%;
-  --size: clamp(445px, 48.6vmin, 1134px);
-  --bg: linear-gradient(180deg, rgba(255, 138, 182, 0.48) 0%, rgba(221, 233, 227, 0.48) 67.89%);
-  animation: ${floatB} 20s ease-in-out infinite;
-`;
-
-/* c: bottom-left */
-export const SmallBlobC = styled(SmallBlobBase)`
-  --rot: 30deg;
-  --top: 72%;
-  --left: 30%;
-  --size: clamp(445px, 46.575vmin, 1093.5px);
-  --bg: linear-gradient(180deg, rgba(249, 206, 180, 0.72) 6.25%, rgba(221, 233, 227, 0.72) 38.5%);
-  animation: ${floatC} 20s ease-in-out infinite;
-`;
-
-/* d: bottom-right */
-export const SmallBlobD = styled(SmallBlobBase)`
-  --rot: 45deg;
   --top: 72%;
   --left: 74%;
   --size: clamp(445px, 52.65vmin, 1215px);
-  --bg: linear-gradient(180deg, rgba(255, 173, 213, 0.61) 0%, rgba(249, 207, 180, 0.61) 60.58%);
-  animation: ${floatD} 22s ease-in-out infinite;
+  top: var(--top);
+  left: var(--left);
+  transform: translate(-50%, -50%);
+  width: var(--size);
+  height: var(--size);
+  pointer-events: none;
+  z-index: 1; /* under labels */
 `;
 
-/* labels centered inside small blobs */
-export const SmallBlobLabel = styled.div`
+/* Four quadrant wrappers for BackgroundCanvas blobs (smaller than CenterMark) */
+const BCBlobQuadBase = styled.div`
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: ${(p) => p.$top || '25%'};
+  left: ${(p) => p.$left || '25%'};
   transform: translate(-50%, -50%);
-  text-align: center;
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #494343;
-  opacity: 0.7;
-  line-height: 1.2;
-  /* 30% smaller than center temp clamp(25px,4.5vmin,65px) ≈ 70% factor */
-  font-size: clamp(17px, 3.15vmin, 45px);
-  z-index: 1; /* above blurred background (::before) */
+  width: calc(var(--largestBlobSize) * 0.36);
+  height: calc(var(--largestBlobSize) * 0.36);
+  pointer-events: none;
+  z-index: 1;
 `;
+
+export const BCBlobTL = styled(BCBlobQuadBase)`
+  top: 25%;
+  left: 25%;
+`;
+export const BCBlobTR = styled(BCBlobQuadBase)`
+  top: 25%;
+  left: 75%;
+`;
+export const BCBlobBL = styled(BCBlobQuadBase)`
+  top: 75%;
+  left: 25%;
+`;
+export const BCBlobBR = styled(BCBlobQuadBase)`
+  top: 75%;
+  left: 75%;
+`;
+
+/* small blob float keyframes removed */
+
+/* SmallBlobBase removed */
+
+/* Subtle gradient drift (waves) to make color mix look natural */
+const gDriftX = keyframes`
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+`;
+const gDriftY = keyframes`
+  0%   { background-position: 50%   0%; }
+  50%  { background-position: 50% 100%; }
+  100% { background-position: 50%   0%; }
+`;
+const gDriftDiag1 = keyframes`
+  0%   { background-position:   0%   0%; }
+  50%  { background-position: 100% 100%; }
+  100% { background-position:   0%   0%; }
+`;
+const gDriftDiag2 = keyframes`
+  0%   { background-position: 100%   0%; }
+  50%  { background-position:   0% 100%; }
+  100% { background-position: 100%   0%; }
+`;
+
+/* gentle swirl around center: small circular path of background-position */
+const gSwirlPos = keyframes`
+  0%   { background-position: 50% 28%; }
+  25%  { background-position: 72% 50%; }
+  50%  { background-position: 50% 72%; }
+  75%  { background-position: 28% 50%; }
+  100% { background-position: 50% 28%; }
+`;
+
+/* tiny rotation wobble to enhance swirl feel without affecting layout */
+const gSwirlRot = keyframes`
+  0%   { transform: rotate(var(--rot, 0deg)); }
+  50%  { transform: rotate(calc(var(--rot, 0deg) + 28deg)); }
+  100% { transform: rotate(var(--rot, 0deg)); }
+`;
+
+/* diagonal-biased swirl paths for variety */
+const gSwirlPosDiag1 = keyframes`
+  0%   { background-position: 40% 32%; }
+  25%  { background-position: 68% 38%; }
+  50%  { background-position: 60% 68%; }
+  75%  { background-position: 32% 60%; }
+  100% { background-position: 40% 32%; }
+`;
+const gSwirlPosDiag2 = keyframes`
+  0%   { background-position: 60% 32%; }
+  25%  { background-position: 68% 62%; }
+  50%  { background-position: 40% 68%; }
+  75%  { background-position: 32% 38%; }
+  100% { background-position: 60% 32%; }
+`;
+
+/* swirl by animating radial-gradient center (scales with element size) */
+const gCenterSwirl = keyframes`
+  0%   { --cx: 50%; --cy: 46%; }
+  25%  { --cx: 54%; --cy: 50%; }
+  50%  { --cx: 50%; --cy: 54%; }
+  75%  { --cx: 46%; --cy: 50%; }
+  100% { --cx: 50%; --cy: 46%; }
+`;
+const gCenterSwirlDiag1 = keyframes`
+  0%   { --cx: 48%; --cy: 46%; }
+  25%  { --cx: 54%; --cy: 48%; }
+  50%  { --cx: 52%; --cy: 54%; }
+  75%  { --cx: 46%; --cy: 52%; }
+  100% { --cx: 48%; --cy: 46%; }
+`;
+const gCenterSwirlDiag2 = keyframes`
+  0%   { --cx: 52%; --cy: 46%; }
+  25%  { --cx: 54%; --cy: 52%; }
+  50%  { --cx: 48%; --cy: 54%; }
+  75%  { --cx: 46%; --cy: 48%; }
+  100% { --cx: 52%; --cy: 46%; }
+`;
+/* SmallBlobA removed */
+
+/* SmallBlobB removed */
+
+/* SmallBlobC removed */
+
+/* SmallBlobD removed */
+
+/* SmallBlobLabel removed */
 
 /* 4-way sectioning relative to centered text */
 export const SectionGrid = styled.div`
@@ -366,9 +445,12 @@ const driftD = keyframes`
 
 /* a: top-left */
 export const BlobA = styled(SectionBlob)`
-  --rot: -56.03deg;
+  --rot: 148.82deg;
   --size: calc(var(--baseMax) * 0.48); /* < 50% of base */
-  background: linear-gradient(180deg, rgba(255, 173, 213, 0.48) 0%, rgba(249, 207, 180, 0.48) 60.58%);
+  background: linear-gradient(180deg, rgba(140, 80, 250, 0.68) 0%, rgba(255, 225, 200, 0.34) 100%);
+  border: 3px solid #FFFFFF;
+  filter: blur(43.4px);
+  font-weight: 700;
   animation:
     ${scalePulse} 7s ease-in-out infinite alternate,
     ${driftA} 10s ease-in-out infinite alternate;
@@ -379,6 +461,7 @@ export const BlobB = styled(SectionBlob)`
   --rot: 75deg;
   --size: calc(var(--baseMax) * 0.42);
   background: linear-gradient(180deg, rgba(255, 138, 182, 0.48) 0%, rgba(221, 233, 227, 0.48) 67.89%);
+  font-weight: 700;
   animation:
     ${scalePulse} 7.5s ease-in-out infinite alternate,
     ${driftB} 11s ease-in-out infinite alternate;
@@ -389,6 +472,7 @@ export const BlobC = styled(SectionBlob)`
   --rot: 30deg;
   --size: calc(var(--baseMax) * 0.35);
   background: linear-gradient(180deg, rgba(249, 206, 180, 0.72) 6.25%, rgba(221, 233, 227, 0.72) 38.5%);
+  font-weight: 700;
   animation:
     ${scalePulse} 8s ease-in-out infinite alternate,
     ${driftC} 12s ease-in-out infinite alternate;
@@ -399,6 +483,7 @@ export const BlobD = styled(SectionBlob)`
   --rot: 45deg;
   --size: calc(var(--baseMax) * 0.28);
   background: linear-gradient(180deg, rgba(255, 173, 213, 0.61) 0%, rgba(249, 207, 180, 0.61) 60.58%);
+  font-weight: 700;
   animation:
     ${scalePulse} 8.5s ease-in-out infinite alternate,
     ${driftD} 12.5s ease-in-out infinite alternate;

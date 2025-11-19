@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import useSocketTV1 from "@/utils/hooks/useSocketTV1";
 import * as S from './styles';
+import * as B from './blobtextbox/@boxes';
 import { createSocketHandlers } from './logic';
 
 export default function TV1Controls() {
@@ -9,22 +10,7 @@ export default function TV1Controls() {
   const [dotCount, setDotCount] = useState(0);
   const unifiedFont = '\'Pretendard\', \'Pretendard Variable\', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
 
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    const updateScale = () => {
-      const sx = window.innerWidth / 3840;
-      const sy = window.innerHeight / 2160;
-      const s = Math.min(sx, sy);
-      setScale(s > 0 ? s : 1);
-    };
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    window.addEventListener('orientationchange', updateScale);
-    return () => {
-      window.removeEventListener('resize', updateScale);
-      window.removeEventListener('orientationchange', updateScale);
-    };
-  }, []);
+  // Scaling handled via CSS (viewport width) in styles.Canvas
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -46,7 +32,16 @@ export default function TV1Controls() {
 
   return (
     <S.Root $fontFamily={unifiedFont}>
-      <S.Canvas style={{ transform: `scale(${scale})` }}>
+      <S.Canvas>
+        <S.LeftLineImage />
+        <S.LeftNow>Now</S.LeftNow>
+        <S.LeftTime2>13:00</S.LeftTime2>
+        <S.LeftTime3>12:00</S.LeftTime3>
+        <S.LeftTime4>11:00</S.LeftTime4>
+        <S.LeftShape />
+        <S.LeftShape2 />
+        <S.LeftShape3 />
+        <S.LeftShape4 />
         <S.TopText $fontFamily={unifiedFont}>
           <S.Bold>오늘</S.Bold>
           <span>의 감정들은</span>
@@ -56,17 +51,30 @@ export default function TV1Controls() {
             <S.Dot $visible={dotCount >= 3}>.</S.Dot>
           </S.Dots>
         </S.TopText>
-        <S.ContentBox $fontFamily={unifiedFont}>흥미로움</S.ContentBox>
-        <div className="pill-wrap">
+        <B.InterestBox $fontFamily={unifiedFont}>흥미로움</B.InterestBox>
+        <B.PlayfulBox $fontFamily={unifiedFont}>장난스러움</B.PlayfulBox>
+        <B.HappyBox $fontFamily={unifiedFont}>행복함</B.HappyBox>
+        <B.UpsetBox $fontFamily={unifiedFont}>언짢음</B.UpsetBox>
+        <B.ProudBox $fontFamily={unifiedFont}>뿌듯함</B.ProudBox>
+        <B.ShyBox $fontFamily={unifiedFont}>부끄러움</B.ShyBox>
+        <B.ChaoticBox $fontFamily={unifiedFont}>정신없음</B.ChaoticBox>
+        <B.SadBox $fontFamily={unifiedFont}>슬픔</B.SadBox>
+        <B.WonderBox $fontFamily={unifiedFont}>신기함</B.WonderBox>
+        <B.AnnoyedBox $fontFamily={unifiedFont}>짜증남</B.AnnoyedBox>
+        <B.HungryBox $fontFamily={unifiedFont}>배고픔</B.HungryBox>
+        <S.PillWrap>
           {keywords.map((kw) => (
-            <div
+            <S.Pill
               key={kw.id}
-              className="pill"
+              $fontFamily={kw.fontFamily || unifiedFont}
+              $fontWeight={kw.fontWeight}
+              $fontStyle={kw.fontStyle}
+              $fontSize={kw.fontSize}
             >
-              <span className="pill-text">{kw.text}</span>
-            </div>
+              <S.PillText>{kw.text}</S.PillText>
+            </S.Pill>
           ))}
-        </div>
+        </S.PillWrap>
       </S.Canvas>
     </S.Root>
   );

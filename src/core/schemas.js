@@ -56,6 +56,19 @@ export const DeviceHeartbeat = z.object({
   version: z.string().optional(),
 });
 
+// Lighting: SW2 → Server payload
+export const LightColorPayload = z.object({
+  color: z.string().min(1), // "#RRGGBB" or "rgb(r,g,b)"
+  brightness: z.number().int().min(1).max(254).optional(),
+  transitionMs: z.number().int().min(0).optional(),
+  targets: z
+    .object({
+      lightIds: z.array(z.union([z.number(), z.string()])).optional(),
+      groupId: z.union([z.number(), z.string()]).optional(),
+    })
+    .optional(),
+});
+
 // Safe parse helper: returns { ok, data } or { ok:false, error }
 export function safe(schema, payload) {
   const r = schema.safeParse(payload);

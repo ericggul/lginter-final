@@ -13,11 +13,17 @@ import {
   updateDeviceHeartbeat,
   updateDeviceApplied
 } from "../../lib/brain/state";
-import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, DeviceHeartbeat, safe } from "../../src/core/schemas";
+import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, DeviceHeartbeat, LightColorPayload, safe } from "../../src/core/schemas";
+import { EV } from "../../src/core/events";
+import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient";
 
 export const config = {
   api: { bodyParser: false },
 };
+
+// SW2 music delay helpers (server-only memory; harmless for SSR reloads)
+let __sw2LastSong = '';
+let __sw2DelayTimer = null;
 
 export default function handler(req, res) {
   if (res.socket.server.io) {
@@ -53,7 +59,6 @@ export default function handler(req, res) {
 
     // Device-specific init → map to rooms (keep event names)
     socket.on("mw1-init", () => socket.join("entrance"));
-    socket.on("mv2-init", () => socket.join("entrance"));
     socket.on("sbm1-init", () => socket.join("entrance"));
     socket.on("tv1-init", () => socket.join("entrance"));
     socket.on("sw1-init", () => socket.join("livingroom"));
@@ -100,7 +105,7 @@ export default function handler(req, res) {
 
 
     // Controller → LivingRoom + Mobile(user)
-    socket.on("controller-new-decision", (raw) => {
+    socket.on("controller-new-decision", async (raw) => {
       const data = { uuid: raw?.uuid || nanoid(), ts: raw?.ts || Date.now(), ...raw };
       const v = safe(ControllerDecision, data); if (!v.ok) { console.warn("❌ invalid controller-new-decision", v.error?.message); return; }
       const payload = v.data;
@@ -113,12 +118,47 @@ export default function handler(req, res) {
       const sw2Env = { lightColor: payload.params.lightColor, music: payload.params.music };
       updateDeviceApplied('tv2', tv2Env, decisionId);
       updateDeviceApplied('sw1', sw1Env, decisionId);
-      updateDeviceApplied('sw2', sw2Env, decisionId);
+      // SW2는 5초 지연 전환을 위해 updateDeviceApplied를 emit 시점에 수행합니다.
       
       // split fan-out
       io.to("livingroom").emit("device-new-decision", { target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
-      io.to("livingroom").emit("device-new-decision", { target: 'sw1', env: sw1Env, decisionId, mergedFrom: [payload.userId] });
-      io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2Env, decisionId, reason: payload.reason, emotionKeyword: payload.emotionKeyword, mergedFrom: [payload.userId] });
+      // SW1: 개인 결과를 함께 전달(프론트는 선택적으로 사용 가능)
+      const individual = raw?.individual && typeof raw.individual === 'object'
+        ? { userId: payload.userId, temp: raw.individual.temp, humidity: raw.individual.humidity }
+        : undefined;
+      io.to("livingroom").emit("device-new-decision", {
+        target: 'sw1',
+        env: sw1Env,
+        decisionId,
+        mergedFrom: [payload.userId],
+        ...(individual ? { individual } : {}),
+        final: sw1Env,
+      });
+      // SW2: 새 유저의 '개인' 지정 곡을 우선 고려 → 5초 지연 후 전환
+      const candidateSong =
+        (raw?.individual && typeof raw.individual?.music === 'string' && raw.individual.music) ||
+        sw2Env.music ||
+        '';
+      const sw2EnvWithSong = { ...sw2Env, music: candidateSong };
+      const newSong = candidateSong;
+      const emitSw2 = () => {
+        updateDeviceApplied('sw2', sw2EnvWithSong, decisionId);
+        io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2EnvWithSong, decisionId, reason: payload.reason, emotionKeyword: payload.emotionKeyword, mergedFrom: [payload.userId] });
+        __sw2LastSong = newSong;
+      };
+      try {
+        if (newSong && newSong !== __sw2LastSong) {
+          if (__sw2DelayTimer) clearTimeout(__sw2DelayTimer);
+          __sw2DelayTimer = setTimeout(() => {
+            emitSw2();
+            __sw2DelayTimer = null;
+          }, 5000);
+        } else {
+          emitSw2();
+        }
+      } catch {
+        emitSw2();
+      }
       // targeted to mobile user (include flags/emotionKeyword when present)
       io.to(`user:${payload.userId}`).emit("mobile-new-decision", {
         userId: payload.userId,
@@ -134,11 +174,59 @@ export default function handler(req, res) {
         io.emit("device-decision", { device: "sw2", lightColor: payload.params?.lightColor, song: payload.params?.music, decisionId });
         io.emit("device-decision", { device: "sw1", temperature: payload.params?.temp, humidity: payload.params?.humidity, decisionId });
       }
+
+      // Apply Hue lighting if enabled and color present
+      try {
+        if (isHueEnabled() && payload?.params?.lightColor) {
+          await initHue().catch(() => {});
+          const result = await setLightColor({
+            color: payload.params.lightColor,
+            transitionMs: 700,
+          });
+          const ack = {
+            source: "controller-new-decision",
+            decisionId,
+            color: payload.params.lightColor,
+            ok: !!result?.ok,
+            applied: !!result?.applied,
+            error: result?.error,
+          };
+          io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
+          io.to("controller").emit(EV.LIGHT_APPLIED, ack);
+        }
+      } catch (e) {
+        console.warn("❌ Hue apply (controller-new-decision) failed:", e?.message || e);
+      }
     });
 
     socket.on("controller-new-voice", (data) => {
       console.log("🎮 Server received controller-new-voice:", data);
       io.to("livingroom").emit("device-new-voice", data);
+    });
+
+    // SW2 direct color control → apply Hue
+    socket.on(EV.SW2_LIGHT_COLOR, async (raw) => {
+      const data = { uuid: raw?.uuid || nanoid(), ts: raw?.ts || Date.now(), ...raw };
+      const v = safe(LightColorPayload, raw);
+      if (!v.ok) {
+        console.warn("❌ invalid sw2-light-color", v.error?.message);
+        return;
+      }
+      const payload = v.data;
+      try {
+        if (!isHueEnabled()) {
+          io.to("livingroom").emit(EV.LIGHT_APPLIED, { source: "sw2", ok: false, applied: false, disabled: true });
+          return;
+        }
+        await initHue().catch(() => {});
+        const result = await setLightColor(payload);
+        const ack = { source: "sw2", ...payload, ok: !!result?.ok, applied: !!result?.applied, error: result?.error };
+        io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
+        io.to("controller").emit(EV.LIGHT_APPLIED, ack);
+      } catch (e) {
+        console.warn("❌ Hue apply (sw2-light-color) failed:", e?.message || e);
+        io.to("livingroom").emit(EV.LIGHT_APPLIED, { source: "sw2", ...payload, ok: false, applied: false, error: e?.message || String(e) });
+      }
     });
 
     // Device health
