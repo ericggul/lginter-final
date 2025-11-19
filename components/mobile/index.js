@@ -50,6 +50,7 @@ export default function MobileControls() {
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
   const [orchestratingLock, setOrchestratingLock] = useState(false);
   const orchestrateMinMs = 5500;
+  const [showTextFallback, setShowTextFallback] = useState(false);
   // Final keyword timings (from BackgroundCanvas/styles.js):
   // Last item delay ~3900ms + item transition 900ms = 4800ms to fully visible
   // Group pulse blink ~1200ms then wait additional 3000ms before showing buttons
@@ -78,7 +79,8 @@ export default function MobileControls() {
       setTimeout(() => setListeningStage('fadeOut'), 1000);
       // after fade out completes, remove overlay
       setTimeout(() => setListeningStage('idle'), 1600);
-    }
+    },
+    onError: () => setShowTextFallback(true)
   });
 
   // react to listening stage for blob opacity transitions
@@ -217,6 +219,7 @@ export default function MobileControls() {
               pressProgress={pressProgress}
               onPressStart={handlePressStart}
               onPressEnd={handlePressEnd}
+              showTextFallback={showTextFallback}
             />
             {(isListening || listeningStage === 'finalHold' || listeningStage === 'fadeOut') && (
               <ListeningOverlay
