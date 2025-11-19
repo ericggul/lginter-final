@@ -15,7 +15,7 @@ export const Root = styled.div`
   padding: constant(safe-area-inset-top) constant(safe-area-inset-right) constant(safe-area-inset-bottom) constant(safe-area-inset-left);
   /* Reduce browser overscroll/bounce that can reveal background bars */
   overscroll-behavior: contain;
-  background: linear-gradient(290deg, #FFEAEB 4.45%, #FCE1FF 55.49%, #C8CDFF 100.96%);
+  background: linear-gradient(270deg, hsl(186, 40%, 92%) 16.83%, hsl(285, 30%, 92%) 41.83%, hsl(330, 50%, 88%) 76.92%, hsl(290, 30%, 90%) 100%);
 `;
 
 export const Canvas = styled.div`
@@ -49,7 +49,7 @@ export const Canvas = styled.div`
 export const LeftLine = styled.div`
   position: absolute;
   top: 0px;
-  left: -240px;
+  left: -55px;
   width: 10px;
   height: 3000px;
   background: linear-gradient(270deg, rgba(255, 255, 255, 0.00) 0%, #FFF 47.12%, rgba(255, 255, 255, 0.00) 100%);
@@ -79,7 +79,7 @@ export const LeftLine = styled.div`
 export const LeftLineBlur = styled.div`
   position: absolute;
   top: 0px;
-  left: -240px;
+  left: -55px;
   width: 10px;
   height: 3000px;
   background: linear-gradient(270deg, rgba(255, 255, 255, 0.00) 0%, #FFF 47.12%, rgba(255, 255, 255, 0.00) 100%);
@@ -101,13 +101,34 @@ export const LeftLineBlur = styled.div`
     rgba(0,0,0,1) 100%
   );
 `;
-export const LeftShape = styled.img`
+export const LeftShape = styled.div`
   position: absolute;
-  top: 800px;
-  left: -235px; /* match LeftLine x-position */
+  top: 790px;
+  left: -50px; /* moved to previous text x-position */
+  transform: translateX(-50%); /* center on the axis */
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  /* Pink core that softens to the edge */
+  background: radial-gradient(closest-side, rgba(255, 144, 188, 1) 0%, rgba(255, 144, 188, 0.85) 70%, rgba(255, 144, 188, 0) 100%);
+  /* Pink glow matching the shape color */
+  filter: 
+    drop-shadow(0 0 24px rgba(255, 144, 188, 0.6))
+    drop-shadow(0 0 60px rgba(255, 144, 188, 0.35))
+    drop-shadow(0 0 120px rgba(255, 144, 188, 0.2));
+  pointer-events: none;
+  z-index: 5; /* above crisp line (3) so the line doesn't overlay the shape */
+`;
+
+/* White variant for the subsequent markers */
+export const LeftWhiteShape = styled.div`
+  position: absolute;
+  left: -50px; /* aligned to the time labels */
   transform: translateX(-50%); /* center on the axis */
   width: 90px;
   height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,1) 0%, rgba(255,255,255,0.9) 70%, rgba(255,255,255,0) 100%);
   filter: 
     drop-shadow(0 0 24px rgba(255, 255, 255, 0.9))
     drop-shadow(0 0 60px rgba(255, 255, 255, 0.7))
@@ -116,40 +137,42 @@ export const LeftShape = styled.img`
   z-index: 2; /* between blur (1) and crisp line (3) */
 `;
 
-export const LeftShape2 = styled(LeftShape)`
-  top: 1310px;
-    left: -235px; /* match LeftLine x-position */
-  transform: translateX(-50%); /* center on the axis */
-  width: 40px;
-  height: 40px;
-  pointer-events: none;
-  z-index: 2; /* between blur (1) and crisp line (3) */
+export const LeftShape2 = styled(LeftWhiteShape)`
+  top: 1290px;
 `;
 
-export const LeftShape3 = styled(LeftShape)`
-  top: 1800px;
-    left: -235px; /* match LeftLine x-position */
-  transform: translateX(-50%); /* center on the axis */
-  width: 40px;
-  height: 40px;
-  pointer-events: none;
-  z-index: 2; /* between blur (1) and crisp line (3) */
+export const LeftShape3 = styled(LeftWhiteShape)`
+  top: 1780px;
 `;
 
-export const LeftShape4 = styled(LeftShape)`
-  top: 2300px;
-    left: -235px; /* match LeftLine x-position */
-  transform: translateX(-50%); /* center on the axis */
-  width: 40px;
-  height: 40px;
-  pointer-events: none;
-  z-index: 2; /* between blur (1) and crisp line (3) */
+export const LeftShape4 = styled(LeftWhiteShape)`
+  top: 2280px;
 `;
 
 export const LeftNow = styled.div`
   position: absolute;
-  top: 810px;
-  left: -50px; 
+  top: 790px;
+  left: -280px; 
+  transform: translateX(-50%);
+  color: #FF72A6;
+  text-align: center;
+  font-family: Pretendard;
+  font-size: 80px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  filter: 
+    drop-shadow(0 0 24px rgba(255, 144, 188, 6))
+    drop-shadow(0 0 60px rgba(255, 144, 188, 0.35))
+    drop-shadow(0 0 120px rgba(255, 144, 188, 0.2));
+  pointer-events: none;
+  z-index: 4;
+`;
+
+export const LeftTime2 = styled.div`
+  position: absolute;
+  top: 1300px;
+  left: -280px;
   transform: translateX(-50%);
   color: #FFF;
   text-align: center;
@@ -166,32 +189,12 @@ export const LeftNow = styled.div`
   z-index: 4;
 `;
 
-export const LeftTime2 = styled.div`
-  position: absolute;
-  top: 1306px;
-  left: -55px;
-  transform: translateX(-50%);
-  color: #FFF;
-  text-align: center;
-  font-family: Pretendard;
-  font-size: 40px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: normal;
-  filter: 
-    drop-shadow(0 0 24px rgba(255, 255, 255, 0.9))
-    drop-shadow(0 0 60px rgba(255, 255,  255, 0.7))
-    drop-shadow(0 0 120px rgba(255, 255, 255, 0.4));
-  pointer-events: none;
-  z-index: 4;
-`;
-
 export const LeftTime3 = styled(LeftTime2)`
-  top: 1796px;
+  top: 1790px;
 `;
 
 export const LeftTime4 = styled(LeftTime2)`
-  top: 2296px;
+  top: 2290px;
 `;
 export const TopText = styled.div`
   position: absolute;

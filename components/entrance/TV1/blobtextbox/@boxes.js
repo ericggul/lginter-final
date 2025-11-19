@@ -26,7 +26,21 @@ const driftDiag3 = keyframes`
   100% { background-position:  20% -20%; }
 `;
 
-export const InterestBox = styled.div`
+// Shared base for all blob boxes to unify text style and padding
+export const BlobBase = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  color: #000000;
+  font-family: ${(p) => p.$fontFamily};
+  font-size: 150px;
+  line-height: 1;
+  padding: 0 40px;
+`;
+
+export const InterestBox = styled(BlobBase)`
   position: absolute;
   top: 1820px;
   left: 250px;
@@ -48,14 +62,6 @@ export const InterestBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: 0 16px 10.3px 0 rgba(255, 255, 255, 0.38) inset, 0 -28px 30.9px 0 rgba(255, 255, 255, 0.69) inset;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
   overflow: hidden;
   &::after {
     content: '';
@@ -71,10 +77,10 @@ export const InterestBox = styled.div`
   }
 `;
 
-export const PlayfulBox = styled.div`
+export const PlayfulBox = styled(BlobBase)`
   position: absolute;
   top: 1820px;
-  left: 1150px; /* to the right of InterestBox */
+  left: 1130px; /* to the right of InterestBox with 100px gap */
   transform: translateY(-50%);
   width: 930px;
   height: 320px;
@@ -93,15 +99,6 @@ export const PlayfulBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
   overflow: hidden;
   &::after {
     content: '';
@@ -117,7 +114,7 @@ export const PlayfulBox = styled.div`
   }
 `;
 
-export const UpsetBox = styled.div`
+export const UpsetBox = styled(BlobBase)`
   position: absolute;
   top: 850px; 
   left: 250px; 
@@ -138,21 +135,12 @@ export const UpsetBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
 `;
 
-export const ProudBox = styled.div`
+export const ProudBox = styled(BlobBase)`
   position: absolute;
   top: 850px;
-  left: 990px;
+  left: 970px;
   transform: translateY(-50%);
   width: 620px;
   height: 320px;
@@ -171,21 +159,12 @@ export const ProudBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
 `;
 
-export const ShyBox = styled.div`
+export const ShyBox = styled(BlobBase)`
   position: absolute;
   top: 850px;
-  left: 1730px;
+  left: 1690px;
   transform: translateY(-50%);
   width: 720px;
   height: 320px;
@@ -203,21 +182,12 @@ export const ShyBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
 `;
 
-export const ChaoticBox = styled.div`
+export const ChaoticBox = styled(BlobBase)`
   position: absolute;
   top: 850px;
-  left: 2570px;
+  left: 2510px;
   transform: translateY(-50%);
   width: 720px;
   height: 320px;
@@ -235,21 +205,12 @@ export const ChaoticBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
 `;
 
-export const HappyBox = styled.div`
+export const HappyBox = styled(BlobBase)`
   position: absolute;
   top: 1820px;
-  left: 2200px; /* same gap to the right of PlayfulBox */
+  left: 2160px; /* 100px gap to the right of PlayfulBox */
   transform: translateY(-50%);
   width: 700px;
   height: 320px;
@@ -267,15 +228,6 @@ export const HappyBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
   overflow: hidden;
   &::after {
     content: '';
@@ -291,15 +243,16 @@ export const HappyBox = styled.div`
   }
 `;
 
-export const AnnoyedBox = styled.div`
+export const AnnoyedBox = styled(BlobBase)`
   position: absolute;
-  top: 2296px;
+  top: 2320px;
   left: 250px;
   transform: translateY(-50%);
   width: 620px;
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
+  z-index: 1001;
   /* Sharper contrast with white flashes and warm tension */
   background: linear-gradient(
     100deg,
@@ -315,50 +268,18 @@ export const AnnoyedBox = styled.div`
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
   opacity: 0.69;
   overflow: hidden; /* clip blur overlays to rounded shape */
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    background: rgba(255,255,255,0.0001);
-    z-index: 1;
-  }
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    background: rgba(255,255,255,0.0001);
-    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%);
-    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%);
-    z-index: 2;
-  }
 `;
 
-export const HungryBox = styled.div`
+export const HungryBox = styled(BlobBase)`
   position: absolute;
-  top: 2296px;
-  left: 990px; /* 250 + 620 + 120 */
+  top: 2320px;
+  left: 970px; /* 250 + 620 + 100 */
   transform: translateY(-50%);
   width: 620px;
   height: 320px;
   border-radius: 400px;
   border: 1px solid #FFFFFF;
+  z-index: 1001;
   /* More contrast for playful energy with white flashes */
   background: linear-gradient(
     243.46deg,
@@ -374,44 +295,11 @@ export const HungryBox = styled.div`
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
   opacity: 0.69;
   overflow: hidden; /* clip blur overlays to rounded shape */
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    background: rgba(255,255,255,0.0001);
-    z-index: 1;
-  }
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    background: rgba(255,255,255,0.0001);
-    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%);
-    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%);
-    z-index: 2;
-  }
 `;
 
-export const SadBox = styled.div`
+export const SadBox = styled(BlobBase)`
   position: absolute;
-  top: 1350px;
+  top: 1330px;
   left: 250px;
   transform: translateY(-50%);
   width: 480px;
@@ -430,21 +318,12 @@ export const SadBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
 `;
 
-export const WonderBox = styled.div`
+export const WonderBox = styled(BlobBase)`
   position: absolute;
-  top: 1350px;
-  left: 870px;
+  top: 1330px;
+  left: 830px;
   transform: translateY(-50%);
   width: 620px;
   height: 320px;
@@ -462,14 +341,5 @@ export const WonderBox = styled.div`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
-  color: #000000;
-  font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
 `;
 
