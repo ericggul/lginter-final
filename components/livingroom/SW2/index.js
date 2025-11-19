@@ -77,10 +77,30 @@ export default function SW2Controls() {
   }, []);
 
   // 라벨에 사용자 키워드를 반영(한국어 그대로)
+  // - 비어있는 슬롯부터 채움
+  // - 3개가 모두 차 있으면 라운드로빈으로 교체
+  const nextSlotRef = useRef(0);
   useEffect(() => {
     const kw = String(userKeyword || '').trim();
     if (!kw) return;
-    setLabels(prev => [kw, prev[1], prev[2]]);
+    setLabels((prev) => {
+      // 중복은 무시
+      if (prev.includes(kw)) return prev;
+      const emptyIndex = prev.findIndex((s) => !s);
+      if (emptyIndex !== -1) {
+        const next = [...prev];
+        next[emptyIndex] = kw;
+        // 다음 교체 인덱스는 비어있던 다음 칸부터
+        nextSlotRef.current = (emptyIndex + 1) % 3;
+        return next;
+      }
+      // 모두 찼으면 라운드로빈으로 교체
+      const idx = nextSlotRef.current % 3;
+      const next = [...prev];
+      next[idx] = kw;
+      nextSlotRef.current = (idx + 1) % 3;
+      return next;
+    });
   }, [userKeyword]);
 
   useEffect(() => {

@@ -35,11 +35,6 @@ export default function useSocketMW1(options = {}) {
         console.log("❌ MW1 socket disconnected");
       });
 
-      // 중요: new-name 이벤트 리스닝 (streamlined)
-      s.on("new-name", (data) => {
-        console.log("🎉 MW1 received new-name:", data);
-      });
-
       // ping/reload 응답
       s.on('device:ping', ({ deviceId }) => {
         s.emit('device:heartbeat', { deviceId: s.id, type: 'mw1', version: '1.0.0', ts: Date.now() });
@@ -69,14 +64,16 @@ export default function useSocketMW1(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onEntranceNewVoice } = options || {};
+    const { onEntranceNewVoice, onEntranceNewUser } = options || {};
 
     if (onEntranceNewVoice) s.on('entrance-new-voice', onEntranceNewVoice);
+    if (onEntranceNewUser) s.on('entrance-new-user', onEntranceNewUser);
 
     return () => {
       if (onEntranceNewVoice) s.off('entrance-new-voice', onEntranceNewVoice);
+      if (onEntranceNewUser) s.off('entrance-new-user', onEntranceNewUser);
     };
-  }, [socket, options?.onEntranceNewVoice]);
+  }, [socket, options?.onEntranceNewVoice, options?.onEntranceNewUser]);
 
   return { 
     socket,

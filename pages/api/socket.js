@@ -21,6 +21,10 @@ export const config = {
   api: { bodyParser: false },
 };
 
+// SW2 music delay helpers (server-only memory; harmless for SSR reloads)
+let __sw2LastSong = '';
+let __sw2DelayTimer = null;
+
 export default function handler(req, res) {
   if (res.socket.server.io) {
     // Socket already initialized
@@ -55,7 +59,6 @@ export default function handler(req, res) {
 
     // Device-specific init → map to rooms (keep event names)
     socket.on("mw1-init", () => socket.join("entrance"));
-    socket.on("mv2-init", () => socket.join("entrance"));
     socket.on("sbm1-init", () => socket.join("entrance"));
     socket.on("tv1-init", () => socket.join("entrance"));
     socket.on("sw1-init", () => socket.join("livingroom"));
@@ -115,12 +118,42 @@ export default function handler(req, res) {
       const sw2Env = { lightColor: payload.params.lightColor, music: payload.params.music };
       updateDeviceApplied('tv2', tv2Env, decisionId);
       updateDeviceApplied('sw1', sw1Env, decisionId);
-      updateDeviceApplied('sw2', sw2Env, decisionId);
+      // SW2는 5초 지연 전환을 위해 updateDeviceApplied를 emit 시점에 수행합니다.
       
       // split fan-out
       io.to("livingroom").emit("device-new-decision", { target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
-      io.to("livingroom").emit("device-new-decision", { target: 'sw1', env: sw1Env, decisionId, mergedFrom: [payload.userId] });
-      io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2Env, decisionId, reason: payload.reason, emotionKeyword: payload.emotionKeyword, mergedFrom: [payload.userId] });
+      // SW1: 개인 결과를 함께 전달(프론트는 선택적으로 사용 가능)
+      const individual = raw?.individual && typeof raw.individual === 'object'
+        ? { userId: payload.userId, temp: raw.individual.temp, humidity: raw.individual.humidity }
+        : undefined;
+      io.to("livingroom").emit("device-new-decision", {
+        target: 'sw1',
+        env: sw1Env,
+        decisionId,
+        mergedFrom: [payload.userId],
+        ...(individual ? { individual } : {}),
+        final: sw1Env,
+      });
+      // SW2: 새 노래면 5초 지연 후 전환, 동일하면 즉시 유지
+      const newSong = sw2Env.music || '';
+      const emitSw2 = () => {
+        updateDeviceApplied('sw2', sw2Env, decisionId);
+        io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2Env, decisionId, reason: payload.reason, emotionKeyword: payload.emotionKeyword, mergedFrom: [payload.userId] });
+        __sw2LastSong = newSong;
+      };
+      try {
+        if (newSong && newSong !== __sw2LastSong) {
+          if (__sw2DelayTimer) clearTimeout(__sw2DelayTimer);
+          __sw2DelayTimer = setTimeout(() => {
+            emitSw2();
+            __sw2DelayTimer = null;
+          }, 5000);
+        } else {
+          emitSw2();
+        }
+      } catch {
+        emitSw2();
+      }
       // targeted to mobile user (include flags/emotionKeyword when present)
       io.to(`user:${payload.userId}`).emit("mobile-new-decision", {
         userId: payload.userId,
