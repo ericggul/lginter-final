@@ -358,6 +358,11 @@
   resolved "https://registry.yarnpkg.com/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-15.5.6.tgz#9ed5e84bd85009625dd35c444668d13061452a50"
   integrity sha512-pxK4VIjFRx1MY92UycLOOw7dTdvccWsNETQ0kDHkBlcFH1GrTLUjSiHU1ohrznnux6TqRHgv5oflhfIWZwVROQ==
 
+"@peter-murray/hue-bridge-model@^2.0.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@peter-murray/hue-bridge-model/-/hue-bridge-model-2.1.1.tgz#2b256b3a2d62d5556c223586f6d06af84f219cf6"
+  integrity sha512-RdnTRY6YOP0TS1z7elRuvD2LsxV+/fwZsl967Ihwvk/SUjQ0247plc6YRM2bEeDBUi06HpcE+tGV4GQBMlVAeg==
+
 "@radix-ui/primitive@1.1.3":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@radix-ui/primitive/-/primitive-1.1.3.tgz#e2dbc13bdc5e4168f4334f75832d7bdd3e2de5ba"
@@ -906,6 +911,28 @@ next@^15.5.6:
     "@next/swc-win32-arm64-msvc" "15.5.6"
     "@next/swc-win32-x64-msvc" "15.5.6"
     sharp "^0.34.3"
+
+node-dns-sd@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/node-dns-sd/-/node-dns-sd-1.0.1.tgz#e5aa37aa7f21fe9381f3d756ddc53a8bb25a79ca"
+  integrity sha512-GCL6FgvkHoDnvJ1Yamf8mY16lYymWmYxjne4q1MC9C8sTZn9XR3BbwsrBQGikMESMFDFLC5MovNZn6wFl1yrdQ==
+
+node-fetch@^2.6.1:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.7.0.tgz#d0f0fa6e3e2dc1d27efcd8ad99d550bda94d187d"
+  integrity sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==
+  dependencies:
+    whatwg-url "^5.0.0"
+
+node-hue-api@^5.0.0-beta.16:
+  version "5.0.0-beta.16"
+  resolved "https://registry.yarnpkg.com/node-hue-api/-/node-hue-api-5.0.0-beta.16.tgz#209ca9795b089ddf6f105e10c19dbece3a9f1300"
+  integrity sha512-JsCQlhOt9e556zzb50BzsMjQ2/Pj1J6srtQS+6mwAhjXsCMT8jm6wEmQCDb7sXVn+5LFtKpq4nmYix1fBWtm8A==
+  dependencies:
+    "@peter-murray/hue-bridge-model" "^2.0.1"
+    bottleneck "^2.19.5"
+    node-dns-sd "^1.0.1"
+    node-fetch "^2.6.1"
 
 object-assign@^4, object-assign@^4.1.1:
   version "4.1.1"
