@@ -1,3 +1,7 @@
+// Album cover provider (keep user's numeric mapping 1.png ~ 16.png)
+// Query: /api/album?name=<songName-like>
+export const config = { api: { bodyParser: false } };
+
 export default async function handler(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -19,20 +23,20 @@ export default async function handler(req, res) {
     const simplify = (s) => String(s).toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
     const want = simplify(name);
 
-    // Allow numeric filenames (1.png ~ 16.png) via mapping from canonical names/ids
+    // Numeric mapping based on user's canonical list
     const NAME_TO_NUM = {
-      lifeisscott: '1', lifeis: '1',
-      glowscott: '2', glow: '2',
-      cleansoulcalming: '3', cleansoul: '3',
+      lifeis: '1',
+      glow: '2',
+      cleansoulcalming: '3',
       borealis: '4',
       happystroll: '5',
-      ukuleledance: '6', ukeleledance: '6',
+      ukuleledance: '6',
       happyalley: '7',
       sunnysideup: '8',
       newbeginnings: '9',
       solstice: '10',
       solace: '11',
-      thetravellingsymphony: '12', travellingsymphony: '12', travelingsymphony: '12',
+      thetravellingsymphony: '12',
       amberlight: '13',
       echoes: '14',
       shouldersofgiants: '15',
@@ -52,12 +56,17 @@ export default async function handler(req, res) {
       }
     }
 
-    for (const f of files) {
-      if (!f.toLowerCase().endsWith('.png')) continue;
-      const base = f.slice(0, -4);
-      const simple = simplify(base);
-      if (simple === want) { chosen = path.join(albumDir, f); break; }
+    // 1) Try exact filename match in utils/data/album
+    if (!chosen) {
+      for (const f of files) {
+        if (!f.toLowerCase().endsWith('.png')) continue;
+        const base = f.slice(0, -4);
+        const simple = simplify(base);
+        if (simple === want) { chosen = path.join(albumDir, f); break; }
+      }
     }
+
+    // 2) Try partial match
     if (!chosen) {
       for (const f of files) {
         if (!f.toLowerCase().endsWith('.png')) continue;
@@ -67,8 +76,8 @@ export default async function handler(req, res) {
       }
     }
 
+    // 3) Fallback to public/sw2_albumcover
     if (!chosen) {
-      // 폴백: public/sw2_albumcover에서 시도
       let pubFiles = [];
       try { pubFiles = await fsp.readdir(publicDir); } catch {}
       for (const f of pubFiles) {
@@ -99,5 +108,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'album serve error', detail: String(err) });
   }
 }
-
 
