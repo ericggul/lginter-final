@@ -1,9 +1,45 @@
-// Pure merge/normalize utils for Controller
+// Pure merge/normalize utils for Controller (inlined; no external policies)
 import { DEFAULT_ENV } from '../stateStore';
-import { normalizeTemperature, normalizeWindLevel } from '@/utils/policies/temperature.policy';
-import { normalizeHumidity, decidePurifierSettings } from '@/utils/policies/humidity.policy';
-import { normalizeLightColor } from '@/utils/policies/lightColor.policy';
-import { normalizeMusic } from '@/utils/policies/music.policy';
+
+function clamp(n, min, max) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return min;
+  return Math.max(min, Math.min(max, v));
+}
+
+function normalizeTemperature(value, context = {}) {
+  return clamp(typeof value === 'number' ? value : DEFAULT_ENV.temp ?? 24, -20, 40);
+}
+
+function normalizeWindLevel(value, emotionHint = '') {
+  const base = clamp(Math.round(Number(value) || 3), 1, 5);
+  const energetic = /활력|흥분|상쾌|경쾌|열정|active|energetic/i.test(String(emotionHint || ''));
+  return clamp(base + (energetic ? 1 : 0), 1, 5);
+}
+
+function normalizeHumidity(value, _emotionHint = '') {
+  return clamp(typeof value === 'number' ? value : DEFAULT_ENV.humidity ?? 50, 20, 80);
+}
+
+function decidePurifierSettings(humidity, _emotionHint = '') {
+  const h = clamp(humidity, 0, 100);
+  if (h < 40) return { purifierOn: true, purifierMode: 'humidify' };
+  if (h > 60) return { purifierOn: true, purifierMode: 'purify' };
+  return { purifierOn: true, purifierMode: 'humidify_plus_purify' };
+}
+
+function normalizeLightColor(color, { soft = false } = {}) {
+  if (typeof color === 'string' && /^#?[0-9a-fA-F]{6}$/.test(color)) {
+    const hex = color.startsWith('#') ? color.toUpperCase() : ('#' + color.toUpperCase());
+    return hex;
+  }
+  return DEFAULT_ENV.lightColor || '#FFFFFF';
+}
+
+function normalizeMusic(id, _emotionHint = '') {
+  if (typeof id === 'string' && id.trim().length > 0) return id.trim();
+  return DEFAULT_ENV.music || 'ambient';
+}
 
 export function normalizeEnv(params, emotionHint, context = {}) {
   if (!params) return { ...DEFAULT_ENV };
