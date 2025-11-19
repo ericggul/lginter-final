@@ -35,20 +35,21 @@ export const BlobBase = styled.div`
   white-space: nowrap;
   color: #000000;
   font-family: ${(p) => p.$fontFamily};
-  font-size: 150px;
+  font-size: 2.822266vw; /* further 15% */
   line-height: 1;
-  padding: 0 40px;
+  padding: 0 0.752604vw; /* further 15% */
 `;
 
+// 흥미로움
 export const InterestBox = styled(BlobBase)`
   position: absolute;
-  top: 1820px;
-  left: 250px;
+  top: 36.135417vw; /* moved down by 2vw */
+  left: 19.610417vw; /* 630px */
   transform: translateY(-50%);
-  width: 780px;
-  height: 320px;
-  border-radius: 300px;
-  border: 1px solid #FFF;
+  width: 14.430963vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 5.549986vw; /* +15% */
+  border: 0.026042vw solid #FFF; /* 1px */
   /* Boost contrast by introducing complementary warm hues and bright whites */
   background: linear-gradient(
     110deg,
@@ -61,7 +62,7 @@ export const InterestBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: 0 16px 10.3px 0 rgba(255, 255, 255, 0.38) inset, 0 -28px 30.9px 0 rgba(255, 255, 255, 0.69) inset;
+  box-shadow: 0 0.416667vw 0.268229vw 0 rgba(255, 255, 255, 0.38) inset, 0 -0.729167vw 0.804688vw 0 rgba(255, 255, 255, 0.69) inset;
   overflow: hidden;
   &::after {
     content: '';
@@ -69,23 +70,24 @@ export const InterestBox = styled(BlobBase)`
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(0.15625vw); /* 6px */
+    -webkit-backdrop-filter: blur(0.15625vw);
     background: rgba(255,255,255,0.0001);
     -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
     mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
   }
 `;
 
+// 장난스러움
 export const PlayfulBox = styled(BlobBase)`
   position: absolute;
-  top: 1820px;
-  left: 1130px; /* to the right of InterestBox with 100px gap */
+  top: 36.135417vw; /* moved down by 2vw */
+  left: 36.610417vw; /* equal gap from Interest (first + 14vw) */
   transform: translateY(-50%);
-  width: 930px;
-  height: 320px;
-  border-radius: 300px;
-  border: 1px solid #FFFFFF;
+  width: 17.214692vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 5.549986vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   /* Increase contrast with bright whites and deeper oranges/sky */
   background: linear-gradient(
     240deg,
@@ -98,7 +100,7 @@ export const PlayfulBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
   overflow: hidden;
   &::after {
     content: '';
@@ -106,23 +108,24 @@ export const PlayfulBox = styled(BlobBase)`
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(0.15625vw); /* 6px */
+    -webkit-backdrop-filter: blur(0.078125vw); /* 3px */
     background: rgba(255,255,255,0.0001);
     -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
     mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
   }
 `;
 
+// 언짢음
 export const UpsetBox = styled(BlobBase)`
   position: absolute;
-  top: 850px; 
-  left: 250px; 
+  top: 18.135417vw; /* moved down by 2vw */ 
+  left: 19.610417vw; /* 630px */ 
   transform: translateY(-50%);
-  width: 620px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 11.46997vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   /* Add warm amber to contrast the cool purples/blues */
   background: linear-gradient(
     151.58deg,
@@ -134,18 +137,19 @@ export const UpsetBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
 `;
 
+// 뿌듯함
 export const ProudBox = styled(BlobBase)`
   position: absolute;
-  top: 850px;
-  left: 970px;
+  top: 18.135417vw; /* moved down by 2vw */
+  left: 33.610417vw; /* 1519px - uniform 100px gap from UpsetBox */
   transform: translateY(-50%);
-  width: 620px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 11.46997vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   /* Stronger light/dark interplay with a magenta accent */
   background: linear-gradient(
     223.05deg,
@@ -158,18 +162,19 @@ export const ProudBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
 `;
 
+// 부끄러움
 export const ShyBox = styled(BlobBase)`
   position: absolute;
-  top: 850px;
-  left: 1690px;
+  top: 18.135417vw; /* moved down by 2vw */
+  left: 47.610417vw; /* equal gap from Upset (first + 28vw) */
   transform: translateY(-50%);
-  width: 720px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 13.319966vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   /* Gentle whites with playful pink against greens for contrast */
   background: linear-gradient(
     223.05deg,
@@ -181,18 +186,19 @@ export const ShyBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
 `;
 
+// 정신없음
 export const ChaoticBox = styled(BlobBase)`
   position: absolute;
-  top: 850px;
-  left: 2510px;
+  top: 18.135417vw; /* moved down by 2vw */
+  left: 63.610417vw; /* equal gap from Upset (first + 42vw) */
   transform: translateY(-50%);
-  width: 720px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 13.319966vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   /* High-contrast teal, violet, and salmon with white flashes */
   background: linear-gradient(
     223.05deg,
@@ -204,18 +210,19 @@ export const ChaoticBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
 `;
 
+// 행복함
 export const HappyBox = styled(BlobBase)`
   position: absolute;
-  top: 1820px;
-  left: 2160px; /* 100px gap to the right of PlayfulBox */
+  top: 36.135417vw; /* moved down by 2vw */
+  left: 56.610417vw; /* equal gap from Interest (first + 28vw) */
   transform: translateY(-50%);
-  width: 700px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 12.948989vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   /* Increase white vs pink contrast in the moving gradient */
   background: linear-gradient(
     131.16deg,
@@ -227,7 +234,7 @@ export const HappyBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
   overflow: hidden;
   &::after {
     content: '';
@@ -235,23 +242,24 @@ export const HappyBox = styled(BlobBase)`
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(0.078125vw); /* 3px */
+    -webkit-backdrop-filter: blur(0.078125vw);
     background: rgba(255,255,255,0.0001);
     -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
     mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
   }
 `;
 
+// 짜증남
 export const AnnoyedBox = styled(BlobBase)`
   position: absolute;
-  top: 2320px;
-  left: 250px;
+  top: 45.135417vw; /* moved down by 2vw */
+  left: 19.610417vw; /* 630px */
   transform: translateY(-50%);
-  width: 620px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 11.46997vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   z-index: 1001;
   /* Sharper contrast with white flashes and warm tension */
   background: linear-gradient(
@@ -265,20 +273,21 @@ export const AnnoyedBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
   opacity: 0.69;
   overflow: hidden; /* clip blur overlays to rounded shape */
 `;
 
+// 배고픔
 export const HungryBox = styled(BlobBase)`
   position: absolute;
-  top: 2320px;
-  left: 970px; /* 250 + 620 + 100 */
+  top: 45.135417vw; /* moved down by 2vw */
+  left: 34.110417vw; /* equal gap from Annoyed (first + 14vw) */
   transform: translateY(-50%);
-  width: 620px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 11.46997vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   z-index: 1001;
   /* More contrast for playful energy with white flashes */
   background: linear-gradient(
@@ -292,20 +301,21 @@ export const HungryBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
   opacity: 0.69;
   overflow: hidden; /* clip blur overlays to rounded shape */
 `;
 
+// 슬픔
 export const SadBox = styled(BlobBase)`
   position: absolute;
-  top: 1330px;
-  left: 250px;
+  top: 27.135417vw; /* moved down by 2vw */
+  left: 19.610417vw; /* 630px */
   transform: translateY(-50%);
-  width: 480px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 8.879977vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   /* Add bright whites and deeper blues for stronger emotional contrast */
   background: linear-gradient(
     243.46deg,
@@ -317,18 +327,19 @@ export const SadBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
 `;
 
+// 신기함
 export const WonderBox = styled(BlobBase)`
   position: absolute;
-  top: 1330px;
-  left: 830px;
+  top: 27.135417vw; /* moved down by 2vw */
+  left: 31.610417vw; /* equal gap from Sad (first + 14vw) */
   transform: translateY(-50%);
-  width: 620px;
-  height: 320px;
-  border-radius: 400px;
-  border: 1px solid #FFFFFF;
+  width: 11.46997vw; /* +15% */
+  height: 5.920985vw; /* +15% */
+  border-radius: 7.400981vw; /* +15% */
+  border: 0.026042vw solid #FFFFFF; /* 1px */
   /* Add white shine and vivid blue/cyan for curiosity */
   background: linear-gradient(
     259.38deg,
@@ -340,6 +351,6 @@ export const WonderBox = styled(BlobBase)`
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
-  box-shadow: inset 0px 16px 10.3px rgba(255, 255, 255, 0.38), inset 0px -28px 30.9px rgba(255, 255, 255, 0.69);
+  box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
 `;
 

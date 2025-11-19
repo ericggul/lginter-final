@@ -6,7 +6,6 @@ import * as S from './styles';
 export default function SW1Controls() {
   const [climateData, setClimateData] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
-  const [individuals, setIndividuals] = useState([]); // [{userId,temp,humidity,ts}]
   const [dotCount, setDotCount] = useState(0);
   const BACKGROUND_URL = null; // remove background PNG (big pink blobs)
   const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
@@ -24,31 +23,7 @@ export default function SW1Controls() {
     }
   }, []);
 
-  const handleDeviceNewDecision = useCallback((msg) => {
-    if (!msg || msg.target !== 'sw1') return;
-    const env = msg.env || {};
-    setClimateData({ temperature: env.temp, humidity: env.humidity });
-    // participant count (if provided later on server)
-    if (typeof msg.participantCount === 'number') {
-      setParticipantCount(msg.participantCount);
-    }
-    // collect individuals (prefer array; fallback to single)
-    const now = Date.now();
-    const addList = Array.isArray(msg.individuals) && msg.individuals.length
-      ? msg.individuals.map((it) => ({ userId: it.userId, temp: it.temp, humidity: it.humidity, ts: now }))
-      : (msg.individual ? [{ userId: msg.individual.userId, temp: msg.individual.temp, humidity: msg.individual.humidity, ts: now }] : []);
-    if (addList.length) {
-      setIndividuals((prev) => {
-        const map = new Map(prev.map((p) => [p.userId, p]));
-        addList.forEach((p) => map.set(String(p.userId || now), p));
-        // keep most recent 3
-        const arr = Array.from(map.values()).sort((a,b) => (b.ts||0)-(a.ts||0)).slice(0,3);
-        return arr;
-      });
-    }
-  }, []);
-
-  const { socket } = useSocketSW1({ onDeviceDecision: handleDeviceDecision, onDeviceNewDecision: handleDeviceNewDecision });
+  const { socket } = useSocketSW1({ onDeviceDecision: handleDeviceDecision });
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -170,10 +145,6 @@ export default function SW1Controls() {
           <S.CenterTemp>{`${baseTemp}°C`}</S.CenterTemp>
           <S.CenterMode>{computeMode(baseHum)}</S.CenterMode>
         </S.CenterTextWrap>
-        {/* User bubbles mapped to corners TL/TR/BL; newest first */}
-        {individuals[0] && <S.LabelTL>{`${individuals[0].temp ?? '-'}° / ${individuals[0].humidity ?? '-'}%`}</S.LabelTL>}
-        {individuals[1] && <S.LabelTR>{`${individuals[1].temp ?? '-'}° / ${individuals[1].humidity ?? '-'}%`}</S.LabelTR>}
-        {individuals[2] && <S.LabelBL>{`${individuals[2].temp ?? '-'}° / ${individuals[2].humidity ?? '-'}%`}</S.LabelBL>}
       </S.Stage>
     </S.Root>
   );

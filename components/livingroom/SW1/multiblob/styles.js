@@ -293,25 +293,6 @@ export const BCBlobBR = styled(BCBlobQuadBase)`
   left: 75%;
 `;
 
-export const UserLabel = styled.div`
-  position: absolute;
-  padding: 6px 10px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.85);
-  color: #0f172a;
-  font-size: clamp(12px, 1.8vmin, 18px);
-  font-weight: 600;
-  letter-spacing: -0.2px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-  z-index: 3;
-  transform: translate(-50%, -50%);
-`;
-
-export const LabelTL = styled(UserLabel)` top: 18%; left: 20%; `;
-export const LabelTR = styled(UserLabel)` top: 18%; left: 80%; `;
-export const LabelBL = styled(UserLabel)` top: 82%; left: 20%; `;
-export const LabelBR = styled(UserLabel)` top: 82%; left: 80%; `;
-
 /* small blob float keyframes removed */
 
 /* SmallBlobBase removed */

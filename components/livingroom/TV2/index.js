@@ -1,45 +1,20 @@
-import React, { useMemo, useEffect, useState, useCallback } from "react";
+import React, { useMemo } from "react";
 import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { BlobCircle } from "./blob/blob.styles";
-import useSocketTV2 from "@/utils/hooks/useSocketTV2";
-import { MUSIC_CATALOG } from "@/utils/data/musicCatalog";
 
 export default function TV2Controls() {
-  const [env, setEnv] = useState({ temp: 24, humidity: 38, lightColor: '#6EA7FF', music: 'Solace' });
-  const [albumUrl, setAlbumUrl] = useState('');
-  const [trackTitle, setTrackTitle] = useState('');
-  const [artist, setArtist] = useState('');
-
-  const mapTitleToArtist = useCallback((title) => {
-    if (!title) return '';
-    const byTitle = MUSIC_CATALOG.find(m => m.title.toLowerCase() === String(title).toLowerCase());
-    return byTitle?.artist || '';
-  }, []);
-
-  const onDeviceNewDecision = useCallback((msg) => {
-    if (!msg || msg.target !== 'tv2') return;
-    const e = msg.env || {};
-    const next = {
-      temp: e.temp ?? env.temp,
-      humidity: e.humidity ?? env.humidity,
-      lightColor: e.lightColor ?? env.lightColor,
-      music: e.music ?? env.music,
-    };
-    setEnv(next);
-    const title = next.music || '';
-    setTrackTitle(title);
-    setArtist(mapTitleToArtist(title));
-    if (title) {
-      const u = `/api/album?name=${encodeURIComponent(title)}`;
-      setAlbumUrl(u);
-    }
-  }, [env, mapTitleToArtist]);
-
-  useSocketTV2({
-    onDeviceNewDecision,
-  });
+  // 기본 env (컨트롤 타워 연동 전까지 임시)
+  const env = useMemo(()=>({
+    temp: 24, humidity: 38, lightColor: '#6EA7FF', music: '시원한 EDM',
+    lightLabel: 'Blue Light',
+    reasons: { temp:['사용자 평균 선호','최근 입력: 24°C'],
+               humidity:['쾌적한 범위','최근 입력: 58%'],
+               light:['안정감 제공','최근 입력: Yellow'],
+               music:['에너지 유지','최근 입력: EDM'] },
+    inputs: { temp:['24°C'], humidity:['58%'], light:['Yellow'], music:['EDM'] }
+  }),[]);
 
   const cssVars = useBlobVars(env);
 
@@ -88,11 +63,11 @@ export default function TV2Controls() {
             <S.MusicIcon>
               <svg viewBox="0 0 24 24" fill="none"><path d="M9 17a3 3 0 1 1-2.5-2.96V6.5l11-2V14a3 3 0 1 1-2 2.83V8.6l-6 1.1V17z" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/></svg>
             </S.MusicIcon>
-            <div>{trackTitle || env.music}</div>
+            <div>{env.music}</div>
           </S.MusicRow>
-          <S.AlbumCard style={albumUrl ? { backgroundImage: `url(${albumUrl})`, backgroundSize:'cover', backgroundPosition:'center' } : undefined} />
-          <S.TrackTitle>{trackTitle || ' '}</S.TrackTitle>
-          <S.Artist>{artist || ' '}</S.Artist>
+          <S.AlbumCard />
+          <S.TrackTitle>Sunny Side Up</S.TrackTitle>
+          <S.Artist>Victor Lundberg</S.Artist>
         </S.LeftPanel>
         <S.RightPanel style={cssVars}>
           <S.ClimateGroup>

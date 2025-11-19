@@ -2,11 +2,14 @@ export default function HiddenForm({
   name,
   onNameChange,
   mood,
-  onMoodChange
+  onMoodChange,
+  visible = false
 }) {
+  const display = visible ? 'block' : 'none';
+  const buttonDisplay = visible ? 'inline-block' : 'none';
   return (
     <>
-      <div style={{ display: 'none' }}>
+      <div style={{ display }}>
         <label>이름</label>
         <input
           type="text"
@@ -16,7 +19,7 @@ export default function HiddenForm({
         />
       </div>
 
-      <div style={{ display: 'none' }}>
+      <div style={{ display }}>
         <label>지금 기분</label>
         <input
           type="text"
@@ -28,7 +31,7 @@ export default function HiddenForm({
 
       <button
         type="submit"
-        style={{ display: 'none' }}
+        style={{ display: buttonDisplay }}
       >
         입력 완료
       </button>

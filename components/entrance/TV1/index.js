@@ -33,16 +33,15 @@ export default function TV1Controls() {
   return (
     <S.Root $fontFamily={unifiedFont}>
       <S.Canvas>
+        <S.LeftLineImage />
         <S.LeftNow>Now</S.LeftNow>
         <S.LeftTime2>13:00</S.LeftTime2>
         <S.LeftTime3>12:00</S.LeftTime3>
         <S.LeftTime4>11:00</S.LeftTime4>
-        <S.LeftLineBlur />
         <S.LeftShape />
         <S.LeftShape2 />
         <S.LeftShape3 />
         <S.LeftShape4 />
-        <S.LeftLine />
         <S.TopText $fontFamily={unifiedFont}>
           <S.Bold>오늘</S.Bold>
           <span>의 감정들은</span>
