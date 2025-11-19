@@ -38,10 +38,10 @@ export default function TV1Controls() {
         <S.LeftTime3>12:00</S.LeftTime3>
         <S.LeftTime4>11:00</S.LeftTime4>
         <S.LeftLineBlur />
-        <S.LeftShape src="/figma/Ellipse%202870.png" alt="" />
-        <S.LeftShape2 src="/figma/Ellipse%202870.png" alt="" />
-        <S.LeftShape3 src="/figma/Ellipse%202870.png" alt="" />
-        <S.LeftShape4 src="/figma/Ellipse%202870.png" alt="" />
+        <S.LeftShape />
+        <S.LeftShape2 />
+        <S.LeftShape3 />
+        <S.LeftShape4 />
         <S.LeftLine />
         <S.TopText $fontFamily={unifiedFont}>
           <S.Bold>오늘</S.Bold>
