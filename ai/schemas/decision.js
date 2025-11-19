@@ -1,56 +1,51 @@
 import { z } from 'zod';
 
-// Zod schema for controller decision
+// Zod schema for structured 4-step pipeline output
 export const DecisionZ = z.object({
-  params: z.object({
-    temp: z.number().min(-20).max(30),
-    humidity: z.number().min(20).max(80),
-    lightColor: z.string().regex(/^#?[0-9a-fA-F]{6}$/).transform((s) => (s.startsWith('#') ? s.toUpperCase() : `#${s.toUpperCase()}`)),
-    music: z.string().min(1),
-    windLevel: z.number().int().min(1).max(5).optional(),
-    purifierOn: z.boolean().optional(),
-    purifierMode: z.enum(['humidify', 'humidify_plus_purify', 'purify']).optional(),
-  }),
-  reason: z.string().optional(),
-  flags: z
-    .object({
-      offTopic: z.boolean().optional(),
-      abusive: z.boolean().optional(),
-    })
-    .optional(),
-  emotionKeyword: z.string().optional(),
+  emotion: z.string().min(1),
+  hex: z
+    .string()
+    .regex(/^#?[0-9a-fA-F]{6}$/)
+    .transform((s) => (s.startsWith('#') ? s.toUpperCase() : `#${s.toUpperCase()}`)),
+  temperature_celsius: z.number().min(-20).max(50),
+  humidity_percent: z.number().min(0).max(100),
+  music_title: z.string().min(1),
+  music_artist: z.string().optional().default(''),
+  lighting_mode: z.enum(['RGB', 'TEMP']),
+  lighting_r: z.number().int().min(0).max(255).nullable().optional(),
+  lighting_g: z.number().int().min(0).max(255).nullable().optional(),
+  lighting_b: z.number().int().min(0).max(255).nullable().optional(),
+  lighting_temp_k: z.number().int().min(2700).max(6500).nullable().optional(),
+  similarity_reason: z.string().optional().default(''),
 });
 
-// Minimal JSON Schema for OpenAI tool parameters (no extra dependency)
+// JSON Schema for OpenAI tool parameters
 export function toJsonSchema() {
   return {
     type: 'object',
     properties: {
-      params: {
-        type: 'object',
-        properties: {
-          temp: { type: 'number', minimum: -20, maximum: 30 },
-          humidity: { type: 'number', minimum: 20, maximum: 80 },
-          lightColor: { type: 'string', pattern: '^#?[0-9a-fA-F]{6}$' },
-          music: { type: 'string' },
-          windLevel: { type: 'integer', minimum: 1, maximum: 5 },
-          purifierOn: { type: 'boolean' },
-          purifierMode: { type: 'string', enum: ['humidify', 'humidify_plus_purify', 'purify'] },
-        },
-        required: ['temp', 'humidity', 'lightColor', 'music'],
-        additionalProperties: false,
-      },
-      reason: { type: 'string' },
-      flags: {
-        type: 'object',
-        properties: { offTopic: { type: 'boolean' }, abusive: { type: 'boolean' } },
-        additionalProperties: false,
-      },
-      emotionKeyword: { type: 'string' },
+      emotion: { type: 'string' },
+      hex: { type: 'string', pattern: '^#?[0-9a-fA-F]{6}$' },
+      temperature_celsius: { type: 'number', minimum: -20, maximum: 50 },
+      humidity_percent: { type: 'number', minimum: 0, maximum: 100 },
+      music_title: { type: 'string' },
+      music_artist: { type: 'string' },
+      lighting_mode: { type: 'string', enum: ['RGB', 'TEMP'] },
+      lighting_r: { type: ['integer', 'null'], minimum: 0, maximum: 255 },
+      lighting_g: { type: ['integer', 'null'], minimum: 0, maximum: 255 },
+      lighting_b: { type: ['integer', 'null'], minimum: 0, maximum: 255 },
+      lighting_temp_k: { type: ['integer', 'null'], minimum: 2700, maximum: 6500 },
+      similarity_reason: { type: 'string' },
     },
-    required: ['params'],
+    required: [
+      'emotion',
+      'hex',
+      'temperature_celsius',
+      'humidity_percent',
+      'music_title',
+      'lighting_mode',
+    ],
     additionalProperties: false,
   };
 }
-
 

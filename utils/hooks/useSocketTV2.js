@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import { createBasePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
 
-export default function useSocketTV2() {
+export default function useSocketTV2(options = {}) {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
 
@@ -51,6 +51,17 @@ export default function useSocketTV2() {
       }
     };
   }, []);
+
+  // Attach/detach external handlers
+  useEffect(() => {
+    const s = socketRef.current;
+    if (!s) return;
+    const { onDeviceNewDecision } = options || {};
+    if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
+    return () => {
+      if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
+    };
+  }, [socket, options?.onDeviceNewDecision]);
 
   return { 
     socket,

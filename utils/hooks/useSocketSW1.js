@@ -57,12 +57,14 @@ export default function useSocketSW1(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onDeviceDecision } = options || {};
+    const { onDeviceDecision, onDeviceNewDecision } = options || {};
 
     if (onDeviceDecision) s.on('device-decision', onDeviceDecision);
+    if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
 
     return () => {
       if (onDeviceDecision) s.off('device-decision', onDeviceDecision);
+      if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
     };
   }, [socket, options?.onDeviceDecision]);
 

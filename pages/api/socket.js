@@ -134,11 +134,16 @@ export default function handler(req, res) {
         ...(individual ? { individual } : {}),
         final: sw1Env,
       });
-      // SW2: 새 노래면 5초 지연 후 전환, 동일하면 즉시 유지
-      const newSong = sw2Env.music || '';
+      // SW2: 새 유저의 '개인' 지정 곡을 우선 고려 → 5초 지연 후 전환
+      const candidateSong =
+        (raw?.individual && typeof raw.individual?.music === 'string' && raw.individual.music) ||
+        sw2Env.music ||
+        '';
+      const sw2EnvWithSong = { ...sw2Env, music: candidateSong };
+      const newSong = candidateSong;
       const emitSw2 = () => {
-        updateDeviceApplied('sw2', sw2Env, decisionId);
-        io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2Env, decisionId, reason: payload.reason, emotionKeyword: payload.emotionKeyword, mergedFrom: [payload.userId] });
+        updateDeviceApplied('sw2', sw2EnvWithSong, decisionId);
+        io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2EnvWithSong, decisionId, reason: payload.reason, emotionKeyword: payload.emotionKeyword, mergedFrom: [payload.userId] });
         __sw2LastSong = newSong;
       };
       try {
