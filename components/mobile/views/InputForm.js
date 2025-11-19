@@ -13,6 +13,7 @@ export default function InputForm({
   pressProgress,
   onPressStart,
   onPressEnd,
+  showTextFallback,
 }) {
   return (
     <UI.Form onSubmit={onSubmit}>
@@ -21,9 +22,10 @@ export default function InputForm({
         onNameChange={onNameChange}
         mood={mood}
         onMoodChange={onMoodChange}
+        visible={showTextFallback}
       />
 
-      {showPress && !isListening && (
+      {showPress && !isListening && !showTextFallback && (
         <PressOverlay
           pressProgress={pressProgress}
           onPressStart={onPressStart}

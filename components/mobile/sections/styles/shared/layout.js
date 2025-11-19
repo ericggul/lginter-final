@@ -22,6 +22,12 @@ export const AppContainer = styled.div`
   padding-bottom: ${(p) => (p.$isModal ? '2rem' : spacing.container.paddingBottom)};
   padding-left: ${(p) => (p.$isModal ? '2rem' : spacing.container.paddingLeft)};
   overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 `;
 
 export const ContentWrapper = styled.div`
@@ -36,5 +42,14 @@ export const ContentWrapper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: ${(p) => (p.$isModal ? 'center' : 'flex-start')};
+  
+  /* Allow text selection and callout inside actual form fields */
+  input, textarea {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
 `;
 
