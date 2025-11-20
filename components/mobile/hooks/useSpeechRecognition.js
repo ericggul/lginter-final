@@ -7,6 +7,7 @@ export default function useSpeechRecognition({ onResult, onInterim, onStart, onE
     if (typeof window === 'undefined') return;
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       alert('❌ 음성 인식을 지원하지 않는 브라우저입니다.\n\n직접 입력해주세요. 🖊️');
+      if (typeof onError === 'function') onError('unsupported');
       return;
     }
 
@@ -84,6 +85,7 @@ export default function useSpeechRecognition({ onResult, onInterim, onStart, onE
     } catch (error) {
       console.error('음성 인식 초기화 실패:', error);
       alert('음성 인식을 시작할 수 없습니다.\n\n직접 입력해주세요. 🖊️');
+      if (typeof onError === 'function') onError('init-failed');
       setIsListening(false);
     }
   }, [onResult, onStart, onError, onEnd]);

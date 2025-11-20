@@ -28,6 +28,11 @@ export const HitArea = styled.div`
   justify-content: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 `;
 
 export const Dot = styled.div`
