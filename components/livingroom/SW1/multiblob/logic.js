@@ -190,28 +190,10 @@ export function useSW1Logic() {
         while (next.length > 4) next.shift();
         return next;
       });
-      // Derive quick per-user climate result from emotion category (heuristic)
-      const uid = String(payload?.userId || `u${Date.now()}`);
-      // persist per-user keyword mapping
-      if (uid) {
-        keywordByUserRef.current.set(uid, k);
-      }
-      setMiniResults((prev) => {
-        // Bind this user to a mini slot so that keyword mapping works immediately.
-        // Keep existing temp/humidity until server decision arrives.
-        const byId = (it) => String(it.userId) === uid;
-        if (prev.some(byId)) return prev;
-        const next = [...prev];
-        const dummyIdx = next.findIndex((it) => /^u[A-D]$/.test(String(it.userId)));
-        const targetIdx = dummyIdx >= 0 ? dummyIdx : 0;
-        next[targetIdx] = { ...next[targetIdx], userId: uid };
-        return next;
-      });
-      setActiveUsers((prev) => {
-        const next = new Set(prev);
-        next.add(uid);
-        return next;
-      });
+      // Voice event should not affect participant count or mini-blobs.
+      // We only keep keywords for UI; slots will be assigned by orchestrated decision.
+      const uid = String(payload?.userId || '');
+      if (uid) keywordByUserRef.current.set(uid, k);
     },
   });
 
