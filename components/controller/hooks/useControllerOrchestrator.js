@@ -80,6 +80,7 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
           reason: aggregatedReason,
           flags,
           emotionKeyword,
+          individual: { temp: individualEnv?.temp, humidity: individualEnv?.humidity, lightColor: individualEnv?.lightColor, music: individualEnv?.music },
         });
       } catch (error) {
         const fallbackEnv = controllerStateRef.current.lastDecision?.env || DEFAULT_ENV;
@@ -106,6 +107,7 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
           reason: fallbackReason,
           flags: { offTopic: false, abusive: false },
           emotionKeyword: '',
+          individual: { ...fallbackEnv },
         });
       }
     },

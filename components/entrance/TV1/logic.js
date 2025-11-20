@@ -1,4 +1,6 @@
-export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color }) {
+export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, setTopTexts }) {
+  // track unique users to shift top row only when a brand-new user speaks
+  const seenUserIds = new Set();
   const onEntranceNewVoice = (data) => {
     console.log('📺 TV1 Component received entrance-new-voice:', data);
     const text = data.text || data.emotion || '알 수 없음';
@@ -15,6 +17,17 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color }) 
       fontWeight,
       timestamp: Date.now()
     }, ...prev].slice(0, 18));
+
+    // newest keyword goes to the leftmost top container; shift right
+    const uid = String(data?.userId || '');
+    const isNewUser = uid && !seenUserIds.has(uid);
+    if (isNewUser) {
+      seenUserIds.add(uid);
+      setTopTexts((prev) => [text, prev[0], prev[1], prev[2]].slice(0, 4));
+    } else {
+      // for existing users, just update the first container text
+      setTopTexts((prev) => [text, prev[1], prev[2], prev[3]]);
+    }
   };
 
   const onDeviceDecision = (data) => {

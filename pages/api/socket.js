@@ -13,6 +13,7 @@ import {
   updateDeviceHeartbeat,
   updateDeviceApplied
 } from "../../lib/brain/state";
+import { getActiveUsers } from "../../lib/brain/state";
 import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, DeviceHeartbeat, LightColorPayload, safe } from "../../src/core/schemas";
 import { EV } from "../../src/core/events";
 import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient";
@@ -122,16 +123,39 @@ export default function handler(req, res) {
       
       // split fan-out
       io.to("livingroom").emit("device-new-decision", { target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
-      // SW1: 개인 결과를 함께 전달(프론트는 선택적으로 사용 가능)
-      const individual = raw?.individual && typeof raw.individual === 'object'
-        ? { userId: payload.userId, temp: raw.individual.temp, humidity: raw.individual.humidity }
-        : undefined;
+      // SW1: 개인 결과(최대 4명)를 함께 전달(프론트는 선택적으로 사용)
+      const individuals = [];
+      if (raw?.individual && typeof raw.individual === 'object') {
+        individuals.push({
+          userId: payload.userId,
+          temp: raw.individual.temp,
+          humidity: raw.individual.humidity
+        });
+      }
+      try {
+        const actives = getActiveUsers();
+        for (const u of actives) {
+          if (individuals.length >= 4) break;
+          const pref = u.lastPreference || {};
+          const uid = String(u.originalUserId || u.userId || u.inputId || nanoid());
+          // Avoid duplicate userId
+          if (individuals.some((x) => String(x.userId) === uid)) continue;
+          if (typeof pref.temp === 'number' || typeof pref.humidity === 'number') {
+            individuals.push({
+              userId: uid,
+              temp: pref.temp,
+              humidity: pref.humidity
+            });
+          }
+        }
+      } catch {}
       io.to("livingroom").emit("device-new-decision", {
         target: 'sw1',
         env: sw1Env,
         decisionId,
         mergedFrom: [payload.userId],
-        ...(individual ? { individual } : {}),
+        emotionKeyword: payload.emotionKeyword,
+        ...(individuals.length ? { individuals } : {}),
         final: sw1Env,
       });
       // SW2: 새 유저의 '개인' 지정 곡을 우선 고려 → 5초 지연 후 전환

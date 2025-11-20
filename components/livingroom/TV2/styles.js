@@ -239,6 +239,13 @@ export const AlbumCard = styled.div`
   display: grid; place-items: center;
 `;
 
+export const AlbumImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+`;
+
 export const TrackTitle = styled.div`
   position: absolute;
   left: var(--album-x);

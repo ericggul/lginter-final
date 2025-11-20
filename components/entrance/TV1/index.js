@@ -9,6 +9,8 @@ export default function TV1Controls() {
   const [tv2Color, setTv2Color] = useState('#FFD166');
   const [dotCount, setDotCount] = useState(0);
   const unifiedFont = '\'Pretendard\', \'Pretendard Variable\', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+  // Top row 4 containers (left→right) dynamic texts; newest always goes to first
+  const [topTexts, setTopTexts] = useState(['언짢음', '뿌듯함', '부끄러움', '정신없음']);
 
   // Scaling handled via CSS (viewport width) in styles.Canvas
 
@@ -20,8 +22,8 @@ export default function TV1Controls() {
   }, []);
 
   const handlers = useMemo(
-    () => createSocketHandlers({ setKeywords, unifiedFont, setTv2Color }),
-    [setKeywords, unifiedFont, setTv2Color]
+    () => createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, setTopTexts }),
+    [setKeywords, unifiedFont, setTv2Color, setTopTexts]
   );
 
   const { socket } = useSocketTV1({
@@ -54,27 +56,15 @@ export default function TV1Controls() {
         <B.InterestBox $fontFamily={unifiedFont}>흥미로움</B.InterestBox>
         <B.PlayfulBox $fontFamily={unifiedFont}>장난스러움</B.PlayfulBox>
         <B.HappyBox $fontFamily={unifiedFont}>행복함</B.HappyBox>
-        <B.UpsetBox $fontFamily={unifiedFont}>언짢음</B.UpsetBox>
-        <B.ProudBox $fontFamily={unifiedFont}>뿌듯함</B.ProudBox>
-        <B.ShyBox $fontFamily={unifiedFont}>부끄러움</B.ShyBox>
-        <B.ChaoticBox $fontFamily={unifiedFont}>정신없음</B.ChaoticBox>
+        <B.UpsetBox $fontFamily={unifiedFont}>{topTexts[0]}</B.UpsetBox>
+        <B.ProudBox $fontFamily={unifiedFont}>{topTexts[1]}</B.ProudBox>
+        <B.ShyBox $fontFamily={unifiedFont}>{topTexts[2]}</B.ShyBox>
+        <B.ChaoticBox $fontFamily={unifiedFont}>{topTexts[3]}</B.ChaoticBox>
         <B.SadBox $fontFamily={unifiedFont}>슬픔</B.SadBox>
         <B.WonderBox $fontFamily={unifiedFont}>신기함</B.WonderBox>
         <B.AnnoyedBox $fontFamily={unifiedFont}>짜증남</B.AnnoyedBox>
         <B.HungryBox $fontFamily={unifiedFont}>배고픔</B.HungryBox>
-        <S.PillWrap>
-          {keywords.map((kw) => (
-            <S.Pill
-              key={kw.id}
-              $fontFamily={kw.fontFamily || unifiedFont}
-              $fontWeight={kw.fontWeight}
-              $fontStyle={kw.fontStyle}
-              $fontSize={kw.fontSize}
-            >
-              <S.PillText>{kw.text}</S.PillText>
-            </S.Pill>
-          ))}
-        </S.PillWrap>
+        
       </S.Canvas>
     </S.Root>
   );
