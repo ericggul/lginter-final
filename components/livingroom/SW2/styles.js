@@ -215,6 +215,51 @@ const driftGradient = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
+const interestDrift = keyframes`
+  0%   { transform: translate(-50%, -50%); }
+  30%  { transform: translate(calc(-50% + 2.5vw), calc(-50% + 1.2vw)); }
+  60%  { transform: translate(calc(-50% - 1.8vw), calc(-50% + 1vw)); }
+  85%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 1.6vw)); }
+  100% { transform: translate(-50%, -50%); }
+`;
+
+const interestSize = keyframes`
+  0%   { width: 24vw; height: 24vw; }
+  40%  { width: 40vw; height: 40vw; }
+  70%  { width: 26vw; height: 26vw; }
+  100% { width: 32vw; height: 32vw; }
+`;
+
+const wonderSize = keyframes`
+  0%   { width: 24vw; height: 24vw; }
+  45%  { width: 40vw; height: 40vw; }
+  75%  { width: 28vw; height: 28vw; }
+  100% { width: 34vw; height: 34vw; }
+`;
+
+const happySize = keyframes`
+  0%   { width: 24vw; height: 24vw; }
+  35%  { width: 40vw; height: 40vw; }
+  65%  { width: 25vw; height: 25vw; }
+  100% { width: 30vw; height: 30vw; }
+`;
+
+const wonderDrift = keyframes`
+  0%   { transform: translate(-50%, -50%); }
+  35%  { transform: translate(calc(-50% + 2vw), calc(-50% - 1.4vw)); }
+  60%  { transform: translate(calc(-50% + 2.4vw), calc(-50% + 1.5vw)); }
+  85%  { transform: translate(calc(-50% - 1.6vw), calc(-50% + 1.3vw)); }
+  100% { transform: translate(-50%, -50%); }
+`;
+
+const happyDrift = keyframes`
+  0%   { transform: translate(-50%, -50%); }
+  30%  { transform: translate(calc(-50% + 2.1vw), calc(-50% + 2.6vw)); }
+  60%  { transform: translate(calc(-50% - 2.4vw), calc(-50% + 1.1vw)); }
+  90%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 2.2vw)); }
+  100% { transform: translate(-50%, -50%); }
+`;
+
 export const LoadingBlock = styled.div`
   text-align: center;
   padding: 0.833333vw;
@@ -351,11 +396,11 @@ export const AlbumPlaceholder = styled.div`
 
 export const Sw2InterestBox = styled.div`
   position: absolute;
-  top: var(--blob-top, 28vw);
-  left: var(--blob-left, 74vw);
+  top: 18vw;
+  left: 84vw;
   transform: translate(-50%, -50%);
-  width: var(--blob-size, 52vw);
-  height: var(--blob-size, 52vw);
+  width: 24vw;
+  height: 24vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFF;
   background: linear-gradient(
@@ -382,7 +427,10 @@ export const Sw2InterestBox = styled.div`
   font-size: 2.083333vw;
   letter-spacing: 0.01em;
   z-index: 1;
-  animation: ${driftGradient} 9.3s ease-in-out infinite;
+  animation:
+    ${driftGradient} 9.3s ease-in-out infinite,
+    ${interestDrift} 18s ease-in-out infinite,
+    ${interestSize} 28s ease-in-out infinite alternate;
 
   &::before {
     content: '흥미로움';
@@ -410,11 +458,11 @@ export const Sw2InterestBox = styled.div`
 
 export const Sw2WonderBox = styled.div`
   position: absolute;
-  top: var(--blob-top, 48vw);
-  left: var(--blob-left, 20vw);
+  top: 40vw;
+  left:32vw;
   transform: translate(-50%, -50%);
-  width: var(--blob-size, 38vw);
-  height: var(--blob-size, 38vw);
+  width: 26vw;
+  height: 26vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFFFFF;
   background: linear-gradient(
@@ -439,7 +487,10 @@ export const Sw2WonderBox = styled.div`
   letter-spacing: 0.01em;
   z-index: 1;
   will-change: background-position, transform;
-  animation: ${driftGradient} 9.8s ease-in-out infinite;
+  animation:
+    ${driftGradient} 9.8s ease-in-out infinite,
+    ${wonderDrift} 16s ease-in-out infinite,
+    ${wonderSize} 29s ease-in-out infinite alternate-reverse;
 
   &::before {
     content: '신기함';
@@ -454,11 +505,11 @@ export const Sw2WonderBox = styled.div`
 
 export const Sw2HappyBox = styled.div`
   position: absolute;
-  top: var(--blob-top, 22vw);
-  left: var(--blob-left, 28vw);
+  top: 8vw;
+  left: 18vw;
   transform: translate(-50%, -50%);
-  width: var(--blob-size, 40vw);
-  height: var(--blob-size, 40vw);
+  width: 24vw;
+  height: 24vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFFFFF;
   background: linear-gradient(
@@ -484,7 +535,10 @@ export const Sw2HappyBox = styled.div`
   letter-spacing: 0.01em;
   z-index: 1;
   will-change: background-position, transform;
-  animation: ${driftGradient} 8.9s ease-in-out infinite;
+  animation:
+    ${driftGradient} 8.9s ease-in-out infinite,
+    ${happyDrift} 15s ease-in-out infinite,
+    ${happySize} 26s ease-in-out infinite alternate;
 
   &::after {
     content: '';
