@@ -224,24 +224,24 @@ const interestDrift = keyframes`
 `;
 
 const interestSize = keyframes`
-  0%   { width: 24vw; height: 24vw; }
-  40%  { width: 40vw; height: 40vw; }
-  70%  { width: 26vw; height: 26vw; }
-  100% { width: 32vw; height: 32vw; }
+  0%   { width: 16vw; height: 16vw; }
+  40%  { width: 22vw; height: 22vw; }
+  70%  { width: 14vw; height: 14vw; }
+  100% { width: 18vw; height: 18vw; }
 `;
 
 const wonderSize = keyframes`
-  0%   { width: 24vw; height: 24vw; }
-  45%  { width: 40vw; height: 40vw; }
-  75%  { width: 28vw; height: 28vw; }
-  100% { width: 34vw; height: 34vw; }
+  0%   { width: 16vw; height: 16vw; }
+  45%  { width: 22vw; height: 22vw; }
+  75%  { width: 14vw; height: 14vw; }
+  100% { width: 19vw; height: 19vw; }
 `;
 
 const happySize = keyframes`
-  0%   { width: 24vw; height: 24vw; }
-  35%  { width: 40vw; height: 40vw; }
-  65%  { width: 25vw; height: 25vw; }
-  100% { width: 30vw; height: 30vw; }
+  0%   { width: 16vw; height: 16vw; }
+  35%  { width: 22vw; height: 22vw; }
+  65%  { width: 14vw; height: 14vw; }
+  100% { width: 18.5vw; height: 18.5vw; }
 `;
 
 const wonderDrift = keyframes`
@@ -399,8 +399,8 @@ export const Sw2InterestBox = styled.div`
   top: 18vw;
   left: 84vw;
   transform: translate(-50%, -50%);
-  width: 24vw;
-  height: 24vw;
+  width: 16vw;
+  height: 16vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFF;
   background: linear-gradient(
@@ -420,10 +420,12 @@ export const Sw2InterestBox = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  gap: 0.35vw;
   text-align: center;
-  color: #A3A298;
+  color: #A1908A;
   font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-weight: 400;
+  font-weight: 600;
   font-size: 2.083333vw;
   letter-spacing: 0.01em;
   z-index: 1;
@@ -431,16 +433,7 @@ export const Sw2InterestBox = styled.div`
     ${driftGradient} 9.3s ease-in-out infinite,
     ${interestDrift} 18s ease-in-out infinite,
     ${interestSize} 28s ease-in-out infinite alternate;
-
-  &::before {
-    content: '흥미로움';
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: inherit;
-  }
+  isolation: isolate;
 
   &::after {
     content: '';
@@ -448,11 +441,27 @@ export const Sw2InterestBox = styled.div`
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
+    z-index: 0;
     backdrop-filter: blur(0.15625vw);
     -webkit-backdrop-filter: blur(0.15625vw);
     background: rgba(255,255,255,0.0001);
     -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
     mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
+  }
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
+  & strong,
+  & span {
+    font-size: 1.6vw;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: #A1908A;
+    mix-blend-mode: difference;
+    text-shadow:
+      0 0.052083vw 0.052083vw rgba(161, 144, 138, 0.35),
+      0 0.104167vw 0.208333vw currentColor;
   }
 `;
 
@@ -461,8 +470,8 @@ export const Sw2WonderBox = styled.div`
   top: 40vw;
   left:32vw;
   transform: translate(-50%, -50%);
-  width: 26vw;
-  height: 26vw;
+  width: 16vw;
+  height: 16vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFFFFF;
   background: linear-gradient(
@@ -479,8 +488,10 @@ export const Sw2WonderBox = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  gap: 0.35vw;
   text-align: center;
-  color: #A3A298;
+  color: #A1908A;
   font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400;
   font-size: 2.083333vw;
@@ -491,15 +502,22 @@ export const Sw2WonderBox = styled.div`
     ${driftGradient} 9.8s ease-in-out infinite,
     ${wonderDrift} 16s ease-in-out infinite,
     ${wonderSize} 29s ease-in-out infinite alternate-reverse;
+  isolation: isolate;
 
-  &::before {
-    content: '신기함';
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: inherit;
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
+  & strong,
+  & span {
+    font-size: 1.6vw;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: #A1908A;
+    mix-blend-mode: difference;
+    text-shadow:
+      0 0.052083vw 0.052083vw rgba(161, 144, 138, 0.35),
+      0 0.104167vw 0.208333vw currentColor;
   }
 `;
 
@@ -508,8 +526,8 @@ export const Sw2HappyBox = styled.div`
   top: 8vw;
   left: 18vw;
   transform: translate(-50%, -50%);
-  width: 24vw;
-  height: 24vw;
+  width: 16vw;
+  height: 16vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFFFFF;
   background: linear-gradient(
@@ -527,8 +545,10 @@ export const Sw2HappyBox = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  gap: 0.35vw;
   text-align: center;
-  color: #A3A298;
+  color: #A1908A;
   font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400;
   font-size: 2.083333vw;
@@ -539,6 +559,7 @@ export const Sw2HappyBox = styled.div`
     ${driftGradient} 8.9s ease-in-out infinite,
     ${happyDrift} 15s ease-in-out infinite,
     ${happySize} 26s ease-in-out infinite alternate;
+  isolation: isolate;
 
   &::after {
     content: '';
@@ -546,21 +567,27 @@ export const Sw2HappyBox = styled.div`
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
+    z-index: 0;
     backdrop-filter: blur(0.078125vw);
     -webkit-backdrop-filter: blur(0.078125vw);
     background: rgba(255,255,255,0.0001);
     -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
     mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
   }
-
-  &::before {
-    content: '행복함';
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: inherit;
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
+  & strong,
+  & span {
+    font-size: 1.6vw;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: #A1908A;
+    mix-blend-mode: difference;
+    text-shadow:
+      0 0.052083vw 0.052083vw rgba(161, 144, 138, 0.35),
+      0 0.104167vw 0.208333vw currentColor;
   }
 `;
 

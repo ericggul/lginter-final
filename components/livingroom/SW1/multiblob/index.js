@@ -58,86 +58,24 @@ export default function SW1Controls() {
         </S.Dots>
       </S.TopStatus>
       <S.Stage>
-        <BGKeyframesGlobal $blurIncrease={0} $blobSize={600} $orbitRadiusScale={1} />
-        <BGBlobCssGlobal />
+        <S.Sw1InterestBlob>
+          <strong>22℃</strong>
+          <span>강력 제습</span>
+        </S.Sw1InterestBlob>
+        <S.Sw1WonderBlob>
+          <strong>24℃</strong>
+          <span>적정 제습</span>
+        </S.Sw1WonderBlob>
+        <S.Sw1HappyBlob>
+          <strong>21℃</strong>
+          <span>강력 가습</span>
+        </S.Sw1HappyBlob>
+        <S.Sw1MoistureBlob>
+          <strong>20℃</strong>
+          <span>적정 가습</span>
+        </S.Sw1MoistureBlob>
         <S.GradientEllipse />
         <S.CenterMark src="/figma/Ellipse%202767.png" alt="" />
-        <S.SmallBlobsLayer>
-          {/* Quadrant BackgroundCanvas blobs (smaller than center mark) */}
-          <S.BCBlobTL>
-            <div
-              className="blob"
-              style={{
-                '--center-x': '38%',
-                '--center-y': '23%',
-                '--start': '50%',
-                '--end': '99%',
-                '--blur': '53px',
-                '--feather': '12%',
-                '--inner-blur': '20px',
-                '--rim-tilt': '30deg',
-                '--c0': '#F7F7E8',
-                '--c1': '#F4E9D7',
-                '--c2': '#F79CBF',
-                '--c3': '#C5F7EA',
-                '--c4': '#C8F4E9',
-                '--bg': 'radial-gradient(circle at var(--center-x) var(--center-y), var(--c0) 0%, var(--c1) 13%, var(--c2) 47%, var(--c3) 78%, var(--c4) 100%)',
-                '--tint-alpha': 0.85,
-                '--boost': 1.9,
-                width: '100%',
-                aspectRatio: '1 / 1',
-                animation: 'ringPulse 6s ease-in-out infinite',
-              }}
-            >
-              <div className="ring-boost" />
-            </div>
-          </S.BCBlobTL>
-          <S.BCBlobTR>
-            <div className="blob" style={{
-              '--center-x': '62%',
-              '--center-y': '27%',
-              '--start': '50%',
-              '--end': '99%',
-              '--blur': '53px',
-              '--feather': '12%',
-              '--inner-blur': '20px',
-              '--rim-tilt': '30deg',
-              '--c0': '#F7F7E8','--c1':'#F4E9D7','--c2':'#F79CBF','--c3':'#C5F7EA','--c4':'#C8F4E9',
-              '--bg': 'radial-gradient(circle at var(--center-x) var(--center-y), var(--c0) 0%, var(--c1) 13%, var(--c2) 47%, var(--c3) 78%, var(--c4) 100%)',
-              '--tint-alpha': 0.85,'--boost':1.9, width:'100%', aspectRatio:'1/1', animation:'ringPulse 6s ease-in-out infinite'
-            }}><div className="ring-boost" /></div>
-          </S.BCBlobTR>
-          <S.BCBlobBL>
-            <div className="blob" style={{
-              '--center-x': '36%',
-              '--center-y': '73%',
-              '--start': '50%',
-              '--end': '99%',
-              '--blur': '53px',
-              '--feather': '12%',
-              '--inner-blur': '20px',
-              '--rim-tilt': '30deg',
-              '--c0': '#F7F7E8','--c1':'#F4E9D7','--c2':'#F79CBF','--c3':'#C5F7EA','--c4':'#C8F4E9',
-              '--bg': 'radial-gradient(circle at var(--center-x) var(--center-y), var(--c0) 0%, var(--c1) 13%, var(--c2) 47%, var(--c3) 78%, var(--c4) 100%)',
-              '--tint-alpha': 0.85,'--boost':1.9, width:'100%', aspectRatio:'1/1', animation:'ringPulse 6s ease-in-out infinite'
-            }}><div className="ring-boost" /></div>
-          </S.BCBlobBL>
-          <S.BCBlobBR>
-            <div className="blob" style={{
-              '--center-x': '64%',
-              '--center-y': '74%',
-              '--start': '50%',
-              '--end': '99%',
-              '--blur': '53px',
-              '--feather': '12%',
-              '--inner-blur': '20px',
-              '--rim-tilt': '30deg',
-              '--c0': '#F7F7E8','--c1':'#F4E9D7','--c2':'#F79CBF','--c3':'#C5F7EA','--c4':'#C8F4E9',
-              '--bg': 'radial-gradient(circle at var(--center-x) var(--center-y), var(--c0) 0%, var(--c1) 13%, var(--c2) 47%, var(--c3) 78%, var(--c4) 100%)',
-              '--tint-alpha': 0.85,'--boost':1.9, width:'100%', aspectRatio:'1/1', animation:'ringPulse 6s ease-in-out infinite'
-            }}><div className="ring-boost" /></div>
-          </S.BCBlobBR>
-        </S.SmallBlobsLayer>
         <S.EllipseLayer>
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
         </S.EllipseLayer>

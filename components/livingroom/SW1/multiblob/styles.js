@@ -37,33 +37,28 @@ const drift = keyframes`
 `;
 
 const pulse = keyframes`
-  /* Tighter inward squeeze toward center text */
-  0%   { --holeInner: 12.5vmin; }
-  50%  { --holeInner: 10.8vmin; }
-  100% { --holeInner: 12.5vmin; }
+  0%   { --holeInner: 14.5vmin; }
+  35%  { --holeInner: 7.2vmin; }
+  100% { --holeInner: 14.5vmin; }
 `;
 
 const rimPulse = keyframes`
-  /* Make outer edge spread outward at peak: smaller feather = larger visible radius */
-  0%   { --outerFeather: 6vmin; }
-  50%  { --outerFeather: 3.6vmin; }
-  100% { --outerFeather: 6vmin; }
+  0%   { --outerFeather: 7.5vmin; }
+  35%  { --outerFeather: 1.8vmin; }
+  100% { --outerFeather: 7.5vmin; }
 `;
 
 const rimScale = keyframes`
-  /* Increase global radius swell for stronger outer expansion */
-  0%   { --blobScale: 1; }
-  50%  { --blobScale: 1.25; }
-  100% { --blobScale: 1; }
+  0%   { --blobScale: 0.88; }
+  35%  { --blobScale: 1.45; }
+  100% { --blobScale: 0.88; }
 `;
 
 export const Root = styled.div`
   position: relative;
   width: 100vw;
-  /* Prefer dynamic viewport height for mobile browsers */
-  height: 100dvh;
-  /* Fallback */
-  min-height: 100vh;
+  height: 56.25vw; /* 2160 / 3840 * 100 */
+  min-height: 56.25vw;
   background-color: #FAEFFA;
   background-image: ${({ $backgroundUrl }) => ($backgroundUrl ? `url(${$backgroundUrl})` : 'none')};
   background-position: center center;
@@ -77,15 +72,15 @@ export const Root = styled.div`
 
 export const TopStatus = styled.div`
   position: absolute;
-  top: 5vh;
+  top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
   color: #334155;
   font-weight: 600;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.005208vw;
   text-align: center;
-  font-size: clamp(28px, 3.96vmin, 47px);
-  text-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  font-size: clamp(0.729167vw, 3.96vmin, 1.223958vw);
+  text-shadow: 0 0.052083vw 0.3125vw rgba(0,0,0,0.08);
   pointer-events: none;
   z-index: 10;
 `;
@@ -94,10 +89,10 @@ export const Stage = styled.div`
   position: absolute;
   inset: 0;
   width: 100vw;
-  height: 100vh;
+  height: 56.25vw;
   pointer-events: none;
   /* reference size for the largest small blob (D) */
-  --largestBlobSize: clamp(445px, 52.65vmin, 1215px);
+  --largestBlobSize: clamp(11.588542vw, 52.65vmin, 31.640625vw);
 `;
 
 export const GradientEllipse = styled.div`
@@ -105,16 +100,16 @@ export const GradientEllipse = styled.div`
   top: 50%;
   left: 50%;
   /* Scale with viewport min-dimension; cap for large displays */
-  width: clamp(1100px, 135vmin, 3000px);
-  height: clamp(1100px, 135vmin, 3000px);
+  width: clamp(28.645833vw, 135vmin, 78.125vw);
+  height: clamp(28.645833vw, 135vmin, 78.125vw);
   transform: translate(-50%, -50%) rotate(90deg) scale(var(--blobScale));
-  background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFC7C1 21.15%, rgba(255, 218, 246, 0.76) 63.46%, rgba(234, 213, 255, 0.3) 85.58%, rgba(255, 255, 255, 0) 100%);
-  filter: blur(50px);
+  background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFB9AC 15%, rgba(255, 183, 226, 0.9) 42%, rgba(218, 174, 255, 0.7) 70%, rgba(255, 255, 255, 0.1) 100%);
+  filter: blur(1.302083vw);
   border-radius: 50%;
   z-index: 1;
   pointer-events: none;
   /* Create a soft transparent hole in the center and feather the outer edge */
-  --holeInner: 11vmin; /* radius where fully transparent begins (tighter to center text) */
+  --holeInner: 12vmin; /* radius where fully transparent begins (tighter to center text) */
   --holeFeather: 5vmin; /* slightly crisper inner edge */
   --outerFeather: 8vmin; /* softness of the outer edge */
   -webkit-mask-image: radial-gradient(circle closest-side at 50% 50%,
@@ -130,9 +125,9 @@ export const GradientEllipse = styled.div`
     rgba(255,255,255,0) 100%
   );
   /* Center locked; slow down by 300% (durations ×3) and updated amplitudes */
-  animation: ${pulse} 4.5s ease-in-out infinite alternate,
-             ${rimPulse} 4.5s ease-in-out infinite alternate,
-             ${rimScale} 4.5s ease-in-out infinite alternate;
+  animation: ${pulse} 7s ease-in-out infinite alternate,
+             ${rimPulse} 7s ease-in-out infinite alternate,
+             ${rimScale} 7s ease-in-out infinite alternate;
 `;
 
 export const EllipseLayer = styled.div`
@@ -142,11 +137,11 @@ export const EllipseLayer = styled.div`
 export const Ellipse = styled.div`
   /* Fallback for narrow screens */
   width: 100vw;
-  @media (min-width: 1520px) {
-    width: calc(100vw - 1520px); /* leave 760px on left and right */
-    max-width: calc(100vw - 1520px);
+  @media (min-width: 39.583333vw) {
+    width: calc(100vw - 39.583333vw); /* leave 19.791667vw on left and right */
+    max-width: calc(100vw - 39.583333vw);
   }
-  height: 100vh; /* allow vertical crop */
+  height: 56.25vw; /* allow vertical crop */
   background-image: ${({ $ellipseUrl }) => ($ellipseUrl ? `url(${$ellipseUrl})` : 'none')};
   background-position: center center;
   background-repeat: no-repeat;
@@ -158,8 +153,8 @@ export const CircleContainer = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: calc(100vh * 5 / 7);
-  height: calc(100vh * 5 / 7);
+  width: calc(56.25vw * 5 / 7);
+  height: calc(56.25vw * 5 / 7);
   border-radius: 50%;
   z-index: 0;
 `;
@@ -180,7 +175,7 @@ export const GradientBlur = styled.div`
   height: calc(100% * 3012 / 3104);
   border-radius: 50%;
   background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFFFFF 34.13%, #FCCCC1 44.23%, #DDDBDD 79.81%, #FFC9E3 87.98%, #FFFFFF 100%);
-  filter: blur(50px);
+  filter: blur(1.302083vw);
 `;
 
 export const CenterTextWrap = styled.div`
@@ -213,19 +208,19 @@ export const CenterMark = styled.img`
 `;
 
 export const CenterTemp = styled.div`
-  font-size: clamp(25px, 4.5vmin, 65px);
+  font-size: clamp(0.651042vw, 4.5vmin, 1.692708vw);
   line-height: 1.08;
   font-weight: 600;
   color: #111827;
-  text-shadow: 0 1px 0 rgba(0,0,0,0.64), 0 3px 12px rgba(0,0,0,0.48);
+  text-shadow: 0 0.026042vw 0 rgba(0,0,0,0.64), 0 0.078125vw 0.3125vw rgba(0,0,0,0.48);
 `;
 
 export const CenterMode = styled.div`
   margin-top: 0.6vmin;
-  font-size: clamp(25px, 4.5vmin, 65px);
+  font-size: clamp(0.651042vw, 4.5vmin, 1.692708vw);
   font-weight: 500;
   color: #0F172A;
-  text-shadow: 0 1px 0 rgba(0,0,0,0.48), 0 3px 12px rgba(0,0,0,0.36);
+  text-shadow: 0 0.026042vw 0 rgba(0,0,0,0.48), 0 0.078125vw 0.3125vw rgba(0,0,0,0.36);
 `;
 
 
@@ -241,109 +236,189 @@ export const Dot = styled.span`
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
 `;
 
-/* Small peripheral blobs (no motion) */
-export const SmallBlobsLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2; /* above bg ellipse, below center text (z=5) */
+/* Imported SW2 blob styling for SW1 */
+
+const blobDriftGradient = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 `;
 
-/* Wrapper to place a BackgroundCanvas-style blob at the exact D position/size */
-export const BCBlobDWrap = styled.div`
+const blobInterestDrift = keyframes`
+  0%   { transform: translate(-50%, -50%); }
+  25%  { transform: translate(calc(-50% + 2vw), calc(-50% - 1.2vw)); }
+  50%  { transform: translate(calc(-50% + 1vw), calc(-50% - 2vw)); }
+  75%  { transform: translate(calc(-50% + 2.6vw), calc(-50% - 0.6vw)); }
+  100% { transform: translate(-50%, -50%); }
+`;
+
+const blobWonderDrift = keyframes`
+  0%   { transform: translate(-50%, -50%); }
+  25%  { transform: translate(calc(-50% - 2.4vw), calc(-50% + 1.4vw)); }
+  50%  { transform: translate(calc(-50% - 1.6vw), calc(-50% + 2.6vw)); }
+  75%  { transform: translate(calc(-50% - 0.9vw), calc(-50% + 1.2vw)); }
+  100% { transform: translate(-50%, -50%); }
+`;
+
+const blobHappyDrift = keyframes`
+  0%   { transform: translate(-50%, -50%); }
+  25%  { transform: translate(calc(-50% - 2.2vw), calc(-50% - 1.2vw)); }
+  50%  { transform: translate(calc(-50% - 1.2vw), calc(-50% + 1.4vw)); }
+  75%  { transform: translate(calc(-50% - 0.4vw), calc(-50% - 0.4vw)); }
+  100% { transform: translate(-50%, -50%); }
+`;
+
+const blobMoistureDrift = keyframes`
+  0%   { transform: translate(-50%, -50%); }
+  25%  { transform: translate(calc(-50% + 1.8vw), calc(-50% + 1.2vw)); }
+  50%  { transform: translate(calc(-50% + 1vw), calc(-50% - 1.6vw)); }
+  75%  { transform: translate(calc(-50% + 0.3vw), calc(-50% - 0.6vw)); }
+  100% { transform: translate(-50%, -50%); }
+`;
+
+const blobInterestSize = keyframes`
+  0%   { width: 16vw; height: 16vw; }
+  40%  { width: 22vw; height: 22vw; }
+  70%  { width: 14vw; height: 14vw; }
+  100% { width: 18vw; height: 18vw; }
+`;
+
+const blobWonderSize = keyframes`
+  0%   { width: 16vw; height: 16vw; }
+  45%  { width: 22vw; height: 22vw; }
+  75%  { width: 14vw; height: 14vw; }
+  100% { width: 19vw; height: 19vw; }
+`;
+
+const blobHappySize = keyframes`
+  0%   { width: 16vw; height: 16vw; }
+  35%  { width: 22vw; height: 22vw; }
+  65%  { width: 14vw; height: 14vw; }
+  100% { width: 18.5vw; height: 18.5vw; }
+`;
+
+const BlobBase = styled.div`
   position: absolute;
-  --top: 72%;
-  --left: 74%;
-  --size: clamp(445px, 52.65vmin, 1215px);
-  top: var(--top);
-  left: var(--left);
   transform: translate(-50%, -50%);
-  width: var(--size);
-  height: var(--size);
-  pointer-events: none;
-  z-index: 1; /* under labels */
-`;
-
-/* Four quadrant wrappers for BackgroundCanvas blobs (smaller than CenterMark) */
-const BCBlobQuadBase = styled.div`
-  position: absolute;
-  top: ${(p) => p.$top || '25%'};
-  left: ${(p) => p.$left || '25%'};
-  transform: translate(-50%, -50%);
-  width: calc(var(--largestBlobSize) * 0.36);
-  height: calc(var(--largestBlobSize) * 0.36);
-  pointer-events: none;
-  z-index: 1;
-`;
-
-export const BCBlobTL = styled(BCBlobQuadBase)`
-  top: 25%;
-  left: 25%;
-`;
-export const BCBlobTR = styled(BCBlobQuadBase)`
-  top: 25%;
-  left: 75%;
-`;
-export const BCBlobBL = styled(BCBlobQuadBase)`
-  top: 75%;
-  left: 25%;
-`;
-export const BCBlobBR = styled(BCBlobQuadBase)`
-  top: 75%;
-  left: 75%;
-`;
-
-/* swirl by animating radial-gradient center (scales with element size) */
-const gCenterSwirl = keyframes`
-  0%   { --cx: 50%; --cy: 46%; }
-  25%  { --cx: 54%; --cy: 50%; }
-  50%  { --cx: 50%; --cy: 54%; }
-  75%  { --cx: 46%; --cy: 50%; }
-  100% { --cx: 50%; --cy: 46%; }
-`;
-const gCenterSwirlDiag1 = keyframes`
-  0%   { --cx: 48%; --cy: 46%; }
-  25%  { --cx: 54%; --cy: 48%; }
-  50%  { --cx: 52%; --cy: 54%; }
-  75%  { --cx: 46%; --cy: 52%; }
-  100% { --cx: 48%; --cy: 46%; }
-`;
-const gCenterSwirlDiag2 = keyframes`
-  0%   { --cx: 52%; --cy: 46%; }
-  25%  { --cx: 54%; --cy: 52%; }
-  50%  { --cx: 48%; --cy: 54%; }
-  75%  { --cx: 46%; --cy: 48%; }
-  100% { --cx: 52%; --cy: 46%; }
-`;
-
-export const SectionCell = styled.div`
-  position: relative;
-  overflow: hidden; /* softly clips blur near edges to 'hint' crossing */
-`;
-
-/* Shared blob base */
-const SectionBlob = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(var(--rot));
-  width: var(--size);
-  height: var(--size);
+  width: 16vw;
+  height: 16vw;
   border-radius: 50%;
-  filter: blur(43.4px);
-  opacity: 0.95;
-  pointer-events: none;
-  will-change: transform;
+  border: 0.026042vw solid #FFFFFF;
+  box-shadow:
+    inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38),
+    inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
+  overflow: hidden;
+  background-size: 320% 320%;
+  background-position: 0% 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.02vw;
+  text-align: center;
+  color: #A1908A;
+  font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: 2.083333vw;
+  letter-spacing: 0.01em;
+  z-index: 2;
+  will-change: background-position, transform;
+  isolation: isolate;
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
+  & strong,
+  & span {
+    font-size: 1.6vw;
+    font-weight: 320;
+    letter-spacing: 0.01em;
+    color: #A1908A;
+    mix-blend-mode: difference;
+    text-shadow:
+      0 0.052083vw 0.052083vw rgba(161, 144, 138, 0.35),
+      0 0.104167vw 0.208333vw currentColor;
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    backdrop-filter: blur(0.078125vw);
+    -webkit-backdrop-filter: blur(0.078125vw);
+    background: rgba(255,255,255,0.0001);
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
+  }
 `;
 
-/* Scale between 25% and 100% of own max (min = 25% of largest rule satisfied) */
-const scalePulse = keyframes`
-  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) scale(0.25); }
-  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) scale(1); }
-  100% { transform: translate(-50%, -50%) rotate(var(--rot)) scale(0.25); }
+export const Sw1InterestBlob = styled(BlobBase)`
+  top: 12vw;
+  left: 78vw;
+  background: linear-gradient(
+    110deg,
+    rgba(91, 76, 255, 0.23) 10%,
+    rgba(255, 255, 255, 0.82) 28%,
+    rgba(255, 132, 94, 0.26) 52%,
+    rgba(55, 255, 252, 0.18) 74%,
+    rgba(66, 255, 142, 0.22) 92%
+  );
+  background-size: 320% 320%;
+  animation:
+    ${blobDriftGradient} 9.3s ease-in-out infinite,
+    ${blobInterestDrift} 18s ease-in-out infinite,
+    ${blobInterestSize} 28s ease-in-out infinite alternate;
 `;
 
+export const Sw1WonderBlob = styled(BlobBase)`
+  top: 44vw;
+  left: 24vw;
+  background: linear-gradient(
+    259.38deg,
+    rgba(255, 255, 255, 0.86) 12%,
+    rgba(0, 0, 255, 0.32) 32%,
+    rgba(170, 0, 255, 0.26) 56%,
+    rgba(0, 255, 179, 0.34) 82%
+  );
+  background-size: 320% 320%;
+  animation:
+    ${blobDriftGradient} 9.8s ease-in-out infinite,
+    ${blobWonderDrift} 19s ease-in-out infinite,
+    ${blobWonderSize} 29s ease-in-out infinite alternate-reverse;
+`;
 
+export const Sw1HappyBlob = styled(BlobBase)`
+  top: 10vw;
+  left: 22vw;
+  background: linear-gradient(
+    131.16deg,
+    rgba(255, 255, 255, 0.86) 12%,
+    rgba(255, 74, 158, 0.34) 34%,
+    rgba(255, 255, 255, 0.84) 62%,
+    rgba(255, 60, 120, 0.3) 88%
+  );
+  background-size: 320% 320%;
+  animation:
+    ${blobDriftGradient} 8.9s ease-in-out infinite,
+    ${blobHappyDrift} 17s ease-in-out infinite,
+    ${blobHappySize} 26s ease-in-out infinite alternate;
+`;
 
-
-
+export const Sw1MoistureBlob = styled(BlobBase)`
+  top: 46vw;
+  left: 74vw;
+  background: linear-gradient(
+    243.46deg,
+    rgba(255, 255, 255, 0.86) 10%,
+    rgba(30, 72, 255, 0.32) 34%,
+    rgba(208, 136, 168, 0.32) 58%,
+    rgba(129, 198, 255, 0.32) 82%
+  );
+  background-size: 320% 320%;
+  animation:
+    ${blobDriftGradient} 9.5s ease-in-out infinite,
+    ${blobMoistureDrift} 20s ease-in-out infinite,
+    ${blobInterestSize} 28s ease-in-out infinite alternate;
+`;

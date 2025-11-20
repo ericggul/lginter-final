@@ -11,6 +11,8 @@ const BLOB_CONFIGS = [
     radius: { x: 6.5, y: 5 },
     jitter: { x: 1.2, y: 0.9 },
     size: { base: 48, min: 42, max: 54 },
+    labelTop: '22℃',
+    labelBottom: '강력 제습',
   },
   {
     id: 'happy',
@@ -19,6 +21,8 @@ const BLOB_CONFIGS = [
     radius: { x: 5.5, y: 4 },
     jitter: { x: 0.9, y: 0.7 },
     size: { base: 36, min: 31, max: 41 },
+    labelTop: '21℃',
+    labelBottom: '강력 가습',
   },
   {
     id: 'wonder',
@@ -27,6 +31,8 @@ const BLOB_CONFIGS = [
     radius: { x: 5.2, y: 4.3 },
     jitter: { x: 0.85, y: 0.75 },
     size: { base: 34, min: 30, max: 38 },
+    labelTop: '24℃',
+    labelBottom: '적정 제습',
   },
 ];
 
@@ -164,7 +170,10 @@ export default function SW2Controls() {
                 delete blobRefs.current[blob.id];
               }
             }}
-          />
+          >
+            <strong>{blob.labelTop}</strong>
+            <span>{blob.labelBottom}</span>
+          </Component>
         );
       })}
       {/* If background frame image is unavailable, pass empty to avoid 404 */}
