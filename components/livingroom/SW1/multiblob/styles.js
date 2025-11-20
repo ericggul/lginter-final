@@ -293,64 +293,6 @@ export const BCBlobBR = styled(BCBlobQuadBase)`
   left: 75%;
 `;
 
-/* small blob float keyframes removed */
-
-/* SmallBlobBase removed */
-
-/* Subtle gradient drift (waves) to make color mix look natural */
-const gDriftX = keyframes`
-  0%   { background-position:   0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position:   0% 50%; }
-`;
-const gDriftY = keyframes`
-  0%   { background-position: 50%   0%; }
-  50%  { background-position: 50% 100%; }
-  100% { background-position: 50%   0%; }
-`;
-const gDriftDiag1 = keyframes`
-  0%   { background-position:   0%   0%; }
-  50%  { background-position: 100% 100%; }
-  100% { background-position:   0%   0%; }
-`;
-const gDriftDiag2 = keyframes`
-  0%   { background-position: 100%   0%; }
-  50%  { background-position:   0% 100%; }
-  100% { background-position: 100%   0%; }
-`;
-
-/* gentle swirl around center: small circular path of background-position */
-const gSwirlPos = keyframes`
-  0%   { background-position: 50% 28%; }
-  25%  { background-position: 72% 50%; }
-  50%  { background-position: 50% 72%; }
-  75%  { background-position: 28% 50%; }
-  100% { background-position: 50% 28%; }
-`;
-
-/* tiny rotation wobble to enhance swirl feel without affecting layout */
-const gSwirlRot = keyframes`
-  0%   { transform: rotate(var(--rot, 0deg)); }
-  50%  { transform: rotate(calc(var(--rot, 0deg) + 28deg)); }
-  100% { transform: rotate(var(--rot, 0deg)); }
-`;
-
-/* diagonal-biased swirl paths for variety */
-const gSwirlPosDiag1 = keyframes`
-  0%   { background-position: 40% 32%; }
-  25%  { background-position: 68% 38%; }
-  50%  { background-position: 60% 68%; }
-  75%  { background-position: 32% 60%; }
-  100% { background-position: 40% 32%; }
-`;
-const gSwirlPosDiag2 = keyframes`
-  0%   { background-position: 60% 32%; }
-  25%  { background-position: 68% 62%; }
-  50%  { background-position: 40% 68%; }
-  75%  { background-position: 32% 38%; }
-  100% { background-position: 60% 32%; }
-`;
-
 /* swirl by animating radial-gradient center (scales with element size) */
 const gCenterSwirl = keyframes`
   0%   { --cx: 50%; --cy: 46%; }
@@ -372,26 +314,6 @@ const gCenterSwirlDiag2 = keyframes`
   50%  { --cx: 48%; --cy: 54%; }
   75%  { --cx: 46%; --cy: 48%; }
   100% { --cx: 52%; --cy: 46%; }
-`;
-/* SmallBlobA removed */
-
-/* SmallBlobB removed */
-
-/* SmallBlobC removed */
-
-/* SmallBlobD removed */
-
-/* SmallBlobLabel removed */
-
-/* 4-way sectioning relative to centered text */
-export const SectionGrid = styled.div`
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  z-index: 2; /* behind centered text (z=5), above bg ellipse */
-  pointer-events: none;
 `;
 
 export const SectionCell = styled.div`
@@ -421,71 +343,7 @@ const scalePulse = keyframes`
   100% { transform: translate(-50%, -50%) rotate(var(--rot)) scale(0.25); }
 `;
 
-/* Gentle drift within cell - distinct paths per quadrant */
-const driftA = keyframes`
-  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-8%, -6%) scale(var(--k,1)); }
-  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 8%,  6%) scale(var(--k,1)); }
-  100% { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-8%, -6%) scale(var(--k,1)); }
-`;
-const driftB = keyframes`
-  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 7%, -7%) scale(var(--k,1)); }
-  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-7%,  7%) scale(var(--k,1)); }
-  100% { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 7%, -7%) scale(var(--k,1)); }
-`;
-const driftC = keyframes`
-  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 6%,  8%) scale(var(--k,1)); }
-  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-6%, -8%) scale(var(--k,1)); }
-  100% { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 6%,  8%) scale(var(--k,1)); }
-`;
-const driftD = keyframes`
-  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-9%,  5%) scale(var(--k,1)); }
-  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 9%, -5%) scale(var(--k,1)); }
-  100% { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-9%,  5%) scale(var(--k,1)); }
-`;
 
-/* a: top-left */
-export const BlobA = styled(SectionBlob)`
-  --rot: 148.82deg;
-  --size: calc(var(--baseMax) * 0.48); /* < 50% of base */
-  background: linear-gradient(180deg, rgba(140, 80, 250, 0.68) 0%, rgba(255, 225, 200, 0.34) 100%);
-  border: 3px solid #FFFFFF;
-  filter: blur(43.4px);
-  font-weight: 700;
-  animation:
-    ${scalePulse} 7s ease-in-out infinite alternate,
-    ${driftA} 10s ease-in-out infinite alternate;
-`;
 
-/* b: top-right */
-export const BlobB = styled(SectionBlob)`
-  --rot: 75deg;
-  --size: calc(var(--baseMax) * 0.42);
-  background: linear-gradient(180deg, rgba(255, 138, 182, 0.48) 0%, rgba(221, 233, 227, 0.48) 67.89%);
-  font-weight: 700;
-  animation:
-    ${scalePulse} 7.5s ease-in-out infinite alternate,
-    ${driftB} 11s ease-in-out infinite alternate;
-`;
 
-/* c: bottom-left */
-export const BlobC = styled(SectionBlob)`
-  --rot: 30deg;
-  --size: calc(var(--baseMax) * 0.35);
-  background: linear-gradient(180deg, rgba(249, 206, 180, 0.72) 6.25%, rgba(221, 233, 227, 0.72) 38.5%);
-  font-weight: 700;
-  animation:
-    ${scalePulse} 8s ease-in-out infinite alternate,
-    ${driftC} 12s ease-in-out infinite alternate;
-`;
-
-/* d: bottom-right */
-export const BlobD = styled(SectionBlob)`
-  --rot: 45deg;
-  --size: calc(var(--baseMax) * 0.28);
-  background: linear-gradient(180deg, rgba(255, 173, 213, 0.61) 0%, rgba(249, 207, 180, 0.61) 60.58%);
-  font-weight: 700;
-  animation:
-    ${scalePulse} 8.5s ease-in-out infinite alternate,
-    ${driftD} 12.5s ease-in-out infinite alternate;
-`;
 

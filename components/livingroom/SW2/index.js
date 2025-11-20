@@ -3,6 +3,54 @@ import useSocketSW2 from "@/utils/hooks/useSocketSW2";
 import * as S from './styles';
 import { createSocketHandlers } from './logic';
 
+const VIEWPORT = { width: 100, height: 56.25 };
+const MIN_VISIBLE_RATIO = 0.8;
+
+const BLOB_CONFIGS = [
+  {
+    id: 'interest',
+    componentKey: 'Sw2InterestBox',
+    anchor: { x: 74, y: 30 },
+    radius: { x: 6.5, y: 5 },
+    jitter: { x: 1.2, y: 0.9 },
+    size: { base: 48, min: 42, max: 54 },
+    motion: {
+      orbit: { min: 0.009, max: 0.013 },
+      jitter: { min: 0.012, max: 0.02 },
+      scale: { min: 0.006, max: 0.012 },
+    },
+  },
+  {
+    id: 'happy',
+    componentKey: 'Sw2HappyBox',
+    anchor: { x: 28, y: 24 },
+    radius: { x: 5.5, y: 4 },
+    jitter: { x: 0.9, y: 0.7 },
+    size: { base: 36, min: 31, max: 41 },
+    motion: {
+      orbit: { min: 0.01, max: 0.015 },
+      jitter: { min: 0.014, max: 0.022 },
+      scale: { min: 0.007, max: 0.013 },
+    },
+  },
+  {
+    id: 'wonder',
+    componentKey: 'Sw2WonderBox',
+    anchor: { x: 22, y: 64 },
+    radius: { x: 5.2, y: 4.3 },
+    jitter: { x: 0.85, y: 0.75 },
+    size: { base: 34, min: 30, max: 38 },
+    motion: {
+      orbit: { min: 0.008, max: 0.012 },
+      jitter: { min: 0.012, max: 0.02 },
+      scale: { min: 0.006, max: 0.011 },
+    },
+  },
+];
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const randomBetween = (min, max) => Math.random() * (max - min) + min;
+
 export default function SW2Controls() {
   const [ambienceData, setAmbienceData] = useState(null);
   const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
@@ -13,9 +61,9 @@ export default function SW2Controls() {
   const [audioSrc, setAudioSrc] = useState('');
   const audioRef = useRef(null);
   const [activeUsers, setActiveUsers] = useState(new Set());
-  const [userKeyword, setUserKeyword] = useState('');
-  const [labels, setLabels] = useState(['', '', '']);
   const switchTimerRef = useRef(null);
+  const blobRefs = useRef({});
+  const animationRef = useRef(null);
   const searchYouTubeMusic = useCallback(async () => {}, []); // no-op
 
   const handlers = useMemo(
@@ -48,17 +96,12 @@ export default function SW2Controls() {
           return next;
         });
       }
-      if (msg?.emotionKeyword) {
-        setUserKeyword(String(msg.emotionKeyword));
-      }
     },
     onDeviceNewVoice: (payload) => {
       const uid = payload?.userId ? String(payload.userId) : null;
       if (uid) {
         setActiveUsers(prev => { const next = new Set(prev); next.add(uid); return next; });
       }
-      const kw = payload?.emotion || payload?.text;
-      if (kw) setUserKeyword(String(kw));
     }
   });
 
@@ -75,33 +118,6 @@ export default function SW2Controls() {
     if (parts.length >= 2) return { t: parts[0].trim(), a: parts.slice(1).join(' - ').trim() };
     return { t: String(song).trim(), a: '' };
   }, []);
-
-  // 라벨에 사용자 키워드를 반영(한국어 그대로)
-  // - 비어있는 슬롯부터 채움
-  // - 3개가 모두 차 있으면 라운드로빈으로 교체
-  const nextSlotRef = useRef(0);
-  useEffect(() => {
-    const kw = String(userKeyword || '').trim();
-    if (!kw) return;
-    setLabels((prev) => {
-      // 중복은 무시
-      if (prev.includes(kw)) return prev;
-      const emptyIndex = prev.findIndex((s) => !s);
-      if (emptyIndex !== -1) {
-        const next = [...prev];
-        next[emptyIndex] = kw;
-        // 다음 교체 인덱스는 비어있던 다음 칸부터
-        nextSlotRef.current = (emptyIndex + 1) % 3;
-        return next;
-      }
-      // 모두 찼으면 라운드로빈으로 교체
-      const idx = nextSlotRef.current % 3;
-      const next = [...prev];
-      next[idx] = kw;
-      nextSlotRef.current = (idx + 1) % 3;
-      return next;
-    });
-  }, [userKeyword]);
 
   useEffect(() => {
     const songStr = ambienceData?.song;
@@ -148,26 +164,128 @@ export default function SW2Controls() {
     } catch {}
   }, [audioSrc]);
 
+  useEffect(() => {
+    const blobs = BLOB_CONFIGS.map((cfg) => {
+      const amplitude = (cfg.size.max - cfg.size.min) / 2;
+      const baseSize = cfg.size.base ?? cfg.size.min + amplitude;
+      return {
+        config: cfg,
+        baseSize,
+        sizeAmplitude: amplitude,
+        x: cfg.anchor.x,
+        y: cfg.anchor.y,
+        sizeCurrent: baseSize,
+        angle: Math.random() * Math.PI * 2,
+        dir: Math.random() > 0.5 ? 1 : -1,
+        orbitSpeed: randomBetween(cfg.motion.orbit.min, cfg.motion.orbit.max),
+        jitterPhase: Math.random() * Math.PI * 2,
+        jitterSpeed: randomBetween(cfg.motion.jitter.min, cfg.motion.jitter.max),
+        sizePhase: Math.random() * Math.PI * 2,
+        sizeSpeed: randomBetween(cfg.motion.scale.min, cfg.motion.scale.max),
+      };
+    });
+
+    const applyStyles = () => {
+      blobs.forEach((blob) => {
+        const node = blobRefs.current[blob.config.id];
+        if (!node) return;
+        node.style.setProperty('--blob-top', `${blob.y}vw`);
+        node.style.setProperty('--blob-left', `${blob.x}vw`);
+        node.style.setProperty('--blob-size', `${blob.sizeCurrent}vw`);
+      });
+    };
+
+    const enforceBounds = (value, radius, limit) => {
+      const margin = Math.min(radius * MIN_VISIBLE_RATIO, limit / 2);
+      return clamp(value, margin, limit - margin);
+    };
+
+    const step = () => {
+      blobs.forEach((blob) => {
+        blob.angle += blob.dir * blob.orbitSpeed;
+        blob.jitterPhase += blob.jitterSpeed;
+        blob.sizePhase += blob.sizeSpeed;
+
+        const jitterX = Math.sin(blob.jitterPhase) * blob.config.jitter.x;
+        const jitterY = Math.cos(blob.jitterPhase) * blob.config.jitter.y;
+
+        let x = blob.config.anchor.x + Math.cos(blob.angle) * blob.config.radius.x + jitterX;
+        let y = blob.config.anchor.y + Math.sin(blob.angle) * blob.config.radius.y + jitterY;
+
+        let size = blob.baseSize + Math.sin(blob.sizePhase) * blob.sizeAmplitude;
+        size = clamp(size, blob.config.size.min, blob.config.size.max);
+        const radius = size / 2;
+
+        const boundedX = enforceBounds(x, radius, VIEWPORT.width);
+        if (boundedX !== x) blob.dir = -blob.dir;
+        const boundedY = enforceBounds(y, radius, VIEWPORT.height);
+        if (boundedY !== y) blob.dir = -blob.dir;
+
+        blob.x = boundedX;
+        blob.y = boundedY;
+        blob.sizeCurrent = size;
+      });
+
+      for (let i = 0; i < blobs.length; i += 1) {
+        for (let j = i + 1; j < blobs.length; j += 1) {
+          const a = blobs[i];
+          const b = blobs[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy) || 0.0001;
+          const minDist = (a.sizeCurrent + b.sizeCurrent) / 2 + 0.8;
+          if (dist < minDist) {
+            const overlap = (minDist - dist) / 2;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            a.x -= nx * overlap;
+            a.y -= ny * overlap;
+            b.x += nx * overlap;
+            b.y += ny * overlap;
+            a.dir = -a.dir;
+            b.dir = -b.dir;
+            a.angle += Math.PI / 10;
+            b.angle -= Math.PI / 10;
+          }
+        }
+      }
+
+      applyStyles();
+      animationRef.current = requestAnimationFrame(step);
+    };
+
+    applyStyles();
+    animationRef.current = requestAnimationFrame(step);
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, []);
+
   const participantCount = useMemo(() => {
     const names = new Set(Object.values(assignedUsers || {}).filter(v => v && v !== 'N/A'));
     return Math.max(names.size, activeUsers.size || 0);
   }, [assignedUsers, activeUsers]);
 
-  // 0명일 때 랜덤 3개 감각 라벨
-  useEffect(() => {
-    if (participantCount > 0) return;
-    const pool = ['설렘','평온','따뜻함','잔잔함','집중','휴식','상쾌함','기대','고요','안정감','희망','여유'];
-    const a = [...pool];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    setLabels([a[0], a[1], a[2]]);
-  }, [participantCount]);
-
   return (
     <S.Root>
-      <S.BlobMotionCss />
+      {BLOB_CONFIGS.map((blob) => {
+        const Component = S[blob.componentKey];
+        return (
+          <Component
+            key={blob.id}
+            ref={(node) => {
+              if (node) {
+                blobRefs.current[blob.id] = node;
+                node.style.setProperty('--blob-top', `${blob.anchor.y}vw`);
+                node.style.setProperty('--blob-left', `${blob.anchor.x}vw`);
+                node.style.setProperty('--blob-size', `${blob.size.base}vw`);
+              } else {
+                delete blobRefs.current[blob.id];
+              }
+            }}
+          />
+        );
+      })}
       {/* If background frame image is unavailable, pass empty to avoid 404 */}
       <S.FrameBg $url="" />
       <S.TopStatus>
@@ -178,63 +296,6 @@ export default function SW2Controls() {
           <S.Dot $visible={dotCount >= 3}>.</S.Dot>
         </S.Dots>
       </S.TopStatus>
-
-      {/* Motion blobs overlay (positions/sizes/colors preserved) */}
-      <S.MotionLayer>
-        <S.MotionBlobWrap $top="20%" $left="28%" $size="min(48vmin, 52vw)">
-          <S.MotionBlob
-            className="blob"
-            style={{
-              '--center-x': '50%',
-              '--center-y': '48%',
-              '--start': '18%',
-              '--end': '86%',
-              '--feather': '9%',
-              '--blur': '53.5px',
-              '--inner-blur': '26.7px',
-              '--tint-alpha': 0
-            }}
-          />
-        </S.MotionBlobWrap>
-
-        <S.MotionBlobWrap $top="74%" $left="21%" $size="min(44vmin, 46vw)">
-          <S.MotionBlob
-            className="blob"
-            style={{
-              '--center-x': '52%',
-              '--center-y': '50%',
-              '--start': '22%',
-              '--end': '78%',
-              '--feather': '8%',
-              '--blur': '44.6px',
-              '--inner-blur': '22.3px',
-              '--tint-alpha': 0
-            }}
-          />
-        </S.MotionBlobWrap>
-
-        <S.MotionBlobWrap $top="70%" $left="80%" $size="min(66vmin, 72vw)">
-          <S.MotionBlob
-            className="blob"
-            style={{
-              '--center-x': '46%',
-              '--center-y': '48%',
-              '--start': '20%',
-              '--end': '88%',
-              '--feather': '10%',
-              '--blur': '62.4px',
-              '--inner-blur': '31.2px',
-              '--tint-alpha': 0
-            }}
-          />
-        </S.MotionBlobWrap>
-      </S.MotionLayer>
-
-      <S.LabelsLayer>
-        <S.LabelA>{labels[0]}</S.LabelA>
-        <S.LabelB>{labels[1]}</S.LabelB>
-        <S.LabelC>{labels[2]}</S.LabelC>
-      </S.LabelsLayer>
 
       {/* Compact album card */}
       <S.AlbumCard>

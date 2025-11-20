@@ -1,59 +1,61 @@
-import styled, { keyframes, createGlobalStyle } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
 export const Root = styled.div`
-  min-height: 100vh;
+  width: 100vw;
+  height: 56.25vw; /* 2160 / 3840 * 100 */
+  aspect-ratio: 3840 / 2160;
   background: #FFFFFF;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  padding: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
 `;
 
 export const Container = styled.div`
-  max-width: 600px;
+  max-width: 15.625vw;
   width: 100%;
 `;
 
 export const Panel = styled.div`
   background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  border-radius: 25px;
-  padding: 3rem 2rem;
-  box-shadow: 0 20px 60px rgba(147, 51, 234, 0.15);
-  border: 1px solid rgba(147, 51, 234, 0.1);
+  backdrop-filter: blur(0.520833vw);
+  border-radius: 0.651042vw;
+  padding: 1.25vw 0.833333vw;
+  box-shadow: 0 0.520833vw 1.5625vw rgba(147, 51, 234, 0.15);
+  border: 0.026042vw solid rgba(147, 51, 234, 0.1);
 `;
 
 export const Title = styled.h1`
-  font-size: 2.5rem;
+  font-size: 1.041667vw;
   background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.208333vw;
   text-align: center;
 `;
 
 export const Subtitle = styled.p`
   color: #9333EA;
-  font-size: 1rem;
+  font-size: 0.416667vw;
   opacity: 0.7;
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 0.833333vw;
 `;
 
 export const TopStatus = styled.div`
   position: absolute;
-  top: 5vh;
+  top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
   color: #334155;
   font-weight: 600;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.005208vw;
   text-align: center;
-  font-size: clamp(25px, 3.6vmin, 43px);
-  text-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  font-size: clamp(0.651042vw, 3.6vmin, 1.119792vw);
+  text-shadow: 0 0.052083vw 0.3125vw rgba(0,0,0,0.08);
   pointer-events: none;
   z-index: 10;
 `;
@@ -73,131 +75,36 @@ export const Dot = styled.span`
 export const FrameBg = styled.div`
   position: absolute;
   inset: 0;
-  background-image: ${({ $url }) => ($url
-    ? `url(${$url})`
-    : `radial-gradient(60vmin 60vmin at 25% 25%, rgba(255, 129, 171, 0.28), transparent 60%),
-       radial-gradient(70vmin 70vmin at 80% 55%, rgba(255, 190, 120, 0.26), transparent 62%),
-       radial-gradient(68vmin 68vmin at 20% 80%, rgba(147, 51, 234, 0.20), transparent 65%)`
-    )};
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  overflow: hidden;
+  background: ${({ $url }) =>
+    $url ? `url(${$url}) center / cover no-repeat` : 'transparent'};
   opacity: 0.8;
   z-index: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    background: linear-gradient(162.91deg, #FFEBC3 5.4%, #EBFFDF 33.4%, #EDECEB 81.12%);
+    transform: rotate(90deg);
+    transform-origin: center;
+  }
 `;
 
 /* === Mobile blob motion (adapted) ===================================== */
-export const BlobMotionCss = createGlobalStyle`
-  @property --orbit-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-  @property --start-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
-  @property --end-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
-  @property --feather-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
-  @property --blur-wobble { syntax: '<length>'; inherits: true; initial-value: 0px; }
-
-  @keyframes ringPulse {
-    0%, 100% {
-      --start-wobble: calc(0% - var(--start));
-      --end-wobble: 0%;
-      --feather-wobble: 0%;
-      --blur-wobble: calc(0px - var(--blur));
-    }
-    50% {
-      --start-wobble: calc(90% - var(--start));
-      --end-wobble: 0%;
-      --feather-wobble: 5%;
-      --blur-wobble: calc(120px - var(--blur));
-    }
-  }
-
-  .blob {
-    position: relative;
-    border-radius: 50%;
-    background: none;
-    isolation: isolate;
-    --start-anim: clamp(0%, calc(var(--start) + var(--start-wobble)), 90%);
-    --end-anim: clamp(0%, calc(var(--end) + var(--end-wobble)), 100%);
-    --feather-anim: clamp(0%, calc(var(--feather) + var(--feather-wobble)), 25%);
-    animation: ringPulse 6s ease-in-out infinite;
-  }
-
-  .blob::before,
-  .blob::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-  }
-
-  .blob::before {
-    /* Colorless: affect only the backdrop; add near-transparent fill to ensure rendering */
-    background: rgba(255, 255, 255, 0.001);
-    backdrop-filter: blur(var(--inner-blur));
-    -webkit-backdrop-filter: blur(var(--inner-blur));
-    -webkit-mask: radial-gradient(
-      circle at var(--center-x) var(--center-y),
-      #000 0 calc(var(--start-anim) - var(--feather-anim)),
-      transparent calc(var(--start-anim) + var(--feather-anim))
-    );
-            mask: radial-gradient(
-      circle at var(--center-x) var(--center-y),
-      #000 0 calc(var(--start-anim) - var(--feather-anim)),
-      transparent calc(var(--start-anim) + var(--feather-anim))
-    );
-  }
-
-  .blob::after {
-    /* Colorless dynamic ring using only backdrop effects; tiny fill ensures effect applies */
-    background: rgba(255, 255, 255, 0.001);
-    backdrop-filter: blur(calc(var(--blur) + var(--blur-wobble))) saturate(1.02) brightness(1.03);
-    -webkit-backdrop-filter: blur(calc(var(--blur) + var(--blur-wobble))) saturate(1.02) brightness(1.03);
-    -webkit-mask: radial-gradient(
-      circle at var(--center-x) var(--center-y),
-      transparent 0 calc(var(--start-anim) - var(--feather-anim)),
-      #000 var(--start-anim) var(--end-anim),
-      transparent calc(var(--end-anim) + var(--feather-anim))
-    );
-            mask: radial-gradient(
-      circle at var(--center-x) var(--center-y),
-      transparent 0 calc(var(--start-anim) - var(--feather-anim)),
-      #000 var(--start-anim) var(--end-anim),
-      transparent calc(var(--end-anim) + var(--feather-anim))
-    );
-  }
-`;
-
-export const MotionLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: 1; /* above bg, below labels and cover */
-  pointer-events: none;
-`;
-
-export const MotionBlobWrap = styled.div`
-  position: absolute;
-  top: ${({ $top }) => $top};
-  left: ${({ $left }) => $left};
-  transform: translate(-50%, -50%);
-  width: ${({ $size }) => $size};
-  height: ${({ $size }) => $size};
-  border-radius: 50%;
-`;
-
-export const MotionBlob = styled.div`
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-`;
-
 export const CenterImage = styled.img`
   position: absolute;
   top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: calc(905px * 1.1);
-  height: calc(905px * 1.1);
+  width: calc(23.567708vw * 1.1);
+  height: calc(23.567708vw * 1.1);
   object-fit: cover;
-  border-radius: 100px;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  border-radius: 2.604167vw;
+  box-shadow: 0 0.78125vw 2.34375vw rgba(0, 0, 0, 0.28);
   z-index: 3;
 `;
 
@@ -214,82 +121,47 @@ export const CaptionWrap = styled.div`
 export const HeadText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 600; /* Semi Bold */
-  font-size: clamp(28px, 4.8vmin, 96px);
+  font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
   color: #111827;
   letter-spacing: 0.02em;
 `;
 
 export const SubText = styled.div`
-  margin-top: 0.9rem; /* more space between head and sub text */
+  margin-top: 0.375vw; /* more space between head and sub text */
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400; /* Regular */
-  font-size: clamp(16px, 2.6vmin, 56px);
+  font-size: clamp(0.416667vw, 2.6vmin, 1.458333vw);
   color: #374151;
   letter-spacing: 0.02em;
 `;
 
-/* Blob center labels over background */
-export const LabelsLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 7; /* above album card and captions to ensure visibility */
-`;
-
-const LabelBase = styled.div`
-  position: absolute;
-  transform: translate(-50%, -50%);
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-weight: 400;
-  font-size: clamp(16px, 2.6vmin, 56px); /* match SubText size */
-  color: #818181;
-  opacity: 0.7;
-  text-align: center;
-  letter-spacing: 0.02em;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.22);
-`;
-
-export const LabelA = styled(LabelBase)`
-  top: 20%;
-  left: 28%;
-`;
-
-export const LabelB = styled(LabelBase)`
-  top: 74%;
-  left: 21%;
-`;
-
-export const LabelC = styled(LabelBase)`
-  top: 70%;
-  left: 80%;
-`;
 export const Column = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.625vw;
 `;
 
 export const Tile = styled.div`
   background: rgba(255, 255, 255, 0.9);
-  border-radius: 15px;
-  padding: 2rem;
-  border: 2px solid #F3E8FF;
+  border-radius: 0.390625vw;
+  padding: 0.833333vw;
+  border: 0.052083vw solid #F3E8FF;
 `;
 
 export const Row = styled.div`
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  gap: 0.625vw;
+  margin-bottom: 0.625vw;
 `;
 
 export const ColorBox = styled.div`
-  width: 80px;
-  height: 80px;
-  border-radius: 15px;
+  width: 2.083333vw;
+  height: 2.083333vw;
+  border-radius: 0.390625vw;
   background: ${(p) => p.$color};
-  box-shadow: 0 8px 24px ${(p) => (p.$color ? `${p.$color}80` : '#00000000')};
-  border: 3px solid white;
+  box-shadow: 0 0.208333vw 0.625vw ${(p) => (p.$color ? `${p.$color}80` : '#00000000')};
+  border: 0.078125vw solid white;
 `;
 
 export const Flex1 = styled.div`
@@ -297,39 +169,39 @@ export const Flex1 = styled.div`
 `;
 
 export const LabelSmall = styled.div`
-  font-size: 1rem;
+  font-size: 0.416667vw;
   color: #9333EA;
   opacity: 0.7;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.208333vw;
 `;
 
 export const ValueLarge = styled.div`
-  font-size: 1.5rem;
+  font-size: 0.625vw;
   font-weight: 700;
   color: #9333EA;
 `;
 
 export const AssignedTag = styled.div`
-  font-size: 0.9rem;
+  font-size: 0.375vw;
   color: #EC4899;
   font-weight: 600;
-  margin-top: 0.75rem;
-  padding: 0.75rem;
+  margin-top: 0.3125vw;
+  padding: 0.3125vw;
   background: rgba(236, 72, 153, 0.1);
-  border-radius: 10px;
+  border-radius: 0.260417vw;
 `;
 
 export const Divider = styled.div`
-  border-top: 2px solid #F3E8FF;
-  padding-top: 1.5rem;
+  border-top: 0.052083vw solid #F3E8FF;
+  padding-top: 0.625vw;
 `;
 
 export const SongTitle = styled.div`
-  font-size: 1.3rem;
+  font-size: 0.541667vw;
   font-weight: 700;
   color: #9333EA;
   line-height: 1.4;
-  margin-bottom: 1rem;
+  margin-bottom: 0.416667vw;
 `;
 
 const spin = keyframes`
@@ -337,18 +209,24 @@ const spin = keyframes`
   100% { transform: rotate(360deg); }
 `;
 
+const driftGradient = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
 export const LoadingBlock = styled.div`
   text-align: center;
-  padding: 2rem;
+  padding: 0.833333vw;
   background: rgba(147, 51, 234, 0.05);
-  border-radius: 12px;
+  border-radius: 0.3125vw;
 `;
 
 export const Spinner = styled.div`
-  width: 40px;
-  height: 40px;
-  border: 3px solid #F3E8FF;
-  border-top: 3px solid #9333EA;
+  width: 1.041667vw;
+  height: 1.041667vw;
+  border: 0.078125vw solid #F3E8FF;
+  border-top: 0.078125vw solid #9333EA;
   border-radius: 50%;
   margin: 0 auto;
   animation: ${spin} 1s linear infinite;
@@ -356,104 +234,104 @@ export const Spinner = styled.div`
 
 export const LoadingNote = styled.p`
   color: #9333EA;
-  font-size: 0.9rem;
-  margin-top: 1rem;
+  font-size: 0.375vw;
+  margin-top: 0.416667vw;
   opacity: 0.7;
 `;
 
 export const PlayerWrap = styled.div`
-  border-radius: 12px;
+  border-radius: 0.3125vw;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.15);
+  box-shadow: 0 0.208333vw 0.625vw rgba(147, 51, 234, 0.15);
 `;
 
 export const PlayerNote = styled.p`
-  font-size: 0.85rem;
+  font-size: 0.354167vw;
   color: #9333EA;
-  margin-top: 0.5rem;
+  margin-top: 0.208333vw;
   text-align: center;
   opacity: 0.7;
 `;
 
 export const SearchBlock = styled.div`
-  padding: 1rem;
+  padding: 0.416667vw;
   background: rgba(147, 51, 234, 0.05);
-  border-radius: 12px;
+  border-radius: 0.3125vw;
   text-align: center;
 `;
 
 export const SearchTitle = styled.p`
   color: #9333EA;
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
+  font-size: 0.375vw;
+  margin-bottom: 0.3125vw;
   opacity: 0.7;
 `;
 
 export const SearchLink = styled.a`
   display: inline-block;
-  padding: 0.75rem 1.5rem;
+  padding: 0.3125vw 0.625vw;
   background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
   color: white;
   text-decoration: none;
-  border-radius: 10px;
-  font-size: 0.95rem;
+  border-radius: 0.260417vw;
+  font-size: 0.395833vw;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+  box-shadow: 0 0.104167vw 0.3125vw rgba(147, 51, 234, 0.3);
   transition: transform 0.2s;
   &:hover { transform: scale(1.05); }
 `;
 
 export const StatusCard = styled.div`
   background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
-  border-radius: 15px;
-  padding: 1.5rem;
+  border-radius: 0.390625vw;
+  padding: 0.625vw;
   text-align: center;
   color: white;
 `;
 
 export const StatusCaption = styled.div`
-  font-size: 1rem;
+  font-size: 0.416667vw;
   opacity: 0.9;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.208333vw;
 `;
 
 export const StatusText = styled.div`
-  font-size: 1.3rem;
+  font-size: 0.541667vw;
   font-weight: 700;
 `;
 
 export const EmptyState = styled.div`
   text-align: center;
-  padding: 3rem 2rem;
+  padding: 1.25vw 0.833333vw;
   background: rgba(255, 255, 255, 0.6);
-  border-radius: 15px;
-  border: 2px dashed rgba(147, 51, 234, 0.3);
+  border-radius: 0.390625vw;
+  border: 0.052083vw dashed rgba(147, 51, 234, 0.3);
 `;
 
 export const EmptyIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  font-size: 1.666667vw;
+  margin-bottom: 0.416667vw;
   opacity: 0.5;
 `;
 
 export const EmptyText = styled.p`
   color: #9333EA;
-  font-size: 1.2rem;
+  font-size: 0.5vw;
   opacity: 0.6;
 `;
 
 /* === Compact album card (square) ========================================= */
 export const AlbumCard = styled.div`
-  --album-size: min(28vmin, 360px);
+  --album-size: min(60vmin, 18.5vw);
   position: absolute;
   top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: var(--album-size);
   height: var(--album-size);
-  border-radius: 28px;
+  border-radius: 1.929167vw;
   background: white;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0.625vw 1.822917vw rgba(0, 0, 0, 0.18);
   z-index: 4;
   overflow: hidden;
 `;
@@ -471,4 +349,164 @@ export const AlbumPlaceholder = styled.div`
   background: white;
 `;
 
+export const Sw2InterestBox = styled.div`
+  position: absolute;
+  top: var(--blob-top, 28vw);
+  left: var(--blob-left, 74vw);
+  transform: translate(-50%, -50%);
+  width: var(--blob-size, 52vw);
+  height: var(--blob-size, 52vw);
+  border-radius: 50%;
+  border: 0.026042vw solid #FFF;
+  background: linear-gradient(
+    110deg,
+    rgba(91, 76, 255, 0.42) 10%,
+    rgba(255, 255, 255, 0.88) 28%,
+    rgba(255, 132, 94, 0.42) 52%,
+    rgba(55, 255, 252, 0.32) 74%,
+    rgba(66, 255, 142, 0.38) 92%
+  );
+  background-size: 320% 320%;
+  will-change: background-position, transform;
+  box-shadow:
+    0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38) inset,
+    0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69) inset;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #A3A298;
+  font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: 2.083333vw;
+  letter-spacing: 0.01em;
+  z-index: 1;
+  animation: ${driftGradient} 9.3s ease-in-out infinite;
+
+  &::before {
+    content: '흥미로움';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    backdrop-filter: blur(0.15625vw);
+    -webkit-backdrop-filter: blur(0.15625vw);
+    background: rgba(255,255,255,0.0001);
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
+  }
+`;
+
+export const Sw2WonderBox = styled.div`
+  position: absolute;
+  top: var(--blob-top, 48vw);
+  left: var(--blob-left, 20vw);
+  transform: translate(-50%, -50%);
+  width: var(--blob-size, 38vw);
+  height: var(--blob-size, 38vw);
+  border-radius: 50%;
+  border: 0.026042vw solid #FFFFFF;
+  background: linear-gradient(
+    259.38deg,
+    rgba(255, 255, 255, 0.92) 12%,
+    rgba(0, 0, 255, 0.5) 32%,
+    rgba(170, 0, 255, 0.38) 56%,
+    rgba(0, 255, 179, 0.52) 82%
+  );
+  background-size: 320% 320%;
+  box-shadow:
+    inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38),
+    inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #A3A298;
+  font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: 2.083333vw;
+  letter-spacing: 0.01em;
+  z-index: 1;
+  will-change: background-position, transform;
+  animation: ${driftGradient} 9.8s ease-in-out infinite;
+
+  &::before {
+    content: '신기함';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+  }
+`;
+
+export const Sw2HappyBox = styled.div`
+  position: absolute;
+  top: var(--blob-top, 22vw);
+  left: var(--blob-left, 28vw);
+  transform: translate(-50%, -50%);
+  width: var(--blob-size, 40vw);
+  height: var(--blob-size, 40vw);
+  border-radius: 50%;
+  border: 0.026042vw solid #FFFFFF;
+  background: linear-gradient(
+    131.16deg,
+    rgba(255, 255, 255, 0.92) 12%,
+    rgba(255, 74, 158, 0.58) 34%,
+    rgba(255, 255, 255, 0.88) 62%,
+    rgba(255, 60, 120, 0.52) 88%
+  );
+  background-size: 320% 320%;
+  box-shadow:
+    inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38),
+    inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #A3A298;
+  font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: 2.083333vw;
+  letter-spacing: 0.01em;
+  z-index: 1;
+  will-change: background-position, transform;
+  animation: ${driftGradient} 8.9s ease-in-out infinite;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    backdrop-filter: blur(0.078125vw);
+    -webkit-backdrop-filter: blur(0.078125vw);
+    background: rgba(255,255,255,0.0001);
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
+  }
+
+  &::before {
+    content: '행복함';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+  }
+`;
 
