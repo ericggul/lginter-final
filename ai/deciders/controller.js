@@ -1,6 +1,41 @@
 import { USER_PREFERENCE_PROMPT, CONTROLLER_SYSTEM_MIN_PROMPT } from '@/ai/prompts/controller';
 import { DecisionZ } from '@/ai/schemas/decision';
 import { callControllerTool } from '@/ai/adapters/openai';
+import { MUSIC_CATALOG } from '@/utils/data/musicCatalog';
+
+// Helpers to keep music varied but deterministic and aligned to catalog
+const CATALOG_TITLES = (MUSIC_CATALOG || []).map((m) => m.title);
+function normalizeTitle(s = '') {
+  return String(s).toLowerCase().replace(/[\s_\-]+/g, '').replace(/[^a-z0-9가-힣]/g, '');
+}
+function hashString(s = '') {
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) {
+    h = (h * 31 + s.charCodeAt(i)) >>> 0; // unsigned 32-bit
+  }
+  return h;
+}
+function pickCatalogTitle({ baseTitle, previousTitle, emotion }) {
+  if (!CATALOG_TITLES.length) return baseTitle || previousTitle || 'Solace';
+  const titles = CATALOG_TITLES;
+  const prevN = normalizeTitle(previousTitle || '');
+  const baseN = normalizeTitle(baseTitle || '');
+
+  // If baseTitle is valid and different from previous, keep it
+  const baseIdx = titles.findIndex((t) => normalizeTitle(t) === baseN);
+  if (baseIdx >= 0 && baseN && baseN !== prevN) return titles[baseIdx];
+
+  // Otherwise, pick a stable alternative using emotion hash (or baseTitle)
+  const seed = emotion || baseTitle || 'music';
+  const start = hashString(seed) % titles.length;
+  for (let i = 0; i < titles.length; i += 1) {
+    const idx = (start + i) % titles.length;
+    const t = titles[idx];
+    if (normalizeTitle(t) !== prevN) return t;
+  }
+  // Fallback (all same as previous - practically impossible)
+  return titles[start];
+}
 
 export async function decideController({ currentProgram = {}, currentUser = {}, previousMusicId = '', systemPrompt } = {}) {
   const payload = {
@@ -30,7 +65,9 @@ export async function decideController({ currentProgram = {}, currentUser = {}, 
   const temp = Math.round(Number(parsed.temperature_celsius));
   const humidity = Math.round(Number(parsed.humidity_percent));
   const lightColor = parsed.hex;
-  const music = String(parsed.music_title || '').trim() || 'solace';
+  const prevTitle = String(previousMusicId || currentProgram?.env?.music || '').trim();
+  const baseTitle = String(parsed.music_title || '').trim();
+  const music = pickCatalogTitle({ baseTitle, previousTitle: prevTitle, emotion: parsed.emotion });
   const lightingMode = parsed.lighting_mode;
   const lightingR = parsed.lighting_r ?? null;
   const lightingG = parsed.lighting_g ?? null;

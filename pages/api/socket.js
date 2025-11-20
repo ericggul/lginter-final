@@ -184,9 +184,14 @@ export default function handler(req, res) {
         emitSw2();
       }
       // targeted to mobile user (include flags/emotionKeyword when present)
+      const individualForMobile =
+        (raw && typeof raw.individual === 'object' && raw.individual) ||
+        null;
       io.to(`user:${payload.userId}`).emit("mobile-new-decision", {
         userId: payload.userId,
-        params: payload.params,
+        params: payload.params, // aggregated (orchestrated)
+        // Prefer per-user params from controller; fall back to null when absent
+        individual: individualForMobile,
         reason: payload.reason,
         flags: payload.flags,
         emotionKeyword: payload.emotionKeyword,

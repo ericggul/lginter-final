@@ -13,7 +13,9 @@ function normalizeTemperature(value, context = {}) {
 
 function normalizeWindLevel(value, emotionHint = '') {
   const base = clamp(Math.round(Number(value) || 3), 1, 5);
-  const energetic = /활력|흥분|상쾌|경쾌|열정|active|energetic/i.test(String(emotionHint || ''));
+  const energetic = /활력|흥분|상쾌|경쾌|열정|active|energetic|excited|lively|upbeat|brisk|vibrant|charged|amped|stimulated|hype|euphoric|ecstatic|high[-\s]?energy/i.test(
+    String(emotionHint || '')
+  );
   return clamp(base + (energetic ? 1 : 0), 1, 5);
 }
 
@@ -45,12 +47,13 @@ export function normalizeEnv(params, emotionHint, context = {}) {
   if (!params) return { ...DEFAULT_ENV };
   const temp = normalizeTemperature(params.temp, context);
   const humidity = normalizeHumidity(params.humidity, emotionHint);
-  const windLevel = normalizeWindLevel(params.windLevel, emotionHint);
-  const softTone = /부드럽|편안|휴식|따뜻/.test(String(emotionHint || ''));
+  const softTone = /부드럽|편안|휴식|따뜻|soft|calm|cozy|warm|relax|gentle|soothing|serene|peaceful|mellow|comfy/i.test(
+    String(emotionHint || '')
+  );
   const lightColor = normalizeLightColor(params.lightColor, { soft: softTone });
   const music = normalizeMusic(params.music, emotionHint);
-  const purifier = decidePurifierSettings(humidity, emotionHint);
-  return { temp, humidity, windLevel, lightColor, music, ...purifier };
+  // Controller env is strictly 4 params
+  return { temp, humidity, lightColor, music };
 }
 
 export function computeFairAverage(entries) {

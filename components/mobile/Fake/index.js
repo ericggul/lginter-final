@@ -24,11 +24,13 @@ export default function FakeMobile() {
       const assignedUser = payload?.userId || payload?.meta?.userId;
       if (!assignedUser) return;
       setUsers((prev) =>
-        prev.map((u) =>
-          u.userId === assignedUser
-            ? { ...u, lastDecision: payload, isSending: false }
-            : u
-        )
+        prev.map((u) => {
+          if (u.userId !== assignedUser) return u;
+          const aggregated = payload?.params || null;
+          // Fallback: if per-user result is missing, show aggregated as a temporary personal view
+          const individual = payload?.individual || (aggregated ? { ...aggregated } : null);
+          return { ...u, lastDecision: { individual, aggregated }, isSending: false };
+        })
       );
     },
   });
@@ -87,8 +89,9 @@ export default function FakeMobile() {
       <Desc>텍스트만 입력해 전체 디바이스 오케스트레이션을 트리거합니다.</Desc>
 
       <Grid>
-        {users.map((u) => {
-          const decisionSummary = summarizeDecision(u.lastDecision);
+          {users.map((u) => {
+          const sIndividual = summarizeDecision(u.lastDecision?.individual);
+          const sAggregated = summarizeDecision(u.lastDecision?.aggregated);
           return (
             <Card key={u.userId}>
               <Title>{u.userId}</Title>
@@ -122,9 +125,15 @@ export default function FakeMobile() {
                 </InitBadge>
               </Row>
               <DecisionBox>
-                <DecisionTitle>결과 요약</DecisionTitle>
+                <DecisionTitle>개인 결과</DecisionTitle>
                 <DecisionText>
-                  {decisionSummary || "아직 결과 없음"}
+                  {sIndividual || "아직 결과 없음"}
+                </DecisionText>
+              </DecisionBox>
+              <DecisionBox>
+                <DecisionTitle>오케스트레이션 결과</DecisionTitle>
+                <DecisionText>
+                  {sAggregated || "아직 결과 없음"}
                 </DecisionText>
               </DecisionBox>
             </Card>
