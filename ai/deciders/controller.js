@@ -3,7 +3,7 @@ import { DecisionZ } from '@/ai/schemas/decision';
 import { callControllerTool } from '@/ai/adapters/openai';
 import { MUSIC_CATALOG } from '@/utils/data/musicCatalog';
 
-// Helpers to keep music varied but deterministic and aligned to catalog
+// Helpers to keep music deterministic and aligned to catalog (no rotation)
 const CATALOG_TITLES = (MUSIC_CATALOG || []).map((m) => m.title);
 function normalizeTitle(s = '') {
   return String(s).toLowerCase().replace(/[\s_\-]+/g, '').replace(/[^a-z0-9가-힣]/g, '');
@@ -18,23 +18,18 @@ function hashString(s = '') {
 function pickCatalogTitle({ baseTitle, previousTitle, emotion }) {
   if (!CATALOG_TITLES.length) return baseTitle || previousTitle || 'Solace';
   const titles = CATALOG_TITLES;
-  const prevN = normalizeTitle(previousTitle || '');
   const baseN = normalizeTitle(baseTitle || '');
 
-  // If baseTitle is valid and different from previous, keep it
-  const baseIdx = titles.findIndex((t) => normalizeTitle(t) === baseN);
-  if (baseIdx >= 0 && baseN && baseN !== prevN) return titles[baseIdx];
-
-  // Otherwise, pick a stable alternative using emotion hash (or baseTitle)
-  const seed = emotion || baseTitle || 'music';
-  const start = hashString(seed) % titles.length;
-  for (let i = 0; i < titles.length; i += 1) {
-    const idx = (start + i) % titles.length;
-    const t = titles[idx];
-    if (normalizeTitle(t) !== prevN) return t;
+  // If baseTitle is a valid catalog title, use it as-is (no forced rotation)
+  if (baseN) {
+    const baseIdx = titles.findIndex((t) => normalizeTitle(t) === baseN);
+    if (baseIdx >= 0) return titles[baseIdx];
   }
-  // Fallback (all same as previous - practically impossible)
-  return titles[start];
+
+  // Otherwise, deterministically map emotion → one title (stable across calls)
+  const seed = emotion || baseTitle || 'music';
+  const idx = hashString(seed) % titles.length;
+  return titles[idx];
 }
 
 export async function decideController({ currentProgram = {}, currentUser = {}, previousMusicId = '', systemPrompt } = {}) {

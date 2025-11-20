@@ -30,9 +30,9 @@ Rules:
      • "습", "눅눅", "꿉꿉", "humid", "muggy", "sticky" → humidity_percent = 35–40
      These OVERRIDES replace quadrant defaults to produce clearly different values.
    - Variety: if multiple users have neutral inputs, avoid identical numbers. Apply small, deterministic separation per user (e.g., ±(1–3)°C and ±(5–15)% using user id as a seed).
-4) Music determinism:
-   - Select from the fixed catalog below. Prefer a stable mapping (same emotion → same track).
-   - Avoid repeating the immediate previous track if context.previousMusicId hints repetition.
+4) Music determinism (NO rotation):
+   - Select from the fixed catalog below.
+   - SAME emotion MUST map to the SAME track every time. Do NOT rotate between tracks across calls.
 5) Never copy “emotion color” into lighting. Lighting must be chosen independently as ambient color.
 6) Stay concise and safe. No sexual/abusive content. If input is completely non-emotional noise, use a neutral emotion and neutral settings.
 
@@ -92,7 +92,7 @@ POLICY
    b) Infer a concise emotion label (English).
    c) Map emotion → quadrant (Pos/Neg × Active/Passive) → baseline env.
    d) Adjust temperature/humidity slightly within safe bounds.
-   e) Choose music deterministically from catalog; avoid immediate repeats.
+   e) Choose music deterministically from catalog; do NOT rotate across calls.
    f) Choose ambient lighting (RGB soft tone). Do NOT reuse “emotion colors”.
 2) Temperature/Humidity baselines by quadrant (guideline, not hard rule):
    - Positive-Active:    22.5°C / 57.5%
@@ -147,9 +147,9 @@ MUSIC (exact titles):
   the travelling symphony, happy stroll, Ukulele Dance, Happy Alley, sunny side up,
   Amberlight, Echoes, Shoulders Of Giants, A Kind Of Hope
 
-CONSTRAINTS
+CONSTRAINTS (Stability first)
 - Keep decisions deterministic for the same emotion.
-- Avoid repeating the immediate previous track from context.
+- Do NOT rotate tracks across calls for the same emotion. Reuse the same track.
 - Use soft, pleasant RGB lighting (no neon primaries). Keep hex consistent.
 - Never copy “emotion color” into lighting; select independently.
 

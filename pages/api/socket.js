@@ -7,6 +7,7 @@ import {
   heartbeat as brainHeartbeat,
   setDeviceError,
   recordDecision,
+  storeUserPreference,
   markSeen,
   isSeen,
   gcSeen,
@@ -112,7 +113,28 @@ export default function handler(req, res) {
       const payload = v.data;
       const d = recordDecision(payload.userId, payload.params, payload.reason);
       const decisionId = d.id;
-      
+
+      // Persist per-user preference for recent aggregation and SW1 mini-blobs
+      try {
+        if (raw?.individual && typeof raw.individual === 'object') {
+          const pref = {
+            temp: raw.individual.temp,
+            humidity: raw.individual.humidity,
+            lightColor: raw.individual.lightColor || payload.params?.lightColor,
+            music: raw.individual.music || payload.params?.music,
+          };
+          // use provided uuid to dedupe; falls back to decisionId
+          storeUserPreference(payload.userId, pref, raw?.uuid || decisionId);
+        } else if (payload?.params) {
+          storeUserPreference(payload.userId, {
+            temp: payload.params.temp,
+            humidity: payload.params.humidity,
+            lightColor: payload.params.lightColor,
+            music: payload.params.music,
+          }, raw?.uuid || decisionId);
+        }
+      } catch {}
+
       // Update deviceState snapshots
       const tv2Env = payload.params;
       const sw1Env = { temp: payload.params.temp, humidity: payload.params.humidity };
@@ -125,58 +147,85 @@ export default function handler(req, res) {
       io.to("livingroom").emit("device-new-decision", { target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
       // SW1: 개인 결과(최대 4명)를 함께 전달(프론트는 선택적으로 사용)
       const individuals = [];
+      // 0) Always seed current user's personal result if provided
       if (raw?.individual && typeof raw.individual === 'object') {
         individuals.push({
-          userId: payload.userId,
+          userId: String(payload.userId),
           temp: raw.individual.temp,
-          humidity: raw.individual.humidity
+          humidity: raw.individual.humidity,
         });
       }
+      // 1) Try recent active preferences to fill remaining slots
       try {
         const actives = getActiveUsers();
         for (const u of actives) {
           if (individuals.length >= 4) break;
-          const pref = u.lastPreference || {};
           const uid = String(u.originalUserId || u.userId || u.inputId || nanoid());
-          // Avoid duplicate userId
           if (individuals.some((x) => String(x.userId) === uid)) continue;
+          const pref = u.lastPreference || {};
           if (typeof pref.temp === 'number' || typeof pref.humidity === 'number') {
-            individuals.push({
-              userId: uid,
-              temp: pref.temp,
-              humidity: pref.humidity
-            });
+            individuals.push({ userId: uid, temp: pref.temp, humidity: pref.humidity });
           }
         }
+      } catch {}
+      // 2) As a final fallback, synthesize entries from mergedFromIds so SW1 mini-blobs never stay empty
+      try {
+        const fillFrom = (Array.isArray(raw?.mergedFrom) && raw.mergedFrom.length ? raw.mergedFrom : [payload.userId]).map(String);
+        for (const uid of fillFrom) {
+          if (individuals.length >= 4) break;
+          if (individuals.some((x) => String(x.userId) === uid)) continue;
+          individuals.push({
+            userId: uid,
+            temp: typeof sw1Env.temp === 'number' ? sw1Env.temp : payload.params?.temp,
+            humidity: typeof sw1Env.humidity === 'number' ? sw1Env.humidity : payload.params?.humidity,
+          });
+        }
+      } catch {}
+      let mergedFromIds = Array.isArray(raw?.mergedFrom) && raw.mergedFrom.length
+        ? raw.mergedFrom.map((v) => String(v)).filter(Boolean)
+        : [payload.userId];
+      // Ensure mergedFrom contains all known individual userIds as well (defensive)
+      try {
+        const s = new Set(mergedFromIds);
+        (individuals || []).forEach((it) => { if (it?.userId) s.add(String(it.userId)); });
+        mergedFromIds = Array.from(s);
       } catch {}
       io.to("livingroom").emit("device-new-decision", {
         target: 'sw1',
         env: sw1Env,
         decisionId,
-        mergedFrom: [payload.userId],
+        mergedFrom: mergedFromIds,
         emotionKeyword: payload.emotionKeyword,
         ...(individuals.length ? { individuals } : {}),
         final: sw1Env,
       });
-      // SW2: 새 유저의 '개인' 지정 곡을 우선 고려 → 5초 지연 후 전환
-      const candidateSong =
-        (raw?.individual && typeof raw.individual?.music === 'string' && raw.individual.music) ||
-        sw2Env.music ||
-        '';
+      // SW2: 반드시 TV2(집계)와 동일한 음악으로 통일
+      const candidateSong = tv2Env.music || sw2Env.music || '';
       const sw2EnvWithSong = { ...sw2Env, music: candidateSong };
       const newSong = candidateSong;
       const emitSw2 = () => {
         updateDeviceApplied('sw2', sw2EnvWithSong, decisionId);
-        io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2EnvWithSong, decisionId, reason: payload.reason, emotionKeyword: payload.emotionKeyword, mergedFrom: [payload.userId] });
+        io.to("livingroom").emit("device-new-decision", {
+          target: 'sw2',
+          env: sw2EnvWithSong,
+          decisionId,
+          reason: payload.reason,
+          emotionKeyword: payload.emotionKeyword,
+          mergedFrom: mergedFromIds,
+          ...(individuals && individuals.length ? { individuals } : {}),
+        });
         __sw2LastSong = newSong;
       };
       try {
-        if (newSong && newSong !== __sw2LastSong) {
+        // Delay can be tuned via SW2_MUSIC_DELAY_MS (default 0ms)
+        const delayMsEnv = Number(process.env.SW2_MUSIC_DELAY_MS || 0);
+        const delayMs = Number.isFinite(delayMsEnv) ? Math.max(0, Math.min(60000, delayMsEnv)) : 0;
+        if (newSong && newSong !== __sw2LastSong && delayMs > 0) {
           if (__sw2DelayTimer) clearTimeout(__sw2DelayTimer);
           __sw2DelayTimer = setTimeout(() => {
             emitSw2();
             __sw2DelayTimer = null;
-          }, 5000);
+          }, delayMs);
         } else {
           emitSw2();
         }

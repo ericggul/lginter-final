@@ -51,7 +51,6 @@ export function createSocketHandlers({ setClimate, setParticipantCount, setActiv
 export function useSW1Logic() {
   // Center climate result (aggregated)
   const [climate, setClimate] = useState({ temp: 23, humidity: 50 });
-  const [participantCount, setParticipantCount] = useState(0);
   const [dotCount, setDotCount] = useState(0);
   const [activeUsers, setActiveUsers] = useState(new Set());
 
@@ -67,12 +66,31 @@ export function useSW1Logic() {
   const [keywords, setKeywords] = useState([]); // keep last 4 (recency list for fallback)
   // Map: userId -> last keyword
   const keywordByUserRef = useRef(new Map());
+  // Stable slot assignment: userId -> slot index (0..3)
+  const slotByUserRef = useRef(new Map());
+  const nextSlotRef = useRef(0);
+  const pickSlotForUser = useCallback((uid, prev) => {
+    const id = String(uid || '');
+    if (!id) return 0;
+    if (slotByUserRef.current.has(id)) return slotByUserRef.current.get(id);
+    // Find first free slot by user occupancy
+    const occupied = new Set(prev.map((r) => String(r?.userId || '')));
+    for (let i = 0; i < 4; i += 1) {
+      const r = prev[i];
+      if (!r || /^u[A-D]$/.test(String(r.userId || '')) || !occupied.has(String(r.userId))) {
+        slotByUserRef.current.set(id, i);
+        return i;
+      }
+    }
+    // Round-robin fallback
+    const idx = nextSlotRef.current % 4;
+    nextSlotRef.current = (nextSlotRef.current + 1) % 4;
+    slotByUserRef.current.set(id, idx);
+    return idx;
+  }, []);
 
-  const handlers = useMemo(() => createSocketHandlers({ setClimate, setParticipantCount, setActiveUsers }), []);
-
-  // Wire socket listeners
+  // Wire socket listeners (orchestrated path only; ignore legacy device-decision to prevent count resets)
   useSocketSW1({
-    onDeviceDecision: handlers.onDeviceDecision,
     onDeviceNewDecision: (msg) => {
       if (!msg || msg.target !== 'sw1') return;
       const env = msg.env || {};
@@ -82,13 +100,12 @@ export function useSW1Logic() {
       };
       setClimate(nextClimate);
 
-      // Participants (best-effort): mergedFrom -> active users
+      // Participants (source-of-truth from message)
       const merged = Array.isArray(msg.mergedFrom) ? msg.mergedFrom : [];
       if (merged.length) {
         setActiveUsers((prev) => {
           const next = new Set(prev);
           merged.forEach((u) => { if (u) next.add(String(u)); });
-          setParticipantCount(next.size);
           return next;
         });
       }
@@ -109,42 +126,61 @@ export function useSW1Logic() {
 
       // Per-user individuals (if server provides). Otherwise keep rolling list.
       if (Array.isArray(msg.individuals)) {
-        const mapped = msg.individuals
-          .filter(Boolean)
-          .slice(0, 4)
-          .map((it, i) => ({
-            userId: String(it.userId || `u${i + 1}`),
-            temp: typeof it.temp === 'number' ? it.temp : nextClimate.temp,
-            humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
-          }));
-        if (mapped.length) {
-          setMiniResults(mapped);
-          // overwrite active users with individuals list
+        const list = msg.individuals.filter(Boolean).slice(0, 4);
+        if (list.length) {
+          setMiniResults((prev) => {
+            const next = [...prev];
+            list.forEach((it) => {
+              const uid = String(it.userId || '');
+              const idx = pickSlotForUser(uid, next);
+              next[idx] = {
+                userId: uid || next[idx]?.userId || `u${idx}`,
+                temp: typeof it.temp === 'number' ? it.temp : nextClimate.temp,
+                humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
+              };
+            });
+            return next;
+          });
           setActiveUsers(() => {
-            const s = new Set(mapped.map((m) => String(m.userId)));
-            setParticipantCount(s.size);
+            const s = new Set(list.map((m) => String(m.userId || '')));
             return s;
           });
+        }
+      } else if (Array.isArray(merged) && merged.length) {
+        // Fallback: synthesize per-user entries from mergedFrom (unique users)
+        const uniq = Array.from(new Set(merged.map((u) => String(u)).filter(Boolean))).slice(0, 4);
+        if (uniq.length) {
+          setMiniResults((prev) => {
+            const next = [...prev];
+            uniq.forEach((uid) => {
+              const idx = pickSlotForUser(uid, next);
+              next[idx] = { userId: uid, temp: nextClimate.temp, humidity: nextClimate.humidity };
+            });
+            return next;
+          });
+          setActiveUsers(() => new Set(uniq));
         }
       } else if (msg.individual && typeof msg.individual === 'object') {
         // push recent individual to the end
         const it = msg.individual;
         setMiniResults((prev) => {
-          const next = [...prev, {
-            userId: String(it.userId || `u${Date.now()}`),
+          const next = [...prev];
+          const uid = String(it.userId || `u${Date.now()}`);
+          const idx = pickSlotForUser(uid, next);
+          next[idx] = {
+            userId: uid,
             temp: typeof it.temp === 'number' ? it.temp : nextClimate.temp,
             humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
-          }];
-          while (next.length > 4) next.shift();
+          };
           return next;
         });
         setActiveUsers((prev) => {
           const next = new Set(prev);
           if (it?.userId) next.add(String(it.userId));
-          setParticipantCount(next.size);
           return next;
         });
       }
+
     },
     onDeviceNewVoice: (payload) => {
       const k = String(payload?.text || payload?.emotion || '').trim();
@@ -174,7 +210,6 @@ export function useSW1Logic() {
       setActiveUsers((prev) => {
         const next = new Set(prev);
         next.add(uid);
-        setParticipantCount(next.size);
         return next;
       });
     },
@@ -197,6 +232,14 @@ export function useSW1Logic() {
       return { ...cfg, top, bottom };
     });
   }, [miniResults]);
+
+  // Derive participant count robustly (no stale state): max of unique active users and non-dummy mini slots
+  const participantCount = useMemo(() => {
+    const nonDummy = miniResults.filter(
+      (r) => r && r.userId && !/^u[A-D]$/.test(String(r.userId))
+    ).length;
+    return Math.max(activeUsers.size || 0, nonDummy || 0);
+  }, [activeUsers, miniResults]);
 
   return {
     blobConfigs: miniBlobDisplay,

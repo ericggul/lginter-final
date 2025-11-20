@@ -27,21 +27,40 @@ function applyClimateOverrides(env, text = '') {
   const isHumid = /습|눅눅|꿉꿉|후텁지근|humid|muggy|sticky/.test(s);
 
   const out = { ...env };
-  if (isCold) out.temp = Math.max(out.temp ?? 24, 28); // warmest comfort
-  if (isHot) out.temp = Math.min(out.temp ?? 24, 20); // coolest comfort
-  if (isDry) out.humidity = Math.max(out.humidity ?? 50, 68);
-  if (isHumid) out.humidity = Math.min(out.humidity ?? 50, 38);
-  return out;
+  const locks = { temp: false, humidity: false };
+
+  // Apply decisive targets (do not let later diversification move these)
+  if (isCold) { out.temp = 28; locks.temp = true; }   // very warm within comfort
+  if (isHot)  { out.temp = 20; locks.temp = true; }   // very cool within comfort
+  if (isDry)  { out.humidity = 70; locks.humidity = true; }
+  if (isHumid){ out.humidity = 35; locks.humidity = true; }
+
+  return { env: out, locks };
 }
 
-function diversifyEnv(env, userId = '') {
+function diversifyEnv(env, userId = '', locks = { temp: false, humidity: false }) {
   const h = stableHash(String(userId || '0'));
-  // Deterministic, noticeable but safe variance
-  const tempDelta = ((h % 7) - 3); // -3..+3 °C
-  const humDelta = (((Math.floor(h / 7) % 31) - 15)); // -15..+15 %
+  // Stronger, discretized, deterministic variance to make personal results clearly different
+  const mix = (n) => {
+    let x = n >>> 0;
+    x ^= x >>> 16; x = (x * 0x7feb352d) >>> 0;
+    x ^= x >>> 15; x = (x * 0x846ca68b) >>> 0;
+    x ^= x >>> 16;
+    return x >>> 0;
+  };
+  const tempSteps = [-5, -2, +2, +5];     // °C
+  const humSteps = [-25, -15, +15, +25];  // %
+  const ti = mix(h) % tempSteps.length;
+  const hi = mix(h * 1337) % humSteps.length;
+  const tempDelta = tempSteps[ti];
+  const humDelta = humSteps[hi];
   const out = { ...env };
-  if (typeof out.temp === 'number') out.temp = clamp(out.temp + tempDelta, 18, 30);
-  if (typeof out.humidity === 'number') out.humidity = clamp(out.humidity + humDelta, 20, 80);
+  if (typeof out.temp === 'number') {
+    out.temp = locks?.temp ? out.temp : clamp(out.temp + tempDelta, 18, 30);
+  }
+  if (typeof out.humidity === 'number') {
+    out.humidity = locks?.humidity ? out.humidity : clamp(out.humidity + humDelta, 20, 80);
+  }
   return out;
 }
 
@@ -68,8 +87,8 @@ export async function requestControllerDecision({ userId, userContext, lastDecis
     userContext?.lastVoice?.emotion || '',
     { season: 'winter' }
   );
-  const withOverrides = applyClimateOverrides(initial, userContext?.lastVoice?.text || '');
-  const diversified = diversifyEnv(withOverrides, userId);
+  const { env: withOverrides, locks } = applyClimateOverrides(initial, userContext?.lastVoice?.text || '');
+  const diversified = diversifyEnv(withOverrides, userId, locks);
   const finalEnv = normalizeEnv(diversified, userContext?.lastVoice?.emotion || '', { season: 'winter' });
 
   return {
