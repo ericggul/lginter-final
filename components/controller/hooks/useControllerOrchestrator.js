@@ -50,7 +50,14 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
         const activeEntries = getActivePreferences(preferencesRef.current, now);
         console.log('activeEntries', activeEntries);
         const mergedEnv = computeFairAverage(activeEntries);
-        const mergedFrom = activeEntries.map((entry) => entry.id);
+        // Use distinct userIds for participant identity; fallback to entry.id when missing
+        const mergedFrom = Array.from(
+          new Set(
+            activeEntries
+              .map((entry) => String(entry.userId || entry.id || ''))
+              .filter(Boolean)
+          )
+        );
 
         const aggregatedReason =
           activeEntries.length > 1 ? `Merged from ${activeEntries.length} inputs: ${reason}` : reason;
@@ -80,7 +87,8 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
           reason: aggregatedReason,
           flags,
           emotionKeyword,
-          individual: { temp: individualEnv?.temp, humidity: individualEnv?.humidity, lightColor: individualEnv?.lightColor, music: individualEnv?.music },
+          mergedFrom,
+          individual: { userId, temp: individualEnv?.temp, humidity: individualEnv?.humidity, lightColor: individualEnv?.lightColor, music: individualEnv?.music },
         });
       } catch (error) {
         const fallbackEnv = controllerStateRef.current.lastDecision?.env || DEFAULT_ENV;

@@ -95,28 +95,11 @@ export function useSW2Logic() {
     });
   }, []);
 
-  const handlers = useMemo(
-    () => createSocketHandlers({ setAmbienceData, setAssignedUsers, searchYouTubeMusic }),
-    [setAmbienceData, setAssignedUsers, searchYouTubeMusic]
-  );
+  // Only listen to orchestrated decisions; ignore legacy device-decision to prevent non-orchestrated playback
 
   useSocketSW2({
-    onDeviceDecision: (data) => {
-      handlers.onDeviceDecision(data);
-      // assignedUsers 기반 참가자 추정
-      if (data?.assignedUsers) {
-        const vals = Object.values(data.assignedUsers).filter((v) => v && v !== 'N/A');
-        if (vals.length) {
-          setActiveUsers((prev) => {
-            const next = new Set(prev);
-            vals.forEach((v) => next.add(String(v)));
-            return next;
-          });
-        }
-      }
-    },
     onDeviceNewDecision: (msg) => {
-      handlers.onDeviceNewDecision(msg);
+      // Orchestrated only
       // 컨트롤러에서 emotionKeyword/mergedFrom 전달 시 반영(있으면)
       if (msg?.mergedFrom && Array.isArray(msg.mergedFrom)) {
         setActiveUsers((prev) => {
@@ -130,6 +113,11 @@ export function useSW2Logic() {
       if (msg?.emotionKeyword) {
         pushKeyword(msg.emotionKeyword);
       }
+      // Apply ambience update
+      const env = msg?.env || {};
+      const data = { device: 'sw2', lightColor: env.lightColor, song: env.music };
+      // Overwrite completely to avoid stale song persisting from previous events
+      setAmbienceData(data);
     },
     onDeviceNewVoice: (payload) => {
       const uid = payload?.userId ? String(payload.userId) : null;
@@ -172,16 +160,14 @@ export function useSW2Logic() {
       setAudioSrc(`/api/music?name=${encodeURIComponent(t)}`);
       return;
     }
-    // 곡이 바뀌었고, 기존 곡이 재생 중이면 10초 후 전환
+    // 곡이 바뀌었고, 기존 곡이 재생 중이면 즉시 전환
     if (t && title && t !== title) {
       if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
-      switchTimerRef.current = setTimeout(() => {
-        setTitle(t);
-        setArtist(a);
-        setCoverSrc(`/api/album?name=${encodeURIComponent(t)}`);
-        setAudioSrc(`/api/music?name=${encodeURIComponent(t)}`);
-        switchTimerRef.current = null;
-      }, 10000);
+      setTitle(t);
+      setArtist(a);
+      setCoverSrc(`/api/album?name=${encodeURIComponent(t)}`);
+      setAudioSrc(`/api/music?name=${encodeURIComponent(t)}`);
+      switchTimerRef.current = null;
       return;
     }
     // 곡이 비워지면 모두 비움
