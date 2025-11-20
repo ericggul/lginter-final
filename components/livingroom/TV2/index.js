@@ -1,20 +1,12 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { BlobCircle } from "./blob/blob.styles";
+import { useTV2Logic } from './logic';
 
 export default function TV2Controls() {
-  // 기본 env (컨트롤 타워 연동 전까지 임시)
-  const env = useMemo(()=>({
-    temp: 24, humidity: 38, lightColor: '#6EA7FF', music: '시원한 EDM',
-    lightLabel: 'Blue Light',
-    reasons: { temp:['사용자 평균 선호','최근 입력: 24°C'],
-               humidity:['쾌적한 범위','최근 입력: 58%'],
-               light:['안정감 제공','최근 입력: Yellow'],
-               music:['에너지 유지','최근 입력: EDM'] },
-    inputs: { temp:['24°C'], humidity:['58%'], light:['Yellow'], music:['EDM'] }
-  }),[]);
+  const { env, title, artist, coverSrc } = useTV2Logic();
 
   const cssVars = useBlobVars(env);
 
@@ -65,9 +57,11 @@ export default function TV2Controls() {
             </S.MusicIcon>
             <div>{env.music}</div>
           </S.MusicRow>
-          <S.AlbumCard />
-          <S.TrackTitle>Sunny Side Up</S.TrackTitle>
-          <S.Artist>Victor Lundberg</S.Artist>
+          <S.AlbumCard>
+            {coverSrc ? <S.AlbumImage src={coverSrc} alt={title || 'album'} /> : null}
+          </S.AlbumCard>
+          <S.TrackTitle>{title || ''}</S.TrackTitle>
+          <S.Artist>{artist || ''}</S.Artist>
         </S.LeftPanel>
         <S.RightPanel style={cssVars}>
           <S.ClimateGroup>
