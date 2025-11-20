@@ -14,7 +14,7 @@ import {
   updateDeviceHeartbeat,
   updateDeviceApplied
 } from "../../lib/brain/state";
-import { getActiveUsers, calculateFairAverage } from "../../lib/brain/state";
+import { getActiveUsers } from "../../lib/brain/state";
 import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, DeviceHeartbeat, LightColorPayload, safe } from "../../src/core/schemas";
 import { EV } from "../../src/core/events";
 import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient";
@@ -111,8 +111,10 @@ export default function handler(req, res) {
       const data = { uuid: raw?.uuid || nanoid(), ts: raw?.ts || Date.now(), ...raw };
       const v = safe(ControllerDecision, data); if (!v.ok) { console.warn("❌ invalid controller-new-decision", v.error?.message); return; }
       const payload = v.data;
+      const d = recordDecision(payload.userId, payload.params, payload.reason);
+      const decisionId = d.id;
+
       // Persist per-user preference for recent aggregation and SW1 mini-blobs
-      // Only store when individual is provided (avoid polluting store with aggregated env)
       try {
         if (raw?.individual && typeof raw.individual === 'object') {
           const pref = {
@@ -121,21 +123,22 @@ export default function handler(req, res) {
             lightColor: raw.individual.lightColor || payload.params?.lightColor,
             music: raw.individual.music || payload.params?.music,
           };
-          storeUserPreference(payload.userId, pref, raw?.uuid || nanoid());
+          // use provided uuid to dedupe; falls back to decisionId
+          storeUserPreference(payload.userId, pref, raw?.uuid || decisionId);
+        } else if (payload?.params) {
+          storeUserPreference(payload.userId, {
+            temp: payload.params.temp,
+            humidity: payload.params.humidity,
+            lightColor: payload.params.lightColor,
+            music: payload.params.music,
+          }, raw?.uuid || decisionId);
         }
       } catch {}
 
-      // Compute merged environment on the server from recent active user preferences
-      const aggregatedEnv = calculateFairAverage();
-
-      // Record decision using aggregated env so deviceState snapshots stay consistent
-      const d = recordDecision(payload.userId, aggregatedEnv, payload.reason);
-      const decisionId = d.id;
-
       // Update deviceState snapshots
-      const tv2Env = aggregatedEnv;
-      const sw1Env = { temp: aggregatedEnv.temp, humidity: aggregatedEnv.humidity };
-      const sw2Env = { lightColor: aggregatedEnv.lightColor, music: aggregatedEnv.music };
+      const tv2Env = payload.params;
+      const sw1Env = { temp: payload.params.temp, humidity: payload.params.humidity };
+      const sw2Env = { lightColor: payload.params.lightColor, music: payload.params.music };
       updateDeviceApplied('tv2', tv2Env, decisionId);
       updateDeviceApplied('sw1', sw1Env, decisionId);
       // SW2는 5초 지연 전환을 위해 updateDeviceApplied를 emit 시점에 수행합니다.
