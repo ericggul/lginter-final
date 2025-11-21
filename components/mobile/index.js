@@ -167,6 +167,26 @@ export default function MobileControls() {
     }
   }, []);
 
+  // iOS Safari 등에서 타이머/애니메이션이 지연되더라도,
+  // 결정이 도착한 뒤에는 오케스트레이팅 락이 영원히 풀리지 않는 것을 방지하는 안전장치.
+  useEffect(() => {
+    if (!submitted) return;
+    if (!recommendations) return;
+    if (loading || !orchestratingLock) return;
+
+    const fallbackMs = orchestrateMinMs + 7000; // 기본 홀드 시간 + 여유 버퍼
+    const id = setTimeout(() => {
+      console.warn('[Mobile] Fallback: forcing orchestratingLock=false after timeout', {
+        loading,
+        orchestratingLock,
+        hasRecommendations: !!recommendations,
+      });
+      setOrchestratingLock(false);
+    }, fallbackMs);
+
+    return () => clearTimeout(id);
+  }, [submitted, recommendations, loading, orchestratingLock, orchestrateMinMs, setOrchestratingLock]);
+
   
 
   // 모바일 페이지에서 스크롤 락 (마운트/언마운트 시 적용/해제)
