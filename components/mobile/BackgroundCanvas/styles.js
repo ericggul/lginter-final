@@ -442,7 +442,9 @@ export const KeyframesGlobal = createGlobalStyle`
       --start-wobble: calc(90% - var(--start));
       --end-wobble: 0%;
       --feather-wobble: 5%;
-      --blur-wobble: calc(120px - var(--blur));
+      /* iOS에서는 blur 변화량을 줄여서 필터 재계산 비용을 낮춘다.
+         안드로이드/데스크탑은 기존 120px 그대로 유지. */
+      --blur-wobble: calc(${(p) => (p.$isIOS ? 40 : 120)}px - var(--blur));
     }
   }
 `;
