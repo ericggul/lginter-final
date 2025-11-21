@@ -85,10 +85,8 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   useEffect(() => {
     setMounted(true)
     console.log('🎨 BackgroundCanvas mounted!')
-    
-    // always mobile page
-    
-    const check = () => {
+
+    const loop = () => {
       if (typeof window !== 'undefined') {
         if (window.pressProgress !== undefined) {
           setPressProgress(window.pressProgress)
@@ -115,6 +113,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
         }
         if (window.isListening !== undefined) {
           setIsListeningFlag(Boolean(window.isListening))
+          setIsVoiceActive(Boolean(window.isListening))
         }
         if (window.blobOpacity !== undefined) {
           const a = Number(window.blobOpacity)
@@ -144,7 +143,6 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
         if (window.showCenterGlow !== undefined) setShowCenterGlow(Boolean(window.showCenterGlow))
         if (window.keywordLabels !== undefined) setKeywordLabels(Array.isArray(window.keywordLabels) ? window.keywordLabels : [])
         if (window.showKeywords !== undefined) setShowKeywords(Boolean(window.showKeywords))
-        if (window.isListening !== undefined) setIsVoiceActive(Boolean(window.isListening))
         if (window.bgSettings) {
           const bg = window.bgSettings
           setBgSettings(prev => ({
@@ -202,10 +200,23 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           }))
         }
       }
-      requestAnimationFrame(check)
+
+      if (isIOS) {
+        timeoutId = setTimeout(loop, 60)
+      } else {
+        frameId = requestAnimationFrame(loop)
+      }
     }
-    check()
-  }, [])
+
+    let frameId = null
+    let timeoutId = null
+    loop()
+
+    return () => {
+      if (frameId !== null) cancelAnimationFrame(frameId)
+      if (timeoutId !== null) clearTimeout(timeoutId)
+    }
+  }, [isIOS])
 
   useEffect(() => {
     if (!mounted) return
