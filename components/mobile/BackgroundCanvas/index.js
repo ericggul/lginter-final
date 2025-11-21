@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as S from './styles'
+import useIsIOS from '../hooks/useIsIOS'
 
 const MOOD_WORDS = ['즐거워', '상쾌해', '지루해', '찝찝해', '불쾌해']
 
 export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords = true }) {
+  const isIOS = useIsIOS()
   const [mounted, setMounted] = useState(false)
   const [pressProgress, setPressProgress] = useState(0)
   const [isListeningFlag, setIsListeningFlag] = useState(false)
@@ -242,7 +244,12 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
 
   if (!mounted) {
     return (
-      <S.PreMountCover $bg={'linear-gradient(to bottom, #FFF5F7 0%, #F5E6F5 30%, #E8D5E0 60%, rgb(125, 108, 118) 100%)'} />
+      <S.PreMountCover
+        $bg={
+          'linear-gradient(to bottom, #FFF5F7 0%, #F5E6F5 30%, #E8D5E0 60%, rgb(125, 108, 118) 100%)'
+        }
+        $isIOS={isIOS}
+      />
     )
   }
 
@@ -279,10 +286,19 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
 
   const bgGradient = `linear-gradient(to bottom, ${bgSettings.top} 0%, ${bgSettings.mid} ${bgSettings.midStop}%, ${bgSettings.low} ${bgSettings.lowStop}%, ${bgSettings.bottom} 100%)`
 
+  const blobTransition = isIOS
+    ? `transform ${uiScaleTransitionMs}ms ease, opacity ${blobOpacityMs}ms ease`
+    : `transform ${uiScaleTransitionMs}ms ease, opacity ${blobOpacityMs}ms ease, filter ${blobOpacityMs}ms ease`
+
   return (
     <>
-      <S.Root $bg={bgGradient}>
-        <S.KeyframesGlobal $blurIncrease={0} $blobSize={blobSize} $orbitRadiusScale={orbitRadiusScale} />
+      <S.Root $bg={bgGradient} $isIOS={isIOS}>
+        <S.KeyframesGlobal
+          $blurIncrease={0}
+          $blobSize={blobSize}
+          $orbitRadiusScale={orbitRadiusScale}
+          $isIOS={isIOS}
+        />
         <S.BlobCssGlobal />
         <S.BlobWrapper
           $top={blobTop}
@@ -342,7 +358,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
                 width: `${blobSize}px`,
                 aspectRatio: '1 / 1',
                 transform: `translateZ(0) scale(${blobScale * uiScaleFactor})`,
-                transition: `transform ${uiScaleTransitionMs}ms ease, opacity ${blobOpacityMs}ms ease, filter ${blobOpacityMs}ms ease`,
+                transition: blobTransition,
                 opacity: mainBlobFade ? 0 : 1,
                 filter: (() => {
                   const filters = []
@@ -388,7 +404,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
               width: `${blobSize}px`,
               aspectRatio: '1 / 1',
               transform: `translateZ(0) scale(${blobScale * uiScaleFactor})`,
-              transition: `transform ${uiScaleTransitionMs}ms ease, opacity ${blobOpacityMs}ms ease, filter ${blobOpacityMs}ms ease`,
+              transition: blobTransition,
               opacity: mainBlobFade ? 0 : 1,
               filter: (() => {
                 const filters = []

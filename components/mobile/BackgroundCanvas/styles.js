@@ -6,7 +6,10 @@ export const Root = styled.div`
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  /* iOS에서 주소창 높이 변화에 덜 민감하게 동작하도록 동적 뷰포트 단위를 사용.
+     디자인은 동일하게 유지하면서 레이아웃 튐을 줄이기 위한 용도. */
+  height: ${(p) => (p.$isIOS ? '100dvh' : '100vh')};
+  min-height: 100vh;
   z-index: -10;
   pointer-events: none;
   overflow: hidden;
@@ -21,7 +24,8 @@ export const PreMountCover = styled.div`
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: ${(p) => (p.$isIOS ? '100dvh' : '100vh')};
+  min-height: 100vh;
   z-index: 0;
   pointer-events: none;
   background: ${(p) => p.$bg || 'transparent'};
@@ -38,6 +42,7 @@ export const BlobWrapper = styled.div`
   opacity: ${(p) => p.$opacity};
   transition: ${(p) => `opacity ${p.$opacityMs}ms ease`};
   pointer-events: none;
+  will-change: opacity, transform;
 `;
 
 export const Cluster = styled.div`
@@ -255,6 +260,8 @@ export const CenterGlow = styled.div`
   filter: blur(29.5px);
   animation: centerGlowPulse 3s ease-in-out infinite;
   background: radial-gradient(50% 50% at 50% 50%, #FFF 39.42%, rgba(255, 255, 255, 0.00) 100%);
+  will-change: opacity, transform;
+  transform: translate3d(0, 0, 0);
 `;
 
 export const BGGlow = styled.div`
@@ -269,6 +276,8 @@ export const BGGlow = styled.div`
   pointer-events: none;
   background: radial-gradient(circle at 50% 50%, rgba(235,201,255,0.42) 0%, rgba(235,201,255,0.26) 40%, rgba(235,201,255,0) 72%);
   filter: blur(70px);
+  will-change: opacity, transform;
+  transform: translate3d(0, 0, 0);
 `;
 
 export const MaskLayer = styled.div`
@@ -387,7 +396,17 @@ export const KeyframesGlobal = createGlobalStyle`
     100% { transform: translate(-50%, -50%) rotate(85.988deg) translateX(${(p) => p.$blobSize * 0.58 * (p.$orbitRadiusScale || 1)}px); opacity: 0.7; }
   }
   @keyframes finalOrbAppear { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-85.44deg) scale(0.9);} 100% { opacity: 0.95; transform: translate(-50%, -50%) rotate(-85.44deg) scale(1);} }
-  @keyframes centerGlowPulse { 0%,100% { opacity: 0.6; filter: blur(29.5px);} 50% { opacity: 0.85; filter: blur(22px);} }
+  @keyframes centerGlowPulse {
+    0%, 100% {
+      opacity: 0.6;
+      filter: blur(29.5px);
+    }
+    50% {
+      opacity: 0.85;
+      /* iOS에서는 filter blur 값 변화를 줄여 페인트 비용을 낮춘다 (시각적 형태는 거의 동일). */
+      filter: blur(${(p) => (p.$isIOS ? 29.5 : 22)}px);
+    }
+  }
 
   @keyframes labelOrbitCW {
     0% { --orbit-angle: 0deg; }
@@ -449,6 +468,8 @@ export const BlobCssGlobal = createGlobalStyle`
     --end-anim: clamp(0%, calc(var(--end) + var(--end-wobble)), 100%);
     --feather-anim: clamp(0%, calc(var(--feather) + var(--feather-wobble)), 25%);
     animation: ringPulse 6s ease-in-out infinite;
+    will-change: transform, opacity;
+    transform: translateZ(0);
   }
 
   .blob.frozen {
@@ -473,6 +494,8 @@ export const BlobCssGlobal = createGlobalStyle`
     filter: blur(calc((var(--blur) + var(--blur-wobble)) * var(--boost))) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35));
     -webkit-mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--end) - var(--feather)), #000 calc(var(--end) - var(--feather)) calc(var(--end) + (var(--feather) * 1.6)), transparent calc(var(--end) + (var(--feather) * 1.8)));
             mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--end) - var(--feather)), #000 calc(var(--end) - var(--feather)) calc(var(--end) + (var(--feather) * 1.6)), transparent calc(var(--end) + (var(--feather) * 1.8)));
+    will-change: opacity, transform;
+    transform: translate3d(0, 0, 0);
   }
 
   .blob::before,

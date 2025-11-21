@@ -108,8 +108,13 @@ export default function MobileControls() {
   const paragraphs = [p1, p2, p3, p4];
   const fullTypedText = recommendations ? paragraphs.join('\n\n') : null;
 
+  // 오케스트레이팅 화면이 완전히 끝난 뒤에만 타이핑을 시작해야,
+  // 사용자가 실제로 타이핑 모션을 볼 수 있다.
+  const typewriterText =
+    recommendations && !loading && !orchestratingLock ? fullTypedText : null;
+
   const { typedReason, showReason, showHighlights } = useTypewriter(
-    fullTypedText
+    typewriterText
   );
 
   const { fadeText, localShowResults, resetShowcase } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
