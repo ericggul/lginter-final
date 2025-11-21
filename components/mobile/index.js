@@ -116,9 +116,12 @@ export default function MobileControls() {
   const canStartTyping = recommendations && !isOrchestrating;
   const typewriterText = canStartTyping ? fullTypedText : null;
 
-  const { typedReason, showReason, showHighlights } = useTypewriter(
-    typewriterText
-  );
+  const {
+    typedReason,
+    showReason,
+    showHighlights,
+    isDone: typingDone,
+  } = useTypewriter(typewriterText);
 
   const { fadeText, localShowResults, resetShowcase } = usePostTypingShowcase({
     fullTypedText,
@@ -126,6 +129,7 @@ export default function MobileControls() {
     recommendations,
     setOrchestratingLock,
     isIOS,
+    typingDone: isIOS ? typingDone : undefined,
   });
 
   // (Typewriter, weather, press handlers moved to hooks above)
