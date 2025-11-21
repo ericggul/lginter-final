@@ -255,8 +255,8 @@ export const CenterGlow = styled.div`
   width: ${(p) => (p.$d != null ? `${p.$d}px` : 'auto')};
   height: ${(p) => (p.$d != null ? `${p.$d}px` : 'auto')};
   border-radius: ${(p) => (p.$d != null ? `${p.$d}px` : '50%')};
-  opacity: 0.7;
-  mix-blend-mode: overlay;
+  opacity: 0.9;
+  mix-blend-mode: screen;
   filter: blur(29.5px);
   animation: centerGlowPulse 3s ease-in-out infinite;
   background: radial-gradient(50% 50% at 50% 50%, #FFF 39.42%, rgba(255, 255, 255, 0.00) 100%);
