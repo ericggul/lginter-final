@@ -12,6 +12,7 @@ import useTypewriter from "./hooks/useTypewriter";
 import useOrchestratingTransitions from './hooks/useOrchestratingTransitions';
 import usePostTypingShowcase from './hooks/usePostTypingShowcase';
 import useScrollLock from './hooks/useScrollLock';
+import useIsIOS from './hooks/useIsIOS';
 import { AppContainer, ContentWrapper } from "./sections/styles/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
 import ReasonPanel from './views/ReasonPanel';
@@ -25,6 +26,7 @@ import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
 export default function MobileControls() {
   const router = useRouter();
   const isModal = router?.query?.variant === 'modal';
+  const isIOS = useIsIOS();
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
   const [showResetButton, setShowResetButton] = useState(false);
@@ -108,11 +110,27 @@ export default function MobileControls() {
   const paragraphs = [p1, p2, p3, p4];
   const fullTypedText = recommendations ? paragraphs.join('\n\n') : null;
 
-  const { typedReason, showReason, showHighlights } = useTypewriter(
-    fullTypedText
-  );
+  // 오케스트레이팅 화면이 완전히 끝난 뒤에만 타이핑을 시작해야,
+  // 사용자가 실제로 타이핑 모션을 볼 수 있다.
+  const isOrchestrating = isIOS ? loading : (loading || orchestratingLock);
+  const canStartTyping = recommendations && !isOrchestrating;
+  const typewriterText = canStartTyping ? fullTypedText : null;
 
-  const { fadeText, localShowResults, resetShowcase } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
+  const {
+    typedReason,
+    showReason,
+    showHighlights,
+    isDone: typingDone,
+  } = useTypewriter(typewriterText);
+
+  const { fadeText, localShowResults, resetShowcase } = usePostTypingShowcase({
+    fullTypedText,
+    typedReason,
+    recommendations,
+    setOrchestratingLock,
+    isIOS,
+    typingDone: isIOS ? typingDone : undefined,
+  });
 
   // (Typewriter, weather, press handlers moved to hooks above)
 
@@ -121,7 +139,7 @@ export default function MobileControls() {
 
   // 결과가 준비되고 로딩/락이 해제된 후 2초 뒤 리셋 버튼 표시
   useEffect(() => {
-    if (recommendations && !loading && !orchestratingLock) {
+    if (recommendations && !isOrchestrating) {
       setShowResetButton(false);
       const t = setTimeout(() => setShowResetButton(true), buttonsAppearDelayMs);
       return () => clearTimeout(t);
@@ -162,6 +180,27 @@ export default function MobileControls() {
     }
   }, []);
 
+  // iOS Safari 등에서 타이머/애니메이션이 지연되더라도,
+  // 결정이 도착한 뒤에는 오케스트레이팅 락이 영원히 풀리지 않는 것을 방지하는 안전장치.
+  useEffect(() => {
+    if (!isIOS) return;
+    if (!submitted) return;
+    if (!recommendations) return;
+    if (loading || !orchestratingLock) return;
+
+    const fallbackMs = orchestrateMinMs + 7000; // 기본 홀드 시간 + 여유 버퍼
+    const id = setTimeout(() => {
+      console.warn('[Mobile] Fallback: forcing orchestratingLock=false after timeout', {
+        loading,
+        orchestratingLock,
+        hasRecommendations: !!recommendations,
+      });
+      setOrchestratingLock(false);
+    }, fallbackMs);
+
+    return () => clearTimeout(id);
+  }, [submitted, recommendations, loading, orchestratingLock, orchestrateMinMs, setOrchestratingLock]);
+
   
 
   // 모바일 페이지에서 스크롤 락 (마운트/언마운트 시 적용/해제)
@@ -179,7 +218,7 @@ export default function MobileControls() {
     };
   }, []);
 
-  const showBrandLogo = submitted && (loading || orchestratingLock || recommendations);
+  const showBrandLogo = submitted && (isOrchestrating || recommendations);
 
   return (
     <AppContainer $isModal={isModal}>
@@ -229,7 +268,7 @@ export default function MobileControls() {
               />
             )}
           </>
-        ) : (loading || orchestratingLock) ? (
+        ) : isOrchestrating ? (
           <>
             <OrchestratingScreen />
           </>

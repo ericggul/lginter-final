@@ -7,6 +7,7 @@ export default function useOrchestratingTransitions({ loading, orchestratingLock
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (loading) {
+      console.log('[Orchestrating] loading started – fade blob in and lock orchestrating');
       window.blobOpacityMs = 2000;
       window.blobOpacity = 1;
       window.showOrbits = true;
@@ -27,11 +28,13 @@ export default function useOrchestratingTransitions({ loading, orchestratingLock
       const elapsed = Date.now() - startAtRef.current;
       const remaining = Math.max(0, orchestrateMinMs - elapsed);
       const runMerge = () => {
+        console.log('[Orchestrating] runMerge called – triggering final blob merge');
         window.blobOpacityMs = 900;
         window.mainBlobFade = true;
         window.newOrbEnter = true;
         window.clusterSpin = true;
         setTimeout(() => {
+          console.log('[Orchestrating] merge animation complete – unlocking orchestrating');
           setOrchestratingLock(false);
         }, 1000);
       };

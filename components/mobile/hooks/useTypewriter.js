@@ -5,14 +5,19 @@ export default function useTypewriter(text) {
   const [showReason, setShowReason] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [isDone, setIsDone] = useState(false);
 
   useEffect(() => {
-    if (!text) return;
+    if (!text) {
+      setIsDone(false);
+      return;
+    }
 
     setShowReason(true);
     setTypedReason('');
     setShowHighlights(false);
     setShowResults(false);
+    setIsDone(false);
 
     let index = 0;
     const typingInterval = setInterval(() => {
@@ -21,6 +26,7 @@ export default function useTypewriter(text) {
         index += 1;
       } else {
         clearInterval(typingInterval);
+        setIsDone(true);
         setTimeout(() => {
           setShowHighlights(true);
           setTimeout(() => {
@@ -33,7 +39,5 @@ export default function useTypewriter(text) {
     return () => clearInterval(typingInterval);
   }, [text]);
 
-  return { typedReason, showReason, showHighlights, showResults };
+  return { typedReason, showReason, showHighlights, showResults, isDone };
 }
-
-
