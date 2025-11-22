@@ -54,13 +54,18 @@ export default function useSocketMobile(options = {}) {
 
     // Attach dynamic listeners
     const { onMobileDecision } = options || {};
-    if (onMobileDecision) s.on("mobile-new-decision", onMobileDecision);
+    if (onMobileDecision) {
+      s.on("mobile-new-decision", (payload) => {
+        console.log("📩 [Mobile] received mobile-new-decision:", payload);
+        onMobileDecision(payload);
+      });
+    }
 
     return () => {
       mounted = false;
       console.log("Mobile Hook: Cleaning up socket");
       if (socketRef.current) {
-        if (onMobileDecision) socketRef.current.off("mobile-new-decision", onMobileDecision);
+        if (onMobileDecision) socketRef.current.off("mobile-new-decision");
         socketRef.current.disconnect();
         socketRef.current = null;
       }
