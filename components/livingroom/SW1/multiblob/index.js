@@ -13,26 +13,37 @@ export default function SW1Controls() {
   // Leva controls for live-tuning center glow & background gradient (front-end only)
   const centerGlow = useControls('SW1 Center Glow', {
     innerColor:   { value: '#ffffff' },
-    mid1Color:    { value: '#bfffff' },
-    mid2Color:    { value: '#ffe1ef' },
-    outerColor:   { value: '#faffec' },
-    innerAlpha:   { value: 1,    min: 0, max: 1, step: 0.01 },
-    mid1Alpha:    { value: 0.45, min: 0, max: 1, step: 0.01 },
-    mid2Alpha:    { value: 0.74, min: 0, max: 1, step: 0.01 },
-    outerAlpha:   { value: 0.9,  min: 0, max: 1, step: 0.01 },
-    innerStop:    { value: 41,  min: 0, max: 100 },
-    mid1Stop:     { value: 60,  min: 0, max: 100 },
-    mid2Stop:     { value: 100, min: 0, max: 100 },
-    outerStop:    { value: 100, min: 0, max: 100 },
-    blur:         { value: 38, min: 0, max: 120 }, // px
+    innerRingColor: { value: '#dbd0c1' },  // 하얀 중심 바로 바깥쪽 링
+    mid1Color:    { value: '#d89aaa' },
+    mid2Color:    { value: '#c1c1c1' },
+    outerColor:   { value: '#c2d8ff' },
+    extraColor:   { value: '#c9ffff' },
+    innerAlpha:      { value: 1,    min: 0, max: 1, step: 0.01 },
+    innerRingAlpha:  { value: 0.85, min: 0, max: 1, step: 0.01 },
+    mid1Alpha:       { value: 0.65, min: 0, max: 1, step: 0.01 },
+    mid2Alpha:       { value: 0.41, min: 0, max: 1, step: 0.01 },
+    outerAlpha:      { value: 0.36, min: 0, max: 1, step: 0.01 },
+    extraAlpha:      { value: 1,    min: 0, max: 1, step: 0.01 },
+    innerStop:       { value: 18,  min: 0, max: 100 },
+    innerRingStop:   { value: 30,  min: 0, max: 100 },
+    mid1Stop:        { value: 54,  min: 0, max: 100 },
+    mid2Stop:        { value: 90,  min: 0, max: 100 },
+    extraStop:       { value: 88,  min: 0, max: 100 },
+    outerStop:       { value: 60,  min: 0, max: 100 },
+    blur:            { value: 29, min: 0, max: 120 }, // px
+    centerBrightness:{ value: 1.25, min: 0.7, max: 1.8, step: 0.01 },
+    outerGlowRadius: { value: 260, min: 0, max: 600 }, // px, 가운데 원 가장 바깥쪽 빛 번짐
+    outerGlowAlpha:  { value: 0.42, min: 0, max: 1, step: 0.01 },
   });
 
   const background = useControls('SW1 Background', {
-    baseColor:    { value: '#a7a0a7' },
-    topColor:     { value: '#fcffff' },
-    bottomColor:  { value: '#ffffff' },
+    baseColor:    { value: '#ffffff' },
+    topColor:     { value: '#e9feff' },
+    midColor:     { value: '#ffffff' },
+    bottomColor:  { value: '#fff5f6' },
     angle:        { value: 0, min: 0, max: 360 },
-    midStop:      { value: 77, min: 0, max: 100 },
+    midStop:      { value: 0, min: 0, max: 100 },
+    midStop2:     { value: 91, min: 0, max: 100 },
   });
 
   const hexToRgb = (hex) => {
@@ -55,20 +66,38 @@ export default function SW1Controls() {
 
   const centerGlowStyle = useMemo(() => {
     const c1 = toRgba(centerGlow.innerColor, centerGlow.innerAlpha);
+    const cRing = toRgba(centerGlow.innerRingColor, centerGlow.innerRingAlpha);
     const c2 = toRgba(centerGlow.mid1Color, centerGlow.mid1Alpha);
     const c3 = toRgba(centerGlow.mid2Color, centerGlow.mid2Alpha);
     const c4 = toRgba(centerGlow.outerColor, centerGlow.outerAlpha);
+    const cExtra = toRgba(centerGlow.extraColor, centerGlow.extraAlpha);
 
-    const gradient = `radial-gradient(47.13% 47.13% at 50% 50%, ${c1} ${centerGlow.innerStop}%, ${c2} ${centerGlow.mid1Stop}%, ${c3} ${centerGlow.mid2Stop}%, ${c4} ${centerGlow.outerStop}%)`;
+    const gradient = `radial-gradient(47.13% 47.13% at 50% 50%, ${
+      c1
+    } ${centerGlow.innerStop}%, ${
+      cRing
+    } ${centerGlow.innerRingStop}%, ${
+      c2
+    } ${centerGlow.mid1Stop}%, ${
+      c3
+    } ${centerGlow.mid2Stop}%, ${
+      cExtra
+    } ${centerGlow.extraStop}%, ${
+      c4
+    } ${centerGlow.outerStop}%)`;
 
     return {
       background: gradient,
-      filter: `blur(${centerGlow.blur}px)`,
+      filter: `blur(${centerGlow.blur}px) brightness(${centerGlow.centerBrightness})`,
+      boxShadow:
+        centerGlow.outerGlowRadius > 0 && centerGlow.outerGlowAlpha > 0
+          ? `0 0 ${centerGlow.outerGlowRadius}px rgba(255, 255, 255, ${centerGlow.outerGlowAlpha})`
+          : 'none',
     };
   }, [centerGlow]);
 
   const rootBackgroundStyle = useMemo(() => {
-    const gradient = `linear-gradient(${background.angle}deg, ${background.topColor} 0%, ${background.topColor} ${background.midStop}%, ${background.bottomColor} 100%)`;
+    const gradient = `linear-gradient(${background.angle}deg, ${background.topColor} 0%, ${background.topColor} ${background.midStop}%, ${background.midColor} ${background.midStop2}%, ${background.bottomColor} 100%)`;
     return {
       backgroundColor: background.baseColor,
       backgroundImage: gradient,
