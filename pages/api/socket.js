@@ -17,7 +17,68 @@ import {
 import { getActiveUsers, calculateFairAverage } from "../../lib/brain/state";
 import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, DeviceHeartbeat, LightColorPayload, safe } from "../../src/core/schemas";
 import { EV } from "../../src/core/events";
+import { STAGES, DURATIONS, buildStagePayload, createTimelineScheduler } from "../../src/core/timeline";
 import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient";
+
+// Utils: convert incoming color (hex/rgb/hsl) to hsl(h, s%, l%) for Hue application
+function clamp(n, min, max) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return min;
+  return Math.max(min, Math.min(max, v));
+}
+function parseHexToRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return null;
+  const v = m[1];
+  return {
+    r: parseInt(v.slice(0, 2), 16),
+    g: parseInt(v.slice(2, 4), 16),
+    b: parseInt(v.slice(4, 6), 16),
+  };
+}
+function parseRgbString(s) {
+  const m = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i.exec(String(s || '').trim());
+  if (!m) return null;
+  return { r: clamp(m[1], 0, 255), g: clamp(m[2], 0, 255), b: clamp(m[3], 0, 255) };
+}
+function rgbToHsl(r, g, b) {
+  const R = r / 255, G = g / 255, B = b / 255;
+  const max = Math.max(R, G, B), min = Math.min(R, G, B);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d !== 0) {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max - min);
+    switch (max) {
+      case R: h = (G - B) / d + (G < B ? 6 : 0); break;
+      case G: h = (B - R) / d + 2; break;
+      case B: h = (R - G) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+function toHslString(color) {
+  const raw = String(color || '').trim();
+  if (/^hsla?\(/i.test(raw)) {
+    // normalize to hsl(...) by stripping alpha if present
+    const m = /^hsla?\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*,\s*([+-]?\d+(?:\.\d+)?)%/i.exec(raw);
+    if (m) {
+      const h = ((Number(m[1]) || 0) % 360 + 360) % 360;
+      const s = clamp(m[2], 0, 100);
+      const l = clamp(m[3], 0, 100);
+      return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+    }
+    return raw; // fallback: pass-through
+  }
+  const rgb = parseRgbString(raw) || parseHexToRgb(raw);
+  if (rgb) {
+    const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    return `hsl(${h}, ${s}%, ${l}%)`;
+  }
+  // fallback: pass-through
+  return raw;
+}
 
 export const config = {
   api: { bodyParser: false },
@@ -39,6 +100,24 @@ export default function handler(req, res) {
     addTrailingSlash: false,
     // transports: ["websocket", "polling"],
   });
+
+  // Session-scoped timeline scheduler (global per server instance)
+  const timeline = createTimelineScheduler();
+  // broadcast helper for timeline stage → both entrance and livingroom
+  const emitStage = (stage, meta = {}) => {
+    try {
+      const payload = buildStagePayload(stage, meta);
+      io.to("entrance").emit(EV.TIMELINE_STAGE, payload);
+      io.to("livingroom").emit(EV.TIMELINE_STAGE, payload);
+    } catch (e) {
+      console.warn("❌ timeline emit failed:", e?.message || e);
+    }
+  };
+  // helper to fan-out canonical and legacy device-decision
+  const emitDeviceDecision = (payload) => {
+    io.to("livingroom").emit(EV.DEVICE_DECISION, payload);
+    io.to("livingroom").emit(EV.DEVICE_NEW_DECISION, payload); // backward-compat
+  };
 
   // periodic GC for TTL idempotency map
   setInterval(() => {
@@ -88,6 +167,13 @@ export default function handler(req, res) {
       if (payload?.userId) upsertUser(payload.userId, { name: payload.name });
       io.to("controller").emit("controller-new-user", payload);
       io.to("entrance").emit("entrance-new-user", { userId: payload.userId, name: payload.name });
+
+      // Start a new global session timeline at t1 (welcome)
+      const sessionId = timeline.startNewSession(`u:${payload.userId || 'anon'}:${payload.uuid || nanoid()}`);
+      emitStage(STAGES.WELCOME, { sessionId, source: "mobile-new-user" });
+      timeline.scheduleIfCurrent(sessionId, () => {
+        emitStage(STAGES.VOICE_START, { sessionId });
+      }, DURATIONS.T1_TO_T2_MS);
     });
 
     socket.on("mobile-new-voice", (raw) => {
@@ -103,6 +189,14 @@ export default function handler(req, res) {
       // also surface to livingroom so SW2 can show keyword instantly
       io.to("livingroom").emit("device-new-voice", { userId: payload.userId, text: payload.text, emotion: payload.emotion });
       io.to("controller").emit("controller-new-voice", payload);
+
+      // Move timeline to t3 (voiceInput). Controller decision will move to t4.
+      const sessionId = timeline.getSessionId() || timeline.startNewSession(`u:${payload.userId || 'anon'}:${payload.uuid || nanoid()}`);
+      emitStage(STAGES.VOICE_INPUT, { sessionId, source: "mobile-new-voice" });
+      // Fallback: if controller decision is slow, auto-advance to t4 after configured delay.
+      timeline.scheduleIfCurrent(sessionId, () => {
+        emitStage(STAGES.ORCHESTRATED, { sessionId, fallback: true });
+      }, DURATIONS.T3_TO_T4_MS);
     });
 
 
@@ -127,21 +221,49 @@ export default function handler(req, res) {
 
       // Compute merged environment on the server from recent active user preferences
       const aggregatedEnv = calculateFairAverage();
+      // Prefer the personal (individual) result for device rendering when available
+      const personal =
+        raw?.individual && typeof raw.individual === 'object'
+          ? {
+              temp: raw.individual.temp,
+              humidity: raw.individual.humidity,
+              lightColor: raw.individual.lightColor,
+              music: raw.individual.music,
+            }
+          : null;
 
       // Record decision using aggregated env so deviceState snapshots stay consistent
       const d = recordDecision(payload.userId, aggregatedEnv, payload.reason);
       const decisionId = d.id;
 
       // Update deviceState snapshots
-      const tv2Env = aggregatedEnv;
+      // TV2: 개인 디시전만 사용 (폴백 제거). 개인 결과가 없으면 TV2 업데이트/전송을 수행하지 않는다.
+      const tv2Env = personal
+        ? { temp: personal.temp, humidity: personal.humidity, lightColor: personal.lightColor, music: personal.music }
+        : null;
+      // SW1: keep aggregated climate
       const sw1Env = { temp: aggregatedEnv.temp, humidity: aggregatedEnv.humidity };
-      const sw2Env = { lightColor: aggregatedEnv.lightColor, music: aggregatedEnv.music };
-      updateDeviceApplied('tv2', tv2Env, decisionId);
+      // SW2: 개인 디시전만 사용 (폴백 제거). 개인 결과가 없으면 SW2 업데이트/전송을 수행하지 않는다.
+      const sw2Env = personal
+        ? { lightColor: personal.lightColor, music: personal.music }
+        : null;
+      if (tv2Env) updateDeviceApplied('tv2', tv2Env, decisionId);
       updateDeviceApplied('sw1', sw1Env, decisionId);
       // SW2는 5초 지연 전환을 위해 updateDeviceApplied를 emit 시점에 수행합니다.
       
+      // Advance timeline to t4 (orchestrated) immediately upon decision
+      const sessionId = timeline.getSessionId() || timeline.startNewSession(`d:${Date.now()}:${payload.userId}`);
+      // Clear any pending t3→t4 fallback and schedule t4→t5
+      timeline.clearAllTimers();
+      emitStage(STAGES.ORCHESTRATED, { sessionId, reason: payload.reason });
+      timeline.scheduleIfCurrent(sessionId, () => {
+        emitStage(STAGES.RESULT, { sessionId });
+      }, DURATIONS.T4_TO_T5_MS);
+
       // split fan-out
-      io.to("livingroom").emit("device-new-decision", { target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
+      if (tv2Env) {
+        emitDeviceDecision({ target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
+      }
       // SW1: 개인 결과(최대 4명)를 함께 전달(프론트는 선택적으로 사용)
       const individuals = [];
       // 0) Always seed current user's personal result if provided
@@ -187,7 +309,7 @@ export default function handler(req, res) {
         (individuals || []).forEach((it) => { if (it?.userId) s.add(String(it.userId)); });
         mergedFromIds = Array.from(s);
       } catch {}
-      io.to("livingroom").emit("device-new-decision", {
+      emitDeviceDecision({
         target: 'sw1',
         env: sw1Env,
         decisionId,
@@ -196,38 +318,40 @@ export default function handler(req, res) {
         ...(individuals.length ? { individuals } : {}),
         final: sw1Env,
       });
-      // SW2: 반드시 TV2(집계)와 동일한 음악으로 통일
-      const candidateSong = tv2Env.music || sw2Env.music || '';
-      const sw2EnvWithSong = { ...sw2Env, music: candidateSong };
-      const newSong = candidateSong;
-      const emitSw2 = () => {
-        updateDeviceApplied('sw2', sw2EnvWithSong, decisionId);
-        io.to("livingroom").emit("device-new-decision", {
-          target: 'sw2',
-          env: sw2EnvWithSong,
-          decisionId,
-          reason: payload.reason,
-          emotionKeyword: payload.emotionKeyword,
-          mergedFrom: mergedFromIds,
-          ...(individuals && individuals.length ? { individuals } : {}),
-        });
-        __sw2LastSong = newSong;
-      };
-      try {
-        // Delay can be tuned via SW2_MUSIC_DELAY_MS (default 0ms)
-        const delayMsEnv = Number(process.env.SW2_MUSIC_DELAY_MS || 0);
-        const delayMs = Number.isFinite(delayMsEnv) ? Math.max(0, Math.min(60000, delayMsEnv)) : 0;
-        if (newSong && newSong !== __sw2LastSong && delayMs > 0) {
-          if (__sw2DelayTimer) clearTimeout(__sw2DelayTimer);
-          __sw2DelayTimer = setTimeout(() => {
+      // SW2: 개인 디시전이 있을 때만 전송 (폴백 제거)
+      if (sw2Env && personal?.music) {
+        const candidateSong = personal.music;
+        const sw2EnvWithSong = { ...sw2Env, music: candidateSong };
+        const newSong = candidateSong;
+        const emitSw2 = () => {
+          updateDeviceApplied('sw2', sw2EnvWithSong, decisionId);
+          emitDeviceDecision({
+            target: 'sw2',
+            env: sw2EnvWithSong,
+            decisionId,
+            reason: payload.reason,
+            emotionKeyword: payload.emotionKeyword,
+            mergedFrom: mergedFromIds,
+            ...(individuals && individuals.length ? { individuals } : {}),
+          });
+          __sw2LastSong = newSong;
+        };
+        try {
+          // Delay can be tuned via SW2_MUSIC_DELAY_MS (default 0ms)
+          const delayMsEnv = Number(process.env.SW2_MUSIC_DELAY_MS || 0);
+          const delayMs = Number.isFinite(delayMsEnv) ? Math.max(0, Math.min(60000, delayMsEnv)) : 0;
+          if (newSong && newSong !== __sw2LastSong && delayMs > 0) {
+            if (__sw2DelayTimer) clearTimeout(__sw2DelayTimer);
+            __sw2DelayTimer = setTimeout(() => {
+              emitSw2();
+              __sw2DelayTimer = null;
+            }, delayMs);
+          } else {
             emitSw2();
-            __sw2DelayTimer = null;
-          }, delayMs);
-        } else {
+          }
+        } catch {
           emitSw2();
         }
-      } catch {
-        emitSw2();
       }
       // targeted to mobile user (include flags/emotionKeyword when present)
       const individualForMobile =
@@ -246,22 +370,24 @@ export default function handler(req, res) {
       // optional legacy alias (default off)
       const legacy = process.env.LEGACY_DEVICE_DECISION_ALIAS === 'true';
       if (legacy) {
-        io.emit("device-decision", { device: "sw2", lightColor: payload.params?.lightColor, song: payload.params?.music, decisionId });
-        io.emit("device-decision", { device: "sw1", temperature: payload.params?.temp, humidity: payload.params?.humidity, decisionId });
+        io.emit(EV.DEVICE_DECISION, { device: "sw2", lightColor: payload.params?.lightColor, song: payload.params?.music, decisionId });
+        io.emit(EV.DEVICE_DECISION, { device: "sw1", temperature: payload.params?.temp, humidity: payload.params?.humidity, decisionId });
       }
 
       // Apply Hue lighting if enabled and color present
       try {
-        if (isHueEnabled() && payload?.params?.lightColor) {
+        // Prefer SW2 (personal) color for Hue so physical light matches SW2 device
+        const hueColor = (personal && personal.lightColor) || payload?.params?.lightColor;
+        if (isHueEnabled() && hueColor) {
           await initHue().catch(() => {});
           const result = await setLightColor({
-            color: payload.params.lightColor,
+            color: toHslString(hueColor),
             transitionMs: 700,
           });
           const ack = {
             source: "controller-new-decision",
             decisionId,
-            color: payload.params.lightColor,
+            color: toHslString(hueColor),
             ok: !!result?.ok,
             applied: !!result?.applied,
             error: result?.error,
@@ -294,8 +420,9 @@ export default function handler(req, res) {
           return;
         }
         await initHue().catch(() => {});
-        const result = await setLightColor(payload);
-        const ack = { source: "sw2", ...payload, ok: !!result?.ok, applied: !!result?.applied, error: result?.error };
+        const hslColor = toHslString(payload.color);
+        const result = await setLightColor({ ...payload, color: hslColor });
+        const ack = { source: "sw2", ...payload, color: hslColor, ok: !!result?.ok, applied: !!result?.applied, error: result?.error };
         io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
         io.to("controller").emit(EV.LIGHT_APPLIED, ack);
       } catch (e) {
