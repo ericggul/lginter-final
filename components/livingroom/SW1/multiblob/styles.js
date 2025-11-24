@@ -99,35 +99,22 @@ export const GradientEllipse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  /* Scale with viewport min-dimension; cap for large displays */
-  width: clamp(28.645833vw, 135vmin, 78.125vw);
-  height: clamp(28.645833vw, 135vmin, 78.125vw);
-  transform: translate(-50%, -50%) rotate(90deg) scale(var(--blobScale));
-  background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFB9AC 15%, rgba(255, 183, 226, 0.9) 42%, rgba(218, 174, 255, 0.7) 70%, rgba(255, 255, 255, 0.1) 100%);
-  filter: blur(1.302083vw);
+  /* Match Figma: 2293px circle on 3840px-wide canvas → ~59.7vw */
+  width: calc(100vw * 2293 / 3840);
+  height: calc(100vw * 2293 / 3840);
+  transform: translate(-50%, -50%) rotate(-90deg);
+  background: radial-gradient(
+    47.13% 47.13% at 50% 50%,
+    #FFFFFF 37.5%,
+    rgba(224, 224, 224, 0.37) 42.79%,
+    rgba(255, 218, 233, 0.48) 73.08%,
+    rgba(255, 255, 255, 0.67) 100%
+  );
+  filter: blur(1.302083vw); /* ≈ 50px on 3840px width */
   border-radius: 50%;
-  z-index: 1;
+  /* place above side blobs but below text/center mark */
+  z-index: 6;
   pointer-events: none;
-  /* Create a soft transparent hole in the center and feather the outer edge */
-  --holeInner: 12vmin; /* radius where fully transparent begins (tighter to center text) */
-  --holeFeather: 5vmin; /* slightly crisper inner edge */
-  --outerFeather: 8vmin; /* softness of the outer edge */
-  -webkit-mask-image: radial-gradient(circle closest-side at 50% 50%,
-    rgba(255,255,255,0) var(--holeInner),
-    rgba(255,255,255,1) calc(var(--holeInner) + var(--holeFeather)),
-    rgba(255,255,255,1) calc(100% - var(--outerFeather)),
-    rgba(255,255,255,0) 100%
-  );
-  mask-image: radial-gradient(circle closest-side at 50% 50%,
-    rgba(255,255,255,0) var(--holeInner),
-    rgba(255,255,255,1) calc(var(--holeInner) + var(--holeFeather)),
-    rgba(255,255,255,1) calc(100% - var(--outerFeather)),
-    rgba(255,255,255,0) 100%
-  );
-  /* Center locked; slow down by 300% (durations ×3) and updated amplitudes */
-  animation: ${pulse} 7s ease-in-out infinite alternate,
-             ${rimPulse} 7s ease-in-out infinite alternate,
-             ${rimScale} 7s ease-in-out infinite alternate;
 `;
 
 export const EllipseLayer = styled.div`
@@ -184,7 +171,8 @@ export const CenterTextWrap = styled.div`
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  z-index: 5;
+  /* text is above glow, but below rotating white line */
+  z-index: 8;
 `;
 
 /* spin for the center mark image */
@@ -204,7 +192,10 @@ export const CenterMark = styled.img`
   will-change: transform;
   animation: ${centerMarkSpin} 4s linear infinite;
   pointer-events: none;
-  z-index: 4; /* behind text, above background */
+  /* 그림자 없이 선 자체의 밝기/대비만 살려서 또렷하게 */
+  filter: brightness(1.25) contrast(1.4);
+  /* top-most: above text and glow */
+  z-index: 9;
 `;
 
 export const CenterTemp = styled.div`
@@ -277,39 +268,40 @@ const blobMoistureDrift = keyframes`
 `;
 
 const blobInterestSize = keyframes`
-  0%   { width: 16vw; height: 16vw; }
-  40%  { width: 22vw; height: 22vw; }
-  70%  { width: 14vw; height: 14vw; }
-  100% { width: 18vw; height: 18vw; }
+  0%   { width: 20vw; height: 20vw; }
+  40%  { width: 26vw; height: 26vw; }
+  70%  { width: 18vw; height: 18vw; }
+  100% { width: 22vw; height: 22vw; }
 `;
 
 const blobWonderSize = keyframes`
-  0%   { width: 16vw; height: 16vw; }
-  45%  { width: 22vw; height: 22vw; }
-  75%  { width: 14vw; height: 14vw; }
-  100% { width: 19vw; height: 19vw; }
+  0%   { width: 20vw; height: 20vw; }
+  45%  { width: 26vw; height: 26vw; }
+  75%  { width: 18vw; height: 18vw; }
+  100% { width: 23vw; height: 23vw; }
 `;
 
 const blobHappySize = keyframes`
-  0%   { width: 16vw; height: 16vw; }
-  35%  { width: 22vw; height: 22vw; }
-  65%  { width: 14vw; height: 14vw; }
-  100% { width: 18.5vw; height: 18.5vw; }
+  0%   { width: 20vw; height: 20vw; }
+  35%  { width: 26vw; height: 26vw; }
+  65%  { width: 18vw; height: 18vw; }
+  100% { width: 22.5vw; height: 22.5vw; }
 `;
 
 const BlobBase = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 16vw;
-  height: 16vw;
+  /* 주변 원 크기 - 살짝 줄여서 중앙보다 덜 강조 */
+  width: 26vw;
+  height: 26vw;
   border-radius: 50%;
-  border: 0.026042vw solid #FFFFFF;
-  box-shadow:
-    inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38),
-    inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
-  overflow: hidden;
-  background-size: 320% 320%;
-  background-position: 0% 50%;
+  /* 테두리를 제거해서 외곽 블러가 더 자연스럽게 보이도록 처리 */
+  border: none;
+  /* box-shadow 대신 별도 레이어에 실제 blur를 적용하기 위해 overflow를 노출 */
+  box-shadow: none;
+  overflow: visible;
+  /* 기본 원은 투명, 실제 색/그라데이션은 ::before/::after 레이어에서만 렌더 */
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -339,86 +331,112 @@ const BlobBase = styled.div`
       0 0.052083vw 0.052083vw rgba(161, 144, 138, 0.35),
       0 0.104167vw 0.208333vw currentColor;
   }
+  /* 원보다 살짝 큰 레이어에 blur를 적용해서 외곽이 부드럽게 퍼지도록 처리 (halo) */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -1.6vw;            /* 원보다 조금 더 크게 (halo) */
+    border-radius: inherit;
+    /* 각 블롭에서 정의한 --blob-bg 그라데이션을 사용해 컬러가 밖으로 퍼지게 */
+    background: var(--blob-bg, transparent);
+    filter: blur(2.1vw);      /* 외곽 블러 강도 */
+    opacity: 0.55;            /* 안쪽 원을 가리지 않도록 투명도 조절 */
+    z-index: 0;               /* 텍스트/콘텐츠(1)보다 아래, 내부 그라데이션보다 아래 */
+    pointer-events: none;
+  }
+  /* 내부 입체감을 위한 그라데이션 원 (가장자리는 마스크로 부드럽게 페이드) */
   &::after {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: 0.2vw;             /* halo 안쪽을 채우는 몸통 */
     border-radius: inherit;
+    background: var(--blob-bg, transparent);
+    background-size: 320% 320%;
+    background-position: 0% 50%;
+    /* 가장자리로 갈수록 투명해지도록 마스크 → 외곽 경계선 제거 */
+    -webkit-mask-image: radial-gradient(
+      circle at 50% 45%,
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 1) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    mask-image: radial-gradient(
+      circle at 50% 45%,
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 1) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    z-index: 0.5;
     pointer-events: none;
-    z-index: 0;
-    backdrop-filter: blur(0.078125vw);
-    -webkit-backdrop-filter: blur(0.078125vw);
-    background: rgba(255,255,255,0.0001);
-    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
-    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0) 100%);
   }
 `;
 
 export const Sw1InterestBlob = styled(BlobBase)`
   top: 12vw;
   left: 78vw;
-  background: linear-gradient(
-    110deg,
-    rgba(91, 76, 255, 0.23) 10%,
-    rgba(255, 255, 255, 0.82) 28%,
-    rgba(255, 132, 94, 0.26) 52%,
-    rgba(55, 255, 252, 0.18) 74%,
-    rgba(66, 255, 142, 0.22) 92%
+  /* 입체감을 위한 구형(원형) 그라데이션 - ::before에서 blur와 함께 사용 */
+  --blob-bg: radial-gradient(
+    circle at 32% 28%,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.92) 32%,
+    rgba(255, 132, 94, 0.32) 60%,
+    rgba(55, 255, 252, 0.24) 78%,
+    rgba(66, 255, 142, 0.26) 100%
   );
   background-size: 320% 320%;
+  /* 위치와 색만 천천히 움직이고, 크기는 고정 */
   animation:
     ${blobDriftGradient} 9.3s ease-in-out infinite,
-    ${blobInterestDrift} 18s ease-in-out infinite,
-    ${blobInterestSize} 28s ease-in-out infinite alternate;
+    ${blobInterestDrift} 18s ease-in-out infinite;
 `;
 
 export const Sw1WonderBlob = styled(BlobBase)`
   top: 44vw;
   left: 24vw;
-  background: linear-gradient(
-    259.38deg,
-    rgba(255, 255, 255, 0.86) 12%,
-    rgba(0, 0, 255, 0.32) 32%,
-    rgba(170, 0, 255, 0.26) 56%,
-    rgba(0, 255, 179, 0.34) 82%
+  --blob-bg: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.9) 30%,
+    rgba(0, 0, 255, 0.28) 60%,
+    rgba(170, 0, 255, 0.26) 80%,
+    rgba(0, 255, 179, 0.34) 100%
   );
   background-size: 320% 320%;
   animation:
     ${blobDriftGradient} 9.8s ease-in-out infinite,
-    ${blobWonderDrift} 19s ease-in-out infinite,
-    ${blobWonderSize} 29s ease-in-out infinite alternate-reverse;
+    ${blobWonderDrift} 19s ease-in-out infinite;
 `;
 
 export const Sw1HappyBlob = styled(BlobBase)`
   top: 10vw;
   left: 22vw;
-  background: linear-gradient(
-    131.16deg,
-    rgba(255, 255, 255, 0.86) 12%,
-    rgba(255, 74, 158, 0.34) 34%,
-    rgba(255, 255, 255, 0.84) 62%,
-    rgba(255, 60, 120, 0.3) 88%
+  --blob-bg: radial-gradient(
+    circle at 34% 26%,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.9) 30%,
+    rgba(255, 74, 158, 0.34) 60%,
+    rgba(255, 60, 120, 0.3) 85%,
+    rgba(255, 255, 255, 0.85) 100%
   );
   background-size: 320% 320%;
   animation:
     ${blobDriftGradient} 8.9s ease-in-out infinite,
-    ${blobHappyDrift} 17s ease-in-out infinite,
-    ${blobHappySize} 26s ease-in-out infinite alternate;
+    ${blobHappyDrift} 17s ease-in-out infinite;
 `;
 
 export const Sw1MoistureBlob = styled(BlobBase)`
   top: 46vw;
   left: 74vw;
-  background: linear-gradient(
-    243.46deg,
-    rgba(255, 255, 255, 0.86) 10%,
-    rgba(30, 72, 255, 0.32) 34%,
-    rgba(208, 136, 168, 0.32) 58%,
-    rgba(129, 198, 255, 0.32) 82%
+  --blob-bg: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.9) 30%,
+    rgba(30, 72, 255, 0.3) 58%,
+    rgba(208, 136, 168, 0.3) 80%,
+    rgba(129, 198, 255, 0.34) 100%
   );
   background-size: 320% 320%;
   animation:
     ${blobDriftGradient} 9.5s ease-in-out infinite,
-    ${blobMoistureDrift} 20s ease-in-out infinite,
-    ${blobInterestSize} 28s ease-in-out infinite alternate;
+    ${blobMoistureDrift} 20s ease-in-out infinite;
 `;
