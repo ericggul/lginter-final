@@ -99,35 +99,22 @@ export const GradientEllipse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  /* Scale with viewport min-dimension; cap for large displays */
-  width: clamp(28.645833vw, 135vmin, 78.125vw);
-  height: clamp(28.645833vw, 135vmin, 78.125vw);
-  transform: translate(-50%, -50%) rotate(90deg) scale(var(--blobScale));
-  background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFB9AC 15%, rgba(255, 183, 226, 0.9) 42%, rgba(218, 174, 255, 0.7) 70%, rgba(255, 255, 255, 0.1) 100%);
-  filter: blur(1.302083vw);
+  /* Match Figma: 2293px circle on 3840px-wide canvas → ~59.7vw */
+  width: calc(100vw * 2293 / 3840);
+  height: calc(100vw * 2293 / 3840);
+  transform: translate(-50%, -50%) rotate(-90deg);
+  background: radial-gradient(
+    47.13% 47.13% at 50% 50%,
+    #FFFFFF 37.5%,
+    rgba(224, 224, 224, 0.37) 42.79%,
+    rgba(255, 218, 233, 0.48) 73.08%,
+    rgba(255, 255, 255, 0.67) 100%
+  );
+  filter: blur(1.302083vw); /* ≈ 50px on 3840px width */
   border-radius: 50%;
-  z-index: 1;
+  /* place above side blobs but below text/center mark */
+  z-index: 6;
   pointer-events: none;
-  /* Create a soft transparent hole in the center and feather the outer edge */
-  --holeInner: 12vmin; /* radius where fully transparent begins (tighter to center text) */
-  --holeFeather: 5vmin; /* slightly crisper inner edge */
-  --outerFeather: 8vmin; /* softness of the outer edge */
-  -webkit-mask-image: radial-gradient(circle closest-side at 50% 50%,
-    rgba(255,255,255,0) var(--holeInner),
-    rgba(255,255,255,1) calc(var(--holeInner) + var(--holeFeather)),
-    rgba(255,255,255,1) calc(100% - var(--outerFeather)),
-    rgba(255,255,255,0) 100%
-  );
-  mask-image: radial-gradient(circle closest-side at 50% 50%,
-    rgba(255,255,255,0) var(--holeInner),
-    rgba(255,255,255,1) calc(var(--holeInner) + var(--holeFeather)),
-    rgba(255,255,255,1) calc(100% - var(--outerFeather)),
-    rgba(255,255,255,0) 100%
-  );
-  /* Center locked; slow down by 300% (durations ×3) and updated amplitudes */
-  animation: ${pulse} 7s ease-in-out infinite alternate,
-             ${rimPulse} 7s ease-in-out infinite alternate,
-             ${rimScale} 7s ease-in-out infinite alternate;
 `;
 
 export const EllipseLayer = styled.div`
@@ -184,7 +171,8 @@ export const CenterTextWrap = styled.div`
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  z-index: 5;
+  /* text is above glow, but below rotating white line */
+  z-index: 8;
 `;
 
 /* spin for the center mark image */
@@ -204,7 +192,10 @@ export const CenterMark = styled.img`
   will-change: transform;
   animation: ${centerMarkSpin} 4s linear infinite;
   pointer-events: none;
-  z-index: 4; /* behind text, above background */
+  /* 그림자 없이 선 자체의 밝기/대비만 살려서 또렷하게 */
+  filter: brightness(1.25) contrast(1.4);
+  /* top-most: above text and glow */
+  z-index: 9;
 `;
 
 export const CenterTemp = styled.div`
