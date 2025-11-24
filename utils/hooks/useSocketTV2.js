@@ -56,12 +56,14 @@ export default function useSocketTV2(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onDeviceNewDecision } = options || {};
+    const { onDeviceNewDecision, onTimelineStage } = options || {};
     if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
+    if (onTimelineStage) s.on('timeline-stage', onTimelineStage);
     return () => {
       if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
+      if (onTimelineStage) s.off('timeline-stage', onTimelineStage);
     };
-  }, [socket, options?.onDeviceNewDecision]);
+  }, [socket, options?.onDeviceNewDecision, options?.onTimelineStage]);
 
   return { 
     socket,

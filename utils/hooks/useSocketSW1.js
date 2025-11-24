@@ -57,18 +57,20 @@ export default function useSocketSW1(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onDeviceDecision, onDeviceNewDecision, onDeviceNewVoice } = options || {};
+    const { onDeviceDecision, onDeviceNewDecision, onDeviceNewVoice, onTimelineStage } = options || {};
 
     if (onDeviceDecision) s.on('device-decision', onDeviceDecision);
     if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
     if (onDeviceNewVoice) s.on('device-new-voice', onDeviceNewVoice);
+    if (onTimelineStage) s.on(EVENTS.TIMELINE_STAGE, onTimelineStage);
 
     return () => {
       if (onDeviceDecision) s.off('device-decision', onDeviceDecision);
       if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
       if (onDeviceNewVoice) s.off('device-new-voice', onDeviceNewVoice);
+      if (onTimelineStage) s.off(EVENTS.TIMELINE_STAGE, onTimelineStage);
     };
-  }, [socket, options?.onDeviceDecision, options?.onDeviceNewDecision, options?.onDeviceNewVoice]);
+  }, [socket, options?.onDeviceDecision, options?.onDeviceNewDecision, options?.onDeviceNewVoice, options?.onTimelineStage]);
 
   const emitClimateDecision = (temp, humidity, assignedUser, meta = {}) => {
     // payload: { uuid, ts, type: 'climate', temp, humidity, assignedUser }

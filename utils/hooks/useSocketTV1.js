@@ -61,18 +61,20 @@ export default function useSocketTV1(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onEntranceNewVoice, onDeviceDecision, onDeviceNewDecision } = options || {};
+    const { onEntranceNewVoice, onDeviceDecision, onDeviceNewDecision, onTimelineStage } = options || {};
 
     if (onEntranceNewVoice) s.on('entrance-new-voice', onEntranceNewVoice);
     if (onDeviceDecision) s.on('device-decision', onDeviceDecision);
     if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
+    if (onTimelineStage) s.on('timeline-stage', onTimelineStage);
 
     return () => {
       if (onEntranceNewVoice) s.off('entrance-new-voice', onEntranceNewVoice);
       if (onDeviceDecision) s.off('device-decision', onDeviceDecision);
       if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
+      if (onTimelineStage) s.off('timeline-stage', onTimelineStage);
     };
-  }, [socket, options?.onEntranceNewVoice, options?.onDeviceDecision, options?.onDeviceNewDecision]);
+  }, [socket, options?.onEntranceNewVoice, options?.onDeviceDecision, options?.onDeviceNewDecision, options?.onTimelineStage]);
 
   return { 
     socket,

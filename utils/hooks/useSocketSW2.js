@@ -57,20 +57,22 @@ export default function useSocketSW2(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onDeviceDecision, onDeviceNewDecision, onDeviceNewVoice, onLightApplied } = options || {};
+    const { onDeviceDecision, onDeviceNewDecision, onDeviceNewVoice, onLightApplied, onTimelineStage } = options || {};
 
     if (onDeviceDecision) s.on('device-decision', onDeviceDecision);
     if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
     if (onDeviceNewVoice) s.on('device-new-voice', onDeviceNewVoice);
     if (onLightApplied) s.on(EVENTS.LIGHT_APPLIED, onLightApplied);
+    if (onTimelineStage) s.on(EVENTS.TIMELINE_STAGE, onTimelineStage);
 
     return () => {
       if (onDeviceDecision) s.off('device-decision', onDeviceDecision);
       if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
       if (onDeviceNewVoice) s.off('device-new-voice', onDeviceNewVoice);
       if (onLightApplied) s.off(EVENTS.LIGHT_APPLIED, onLightApplied);
+      if (onTimelineStage) s.off(EVENTS.TIMELINE_STAGE, onTimelineStage);
     };
-  }, [socket, options?.onDeviceDecision, options?.onDeviceNewDecision, options?.onDeviceNewVoice, options?.onLightApplied]);
+  }, [socket, options?.onDeviceDecision, options?.onDeviceNewDecision, options?.onDeviceNewVoice, options?.onLightApplied, options?.onTimelineStage]);
 
   const emitAmbienceDecision = (music, color, assignedUser, meta = {}) => {
     // payload: { uuid, ts, type: 'ambience', music, color, assignedUser }
