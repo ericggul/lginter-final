@@ -11,8 +11,8 @@ export function BlobBackground() {
   );
 }
 
-export function TopMessage({ text }) {
-  return <S.TopMessage>{text}</S.TopMessage>;
+export function TopMessage({ text, tip }) {
+  return <S.TopMessage $tip={tip}>{text}</S.TopMessage>;
 }
 
 export function QrFloat({ value }) {

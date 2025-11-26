@@ -133,6 +133,11 @@ export default function handler(req, res) {
         socket.join(`user:${p.userId}`);
         console.log(`✅ Mobile ${socket.id} joined room: user:${p.userId}`);
       }
+      // QR 입장 알림: MW1/SBM1 활성화를 위해 즉시 방송
+      try {
+        const uid = (p && p.userId) ? String(p.userId) : `guest:${socket.id.slice(0, 6)}`;
+        io.to("entrance").emit("entrance-new-user", { userId: uid });
+      } catch {}
     });
     socket.on("livingroom-init", () => socket.join("livingroom"));
     socket.on("entrance-init", () => socket.join("entrance"));
