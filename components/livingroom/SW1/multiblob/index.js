@@ -13,27 +13,27 @@ export default function SW1Controls() {
   // Leva controls for live-tuning center glow & background gradient (front-end only)
   const centerGlow = useControls('SW1 Center Glow', {
     innerColor:   { value: '#ffffff' },
-    innerRingColor: { value: '#dbd0c1' },  // 하얀 중심 바로 바깥쪽 링
-    mid1Color:    { value: '#d89aaa' },
-    mid2Color:    { value: '#c1c1c1' },
-    outerColor:   { value: '#c2d8ff' },
-    extraColor:   { value: '#c9ffff' },
+    innerRingColor: { value: '#ffe7c6' },  // 하얀 중심 바로 바깥쪽 링
+    mid1Color:    { value: '#bf939f' },
+    mid2Color:    { value: '#c0c0c0' },
+    outerColor:   { value: '#a3ffe7' },
+    extraColor:   { value: '#b1ffff' },
     innerAlpha:      { value: 1,    min: 0, max: 1, step: 0.01 },
-    innerRingAlpha:  { value: 0.85, min: 0, max: 1, step: 0.01 },
-    mid1Alpha:       { value: 0.65, min: 0, max: 1, step: 0.01 },
-    mid2Alpha:       { value: 0.41, min: 0, max: 1, step: 0.01 },
-    outerAlpha:      { value: 0.36, min: 0, max: 1, step: 0.01 },
+    innerRingAlpha:  { value: 1,    min: 0, max: 1, step: 0.01 },
+    mid1Alpha:       { value: 0.58, min: 0, max: 1, step: 0.01 },
+    mid2Alpha:       { value: 1,    min: 0, max: 1, step: 0.01 },
+    outerAlpha:      { value: 0,    min: 0, max: 1, step: 0.01 },
     extraAlpha:      { value: 1,    min: 0, max: 1, step: 0.01 },
-    innerStop:       { value: 18,  min: 0, max: 100 },
+    innerStop:       { value: 0,   min: 0, max: 100 },
     innerRingStop:   { value: 30,  min: 0, max: 100 },
-    mid1Stop:        { value: 54,  min: 0, max: 100 },
-    mid2Stop:        { value: 90,  min: 0, max: 100 },
-    extraStop:       { value: 88,  min: 0, max: 100 },
-    outerStop:       { value: 60,  min: 0, max: 100 },
-    blur:            { value: 29, min: 0, max: 120 }, // px
-    centerBrightness:{ value: 1.25, min: 0.7, max: 1.8, step: 0.01 },
-    outerGlowRadius: { value: 260, min: 0, max: 600 }, // px, 가운데 원 가장 바깥쪽 빛 번짐
-    outerGlowAlpha:  { value: 0.42, min: 0, max: 1, step: 0.01 },
+    mid1Stop:        { value: 45,  min: 0, max: 100 },
+    mid2Stop:        { value: 99,  min: 0, max: 100 },
+    extraStop:       { value: 0,   min: 0, max: 100 },
+    outerStop:       { value: 0,   min: 0, max: 100 },
+    blur:            { value: 77, min: 0, max: 120 }, // px
+    centerBrightness:{ value: 1.32, min: 0.7, max: 1.8, step: 0.01 },
+    outerGlowRadius: { value: 242, min: 0, max: 600 }, // px, 가운데 원 가장 바깥쪽 빛 번짐
+    outerGlowAlpha:  { value: 0,    min: 0, max: 1, step: 0.01 },
   });
 
   const background = useControls('SW1 Background', {
@@ -126,6 +126,7 @@ export default function SW1Controls() {
           );
         })}
         <S.GradientEllipse style={centerGlowStyle} />
+        <S.CenterPulse />
         <S.CenterMark src="/figma/Ellipse%202767.png" alt="" />
         <S.EllipseLayer>
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />

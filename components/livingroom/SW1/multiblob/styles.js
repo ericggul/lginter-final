@@ -117,6 +117,63 @@ export const GradientEllipse = styled.div`
   pointer-events: none;
 `;
 
+/* Center pulse waves: multiple thin white rings slowly expanding outward */
+const centerPulseWave = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0.6;
+  }
+  70% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0;
+  }
+`;
+
+export const CenterPulse = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--largestBlobSize) * 2.1);
+  height: calc(var(--largestBlobSize) * 2.1);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 7; /* GradientEllipse 위, CenterText/CenterMark 아래 */
+
+  /* 기본 파동 (1번 링) - 아주 얇고 은은한 링 */
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.0) 0%,
+    rgba(255, 255, 255, 0.0) 58%,
+    rgba(255, 255, 255, 0.75) 64%,
+    rgba(255, 255, 255, 0.0) 74%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
+  animation: ${centerPulseWave} 11s ease-out infinite;
+
+  /* 2, 3번 파동을 약간의 딜레이를 두고 이어서 발생시키기 위해 pseudo 사용 */
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: ${centerPulseWave} 11s ease-out infinite;
+  }
+
+  &::before {
+    animation-delay: 3.7s;
+  }
+
+  &::after {
+    animation-delay: 7.4s;
+  }
+`;
+
 export const EllipseLayer = styled.div`
   display: none;
 `;
