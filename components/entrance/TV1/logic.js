@@ -18,6 +18,15 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
       timestamp: Date.now()
     }, ...prev].slice(0, 18));
 
+    // Play keyword blob sfx once per new keyword
+    try {
+      if (typeof window !== 'undefined') {
+        const sfx = new Audio('/api/sfx?name=keywordblobtv1');
+        // Let the browser policy decide if playback is allowed (may require prior user gesture)
+        sfx.play().catch(() => {});
+      }
+    } catch {}
+
     // newest keyword goes to the leftmost top container; shift right
     const uid = String(data?.userId || '');
     const isNewUser = uid && !seenUserIds.has(uid);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import useSocketSW1 from '@/utils/hooks/useSocketSW1';
+import { playSfx } from '@/utils/hooks/useSound';
 
 // Blob layout config for SW1 (independent)
 export const SW1_BLOB_CONFIGS = [
@@ -61,6 +62,8 @@ export function useSW1Logic() {
     { userId: 'uC', temp: 21, humidity: 36 },
     { userId: 'uD', temp: 20, humidity: 44 },
   ]);
+  // Track previously seen real userIds to detect new blob creations
+  const prevRealUsersRef = useRef(new Set());
 
   // Optional: capture latest voice keywords (independent, not reused from SW2)
   const [keywords, setKeywords] = useState([]); // keep last 4 (recency list for fallback)
@@ -213,6 +216,31 @@ export function useSW1Logic() {
       const bottom = r?.humidity != null ? `${Math.round(r.humidity)}%` : '';
       return { ...cfg, top, bottom };
     });
+  }, [miniResults]);
+
+  // Play sfx when a new real user appears in mini blobs
+  useEffect(() => {
+    try {
+      const isReal = (id) => id && !/^u[A-D]$/.test(String(id));
+      const curr = new Set(
+        miniResults
+          .map((r) => (r && r.userId) ? String(r.userId) : '')
+          .filter((id) => isReal(id))
+      );
+      const prev = prevRealUsersRef.current || new Set();
+      // Count new ids in current set not present before
+      let newCount = 0;
+      curr.forEach((id) => {
+        if (!prev.has(id)) newCount += 1;
+      });
+      if (newCount > 0) {
+        // Play once per new blob; lightly throttle by chaining micro-delays
+        for (let i = 0; i < newCount; i += 1) {
+          setTimeout(() => { playSfx('blobsw12', { volume: 0.6 }); }, i * 80);
+        }
+      }
+      prevRealUsersRef.current = curr;
+    } catch {}
   }, [miniResults]);
 
   // Derive participant count robustly (no stale state): max of unique active users and non-dummy mini slots
