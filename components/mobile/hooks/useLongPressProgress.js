@@ -7,7 +7,7 @@ export default function useLongPressProgress({ onCompleted } = {}) {
   const handlePressStart = useCallback(() => {
     let progress = 0;
     const interval = setInterval(() => {
-      const step = 1 / (3000 / 50); // 3s total, 50ms interval => 60 steps
+      const step = 1 / (1000 / 50); // 1s total, 50ms interval => 20 steps
       progress += step;
       if (progress >= 1) {
         progress = 1;

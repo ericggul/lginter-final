@@ -3,7 +3,7 @@ import * as S from './styles';
 
 // Phases
 // hidden -> greet1(만나서/반가워요!) -> greet2(오늘도/수고하셨어요.) -> final(오늘의 하루는/어땠나요?)
-export default function HeroText({ isModal = false, onFinalPhase }) {
+export default function HeroText({ isModal = false, onFinalPhase, forceFinal }) {
   const [phase, setPhase] = useState('hidden');
   const [opacity, setOpacity] = useState(0);
 
@@ -25,6 +25,15 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
     timersRef.current.push(t1);
     return clearTimers;
   }, []);
+
+  // External override: jump directly to final phase (restart flow)
+  useEffect(() => {
+    if (!forceFinal) return;
+    clearTimers();
+    setPhase('final');
+    setOpacity(1);
+    if (typeof onFinalPhase === 'function') onFinalPhase();
+  }, [forceFinal]);
 
   useEffect(() => {
     if (phase === 'greet1') {
@@ -62,7 +71,7 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
       return { line1: '오늘도', line2: '수고하셨어요.', subText: null };
     }
     if (phase === 'final') {
-      return { line1: '오늘 하루는', line2: '어땠나요?', subText: '아래 퓨론을 3초 간 길게 눌러 말해주세요.' };
+      return { line1: '오늘 하루는', line2: '어땠나요?', subText: '아래 퓨론을 1초간 길게 눌러 말해주세요.' };
     }
     // hidden
     return { line1: '', line2: '', subText: null };

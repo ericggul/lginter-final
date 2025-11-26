@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import useSocketSBM1 from '@/utils/hooks/useSocketSBM1';
 
 import useResize from '@/utils/hooks/useResize';
-const URL = 'https://www.naver.com'
 
 const DEFAULT_TOP_MESSAGE = 'QR코드 스캔을 통해\n전시 관람을 시작하세요!';
 const DEFAULT_FURON_PATH = '/image.png';
@@ -14,10 +13,17 @@ function getViewportVars(width, height) {
   return { '--kiss': '12vmin', '--qr-size': `${qrPx}px` };
 }
 
+// Build mobile URL dynamically from current host (no hardcoded domains)
+function getMobileUrl() {
+  if (typeof window === 'undefined') return '';
+  const { protocol, host } = window.location;
+  return `${protocol}//${host}/mobile`;
+}
+
 export function useSbm1() {
   const { width, height } = useResize();
   const vars = useMemo(() => getViewportVars(width, height), [width, height]);
-  const [qrUrl, setQrUrl] = useState(URL);
+  const [qrUrl, setQrUrl] = useState(getMobileUrl());
   const topMessage = DEFAULT_TOP_MESSAGE;
   const furonPath = DEFAULT_FURON_PATH;
   const [userCount, setUserCount] = useState(0);
