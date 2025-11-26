@@ -24,10 +24,14 @@ export function useSbm1() {
   const { width, height } = useResize();
   const vars = useMemo(() => getViewportVars(width, height), [width, height]);
   const [qrUrl, setQrUrl] = useState(getMobileUrl());
-  const topMessage = DEFAULT_TOP_MESSAGE;
+  const [topMessage, setTopMessage] = useState(DEFAULT_TOP_MESSAGE);
   const furonPath = DEFAULT_FURON_PATH;
   const [userCount, setUserCount] = useState(0);
   const seenUserIdsRef = useRef(new Set());
+  const [boost, setBoost] = useState(false);
+  const [tip, setTip] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const TIP_TEXT = '모바일을 통해 나만의 환경을 구성해보세요!';
 
   useSocketSBM1({
     onEntranceNewUser: (payload) => {
@@ -39,6 +43,16 @@ export function useSbm1() {
           seen.add(uid);
           setUserCount((c) => c + 1);
         }
+        // 순간 채도/대비 부스트
+        setBoost(true);
+        setTimeout(() => setBoost(false), 2000);
+        // 연핑크 배경 플래시 (서서히 들어왔다 나감)
+        setFlash(true);
+        setTimeout(() => setFlash(false), 2000);
+        // Tip 문구 3초 표시
+        setTopMessage(TIP_TEXT);
+        setTip(true);
+        setTimeout(() => { setTip(false); setTopMessage(DEFAULT_TOP_MESSAGE); }, 3000);
       } catch {}
     },
     onEntranceNewName: (payload) => {
@@ -50,12 +64,29 @@ export function useSbm1() {
           seen.add(uid);
           setUserCount((c) => c + 1);
         }
+        // 이름 들어와도 동일하게 부스트
+        setBoost(true);
+        setTimeout(() => setBoost(false), 2000);
+        // 연핑크 배경 플래시
+        setFlash(true);
+        setTimeout(() => setFlash(false), 2000);
+        // Tip 문구 3초 표시
+        setTopMessage(TIP_TEXT);
+        setTip(true);
+        setTimeout(() => { setTip(false); setTopMessage(DEFAULT_TOP_MESSAGE); }, 3000);
       } catch {}
     },
   });
 
 
-  return useMemo(() => ({ vars, qrUrl, topMessage, furonPath, userCount }), [vars, qrUrl, userCount]);
+  const styleVars = useMemo(() => ({
+    ...vars,
+    '--sbm-boost-filter': boost ? 'saturate(1.22) contrast(1.12) brightness(1.04)' : 'none',
+    '--sbm-blob-zoom': 1,
+    '--sbm-bgflash-opacity': flash ? 1 : 0,
+  }), [vars, boost, flash]);
+
+  return useMemo(() => ({ vars: styleVars, qrUrl, topMessage, furonPath, userCount, tip }), [styleVars, qrUrl, topMessage, userCount, tip]);
 }
 
 
