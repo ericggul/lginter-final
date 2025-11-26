@@ -241,6 +241,14 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
     return undefined
   }, [showKeywords, labelsReady, hasShownKeywords])
 
+  // When keywords are turned off (e.g., soft reset), clear latched state and pulse
+  useEffect(() => {
+    if (!showKeywords) {
+      setHasShownKeywords(false)
+      setKeywordsPulse(false)
+    }
+  }, [showKeywords])
+
   // After staggered reveal completes, run one-time group pulse (fade to 0 then back to 1)
   useEffect(() => {
     if (!hasShownKeywords || keywordsPulse) return

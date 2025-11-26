@@ -30,6 +30,7 @@ export default function MobileControls() {
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
   const [showResetButton, setShowResetButton] = useState(false);
+  const [forceFinalToken, setForceFinalToken] = useState(0);
   const { emitNewName, emitNewVoice, socket } = useSocketMobile({
     onMobileDecision: (payload) => {
       // payload: { userId, params: { temp, humidity, lightColor, music }, reason }
@@ -108,7 +109,12 @@ export default function MobileControls() {
   const p3 = recommendations ? `집 안의 조명은 #${String(recommendations?.lightColor || '').replace('#','')} 색감으로 바꿔 공간을 부드럽게 밝힐게요.` : '';
   const p4 = recommendations ? `무드에 맞춘 ${recommendations.song}을 재생할게요.` : '';
   const paragraphs = [p1, p2, p3, p4];
-  const fullTypedText = recommendations ? paragraphs.join('\n\n') : null;
+  // Prefer AI-provided reason string when available, fallback to composed paragraphs
+  const fullTypedText = recommendations
+    ? (recommendations.reason && typeof recommendations.reason === 'string' && recommendations.reason.trim().length > 0
+        ? recommendations.reason
+        : paragraphs.join('\n\n'))
+    : null;
 
   // 오케스트레이팅 화면이 완전히 끝난 뒤에만 타이핑을 시작해야,
   // 사용자가 실제로 타이핑 모션을 볼 수 있다.
@@ -174,11 +180,52 @@ export default function MobileControls() {
   }, [name, mood, emitNewName, emitNewVoice, socket]);
 
   const handleReset = useCallback(() => {
-    // 전체 페이지 리로드로 초기 상태 복귀
+    // Soft reset to voice-start screen (final headline), preserving page session
+    setLoading(false);
+    setOrchestratingLock(false);
+    setRecommendations(null);
+    setSubmitted(false);
+    setShowResetButton(false);
+    setShowPress(true);
+    setListeningStage('idle');
+    setMood('');
+    // reset local showcases/typewriter
+    try { resetShowcase(); } catch {}
+    // reset background globals to idle
     if (typeof window !== 'undefined') {
-      try { window.location.reload(); } catch {}
+      try {
+        window.isListening = false;
+        // instant hide current background to avoid last-scene flicker
+        window.blobOpacityMs = 0;
+        window.blobOpacity = 0;
+        // restore default background gradient
+        window.bgSettings = {
+          top: '#ECF8FA',
+          mid: '#FAFDFF',
+          low: '#FFE0F8',
+          bottom: '#FFF0FB',
+          midStop: 23,
+          lowStop: 64,
+        };
+        window.showKeywords = false;
+        window.keywordLabels = [];
+        window.clusterSpin = false;
+        window.newOrbEnter = false;
+        window.showOrbits = false;
+        window.mainBlobFade = false;
+        window.showFinalOrb = false;
+        // fade back in
+        setTimeout(() => {
+          try {
+            window.blobOpacityMs = 600;
+            window.blobOpacity = 1;
+          } catch {}
+        }, 30);
+      } catch {}
     }
-  }, []);
+    // Force hero to jump to final phase ("오늘 하루는 어땠나요?")
+    setForceFinalToken((t) => t + 1);
+  }, [resetShowcase, setOrchestratingLock]);
 
   // iOS Safari 등에서 타이머/애니메이션이 지연되더라도,
   // 결정이 도착한 뒤에는 오케스트레이팅 락이 영원히 풀리지 않는 것을 방지하는 안전장치.
@@ -220,6 +267,62 @@ export default function MobileControls() {
 
   const showBrandLogo = submitted && (isOrchestrating || recommendations);
 
+  // When typing finishes, softly tint the background gradient toward the recommended light color
+  useEffect(() => {
+    const hex = recommendations?.lightColor;
+    if (!hex || !typingDone) return;
+    // Helpers: hex <-> rgb/hsl
+    const parseHex = (h) => {
+      const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '').trim());
+      if (!m) return null;
+      const v = m[1];
+      return { r: parseInt(v.slice(0, 2), 16), g: parseInt(v.slice(2, 4), 16), b: parseInt(v.slice(4, 6), 16) };
+    };
+    const rgbToHsl = (r, g, b) => {
+      const R = r / 255, G = g / 255, B = b / 255;
+      const max = Math.max(R, G, B), min = Math.min(R, G, B);
+      let h = 0, s = 0;
+      const l = (max + min) / 2;
+      const d = max - min;
+      if (d !== 0) {
+        s = l > 0.5 ? d / (2 - max - min) : d / (max - min);
+        switch (max) {
+          case R: h = (G - B) / d + (G < B ? 6 : 0); break;
+          case G: h = (B - R) / d + 2; break;
+          case B: h = (R - G) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+    };
+    const hslToHex = (h, s, l) => {
+      const S = s / 100, L = l / 100;
+      const C = (1 - Math.abs(2 * L - 1)) * S;
+      const X = C * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = L - C / 2;
+      let r1 = 0, g1 = 0, b1 = 0;
+      if (h < 60) { r1 = C; g1 = X; b1 = 0; }
+      else if (h < 120) { r1 = X; g1 = C; b1 = 0; }
+      else if (h < 180) { r1 = 0; g1 = C; b1 = X; }
+      else if (h < 240) { r1 = 0; g1 = X; b1 = C; }
+      else if (h < 300) { r1 = X; g1 = 0; b1 = C; }
+      else { r1 = C; g1 = 0; b1 = X; }
+      const toHex = (n) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+      return `#${toHex(r1)}${toHex(g1)}${toHex(b1)}`.toUpperCase();
+    };
+    const baseRgb = parseHex(hex);
+    if (!baseRgb) return;
+    const { h, s } = rgbToHsl(baseRgb.r, baseRgb.g, baseRgb.b);
+    // Preserve hue/sat; set lightness to airy levels for visible tint
+    const top = hslToHex(h, Math.min(100, Math.max(35, s)), 94);
+    const mid = hslToHex(h, Math.min(100, Math.max(40, s)), 90);
+    const low = hslToHex(h, Math.min(100, Math.max(45, s)), 86);
+    const bottom = hslToHex(h, Math.min(100, Math.max(30, s)), 96);
+    try {
+      window.bgSettings = { top, mid, low, bottom, midStop: 23, lowStop: 64 };
+    } catch {}
+  }, [typingDone, recommendations?.lightColor]);
+
   return (
     <AppContainer $isModal={isModal}>
       {showBrandLogo && (
@@ -234,7 +337,7 @@ export default function MobileControls() {
       <ContentWrapper $isModal={isModal}>
         {!submitted && !isListening && (
           <>
-            <HeroText isModal={isModal} onFinalPhase={() => setShowPress(true)} />
+            <HeroText isModal={isModal} onFinalPhase={() => setShowPress(true)} forceFinal={forceFinalToken} />
             
             
             
@@ -279,6 +382,7 @@ export default function MobileControls() {
             paragraphs={paragraphs}
             showHighlights={showHighlights}
             fadeText={fadeText}
+            typingDone={typingDone}
           />
         ) : null}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
