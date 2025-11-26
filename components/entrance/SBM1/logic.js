@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import useSocketSBM1 from '@/utils/hooks/useSocketSBM1';
 
 import useResize from '@/utils/hooks/useResize';
 const URL = 'https://www.naver.com'
@@ -19,9 +20,36 @@ export function useSbm1() {
   const [qrUrl, setQrUrl] = useState(URL);
   const topMessage = DEFAULT_TOP_MESSAGE;
   const furonPath = DEFAULT_FURON_PATH;
+  const [userCount, setUserCount] = useState(0);
+  const seenUserIdsRef = useRef(new Set());
+
+  useSocketSBM1({
+    onEntranceNewUser: (payload) => {
+      try {
+        const uid = String(payload?.userId || '').trim();
+        if (!uid) return;
+        const seen = seenUserIdsRef.current;
+        if (!seen.has(uid)) {
+          seen.add(uid);
+          setUserCount((c) => c + 1);
+        }
+      } catch {}
+    },
+    onEntranceNewName: (payload) => {
+      try {
+        const uid = String(payload?.userId || '').trim();
+        if (!uid) return;
+        const seen = seenUserIdsRef.current;
+        if (!seen.has(uid)) {
+          seen.add(uid);
+          setUserCount((c) => c + 1);
+        }
+      } catch {}
+    },
+  });
 
 
-  return useMemo(() => ({ vars, qrUrl, topMessage, furonPath }), [vars, qrUrl]);
+  return useMemo(() => ({ vars, qrUrl, topMessage, furonPath, userCount }), [vars, qrUrl, userCount]);
 }
 
 

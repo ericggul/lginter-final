@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import useSocketSW2 from "@/utils/hooks/useSocketSW2";
+import { playSfx } from "@/utils/hooks/useSound";
 
 // 뷰에서 사용할 블롭 배치/초기 키워드 설정
 export const BLOB_CONFIGS = [
@@ -70,7 +71,9 @@ export function useSW2Logic() {
   const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
   // 최근 사용자 키워드 (음성 텍스트 / emotionKeyword) 최대 3개까지 유지
   // 초기에는 감정 관련 더미 키워드 3개를 채워둔다
-  const [keywords, setKeywords] = useState(() => BLOB_CONFIGS.map((b) => b.labelBottom || ''));
+  const initialKeywords = useMemo(() => BLOB_CONFIGS.map((b) => b.labelBottom || ''), []);
+  const [keywords, setKeywords] = useState(() => initialKeywords);
+  const prevTailRef = useRef(initialKeywords[initialKeywords.length - 1] || '');
   const [dotCount, setDotCount] = useState(0);
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
@@ -141,6 +144,17 @@ export function useSW2Logic() {
     }, 500);
     return () => clearInterval(id);
   }, []);
+
+  // Play sfx when a new keyword blob appears (tail changed)
+  useEffect(() => {
+    try {
+      const tail = keywords[keywords.length - 1] || '';
+      if (tail && tail !== prevTailRef.current) {
+        playSfx('blobsw12', { volume: 0.5 });
+      }
+      prevTailRef.current = tail;
+    } catch {}
+  }, [keywords]);
 
   const parseSong = useCallback((song) => {
     if (!song) return { t: '', a: '' };
