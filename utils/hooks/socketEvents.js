@@ -6,12 +6,17 @@ export const EVENTS = {
   MOBILE_USER_NEEDS: "mobile-user-needs",
 
   // Devices (generic)
+  // Canonical server emission
+  DEVICE_DECISION: "device-decision",
+  // Backward-compat listener (some clients may still use this)
   DEVICE_NEW_DECISION: "device-new-decision",
   DEVICE_NEW_VOICE: "device-new-voice",
 
   // Server broadcasts
   DEVICE_DECISION: "device-decision",
   LIGHT_APPLIED: "light-applied",
+  // Timeline
+  TIMELINE_STAGE: "timeline-stage",
 
   // SW2 specific (lighting control)
   SW2_LIGHT_COLOR: "sw2-light-color",

@@ -13,6 +13,9 @@ export const EV = {
   CONTROLLER_NEW_VOICE: "controller-new-voice",
 
   // Server → LivingRoom (broadcast)
+  // Canonical server emission for device updates
+  DEVICE_DECISION: "device-decision",
+  // Backward-compat alias (to be removed after client migration)
   DEVICE_NEW_DECISION: "device-new-decision",
   DEVICE_NEW_VOICE: "device-new-voice",
 
@@ -20,6 +23,9 @@ export const EV = {
   SW2_LIGHT_COLOR: "sw2-light-color",
   // Server → clients ack/notification
   LIGHT_APPLIED: "light-applied",
+
+  // Global Timeline
+  TIMELINE_STAGE: "timeline-stage",
 
   // Server → Entrance (broadcast)
   ENTRANCE_NEW_USER: "entrance-new-user",

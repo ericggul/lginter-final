@@ -68,10 +68,13 @@ export default function useSocketMW1(options = {}) {
 
     if (onEntranceNewVoice) s.on('entrance-new-voice', onEntranceNewVoice);
     if (onEntranceNewUser) s.on('entrance-new-user', onEntranceNewUser);
+    // Treat new-name as a user arrival as well (robustness)
+    if (onEntranceNewUser) s.on('entrance-new-name', onEntranceNewUser);
 
     return () => {
       if (onEntranceNewVoice) s.off('entrance-new-voice', onEntranceNewVoice);
       if (onEntranceNewUser) s.off('entrance-new-user', onEntranceNewUser);
+      if (onEntranceNewUser) s.off('entrance-new-name', onEntranceNewUser);
     };
   }, [socket, options?.onEntranceNewVoice, options?.onEntranceNewUser]);
 

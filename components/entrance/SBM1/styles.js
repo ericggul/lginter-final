@@ -13,6 +13,11 @@ export const Container = styled.div`
   overflow: hidden;
   /* control how close blobs sit in corners (kissing) */
   --kiss: 9vmin;
+  /* QR 입장 순간 채도/대비 부스트 */
+  filter: var(--sbm-boost-filter, none);
+  transition: filter 600ms ease;
+  /* Blob pop scale (set via inline var) */
+  --sbm-blob-zoom: 1;
 `;
 
 export const Card = styled.div`
@@ -59,12 +64,27 @@ export const BlobLayer = styled.div`
   position: absolute; inset: 0; pointer-events: none; z-index: 0;
 `;
 
+export const BGFlash = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--sbm-bgflash-opacity, 0);
+  transition: opacity 900ms ease;
+  /* very soft light pink wash */
+  background:
+    radial-gradient(farthest-side at 50% 40%, rgba(255, 210, 235, 0.26) 0%, rgba(255, 220, 240, 0.18) 42%, rgba(255, 230, 245, 0.08) 72%, rgba(255, 240, 250, 0.00) 100%),
+    linear-gradient(180deg, rgba(255, 238, 245, 0.48) 0%, rgba(255, 238, 245, 0.00) 100%);
+  mix-blend-mode: normal;
+`;
+
 export const Blob = styled.div`
   position: absolute;
   left: 18vw; top: 28vh; width: 82vmin; height: 82vmin; border-radius: 50%;
   clip-path: circle(50% at 50% 50%);
 
   /* animated blob variables */
+  @property --sbm-blob-zoom { syntax: '<number>'; inherits: true; initial-value: 1; }
   @property --p1x { syntax: '<percentage>'; inherits: false; initial-value: 72%; }
   @property --p1y { syntax: '<percentage>'; inherits: false; initial-value: 52%; }
   @property --p2x { syntax: '<percentage>'; inherits: false; initial-value: 46%; }
@@ -129,8 +149,15 @@ export const BlobTR = styled(Blob)`
   /* orient pink lobe toward center (QR side) */
   --p1x: 40%; --p1y: 68%;
   /* flip vertical orientation without rotating */
-  transform: scaleY(-1);
+  transform: scaleY(-1) scale(var(--sbm-blob-zoom, 1));
+  transition: --sbm-blob-zoom 2000ms cubic-bezier(0.22, 1, 0.36, 1);
   @keyframes bobFloatTR { 0%{ transform: scaleY(-1) translate3d(0,0,0);} 50%{ transform: scaleY(-1) translate3d(-0.6vmin,-0.8vmin,0);} 100%{ transform: scaleY(-1) translate3d(0,0,0);} }
+  /* include pop scale in keyframes */
+  @keyframes bobFloatTR { 
+    0%{ transform: scaleY(-1) scale(var(--sbm-blob-zoom,1)) translate3d(0,0,0);} 
+    50%{ transform: scaleY(-1) scale(var(--sbm-blob-zoom,1)) translate3d(-0.6vmin,-0.8vmin,0);} 
+    100%{ transform: scaleY(-1) scale(var(--sbm-blob-zoom,1)) translate3d(0,0,0);} 
+  }
   animation:
     l1 4.5s ease-in-out infinite alternate,
     l2 5s ease-in-out infinite alternate,
@@ -146,7 +173,12 @@ export const BlobBL = styled(Blob)`
   left: calc(-1 * var(--kiss)); top: auto; bottom: calc(-1 * var(--kiss)); width: 134vmin; height: 134vmin; /* bigger */
   /* orient pink lobe toward center (QR side) */
   --p1x: 66%; --p1y: 36%;
-  @keyframes bobFloatBL { 0%{ transform: translate3d(0,0,0);} 50%{ transform: translate3d(0.8vmin,0.8vmin,0);} 100%{ transform: translate3d(0,0,0);} }
+  transition: --sbm-blob-zoom 2000ms cubic-bezier(0.22, 1, 0.36, 1);
+  @keyframes bobFloatBL { 
+    0%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0,0,0);} 
+    50%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0.8vmin,0.8vmin,0);} 
+    100%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0,0,0);} 
+  }
   animation:
     l1 4.5s ease-in-out infinite alternate,
     l2 5s ease-in-out infinite alternate,
@@ -175,6 +207,19 @@ export const TopMessage = styled.h2`
   color: #000000;
   margin: 0; z-index: 1;
   white-space: pre-line;
+  /* Tip animation */
+  transform: translate(-50%, 0);
+  transition: opacity 400ms ease, transform 500ms ease;
+  ${(p) => p.$tip ? `
+    animation: tipInOut 3000ms ease forwards;
+  ` : ''}
+
+  @keyframes tipInOut {
+    0%   { opacity: 0; transform: translate(-50%, 14px); }
+    15%  { opacity: 1; transform: translate(-50%, 0); }
+    85%  { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -6px); }
+  }
 `;
 
 export const QRFloat = styled.div`

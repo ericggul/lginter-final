@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
 // Centralize MW1 video switching logic
-export function useMW1VideoLogic({ isActive, setIsActive, setSrc, setVideoKey, idleSrc, activeSrc }) {
+export function useMW1VideoLogic({ isActive, setIsActive, setSrc, setVideoKey, idleSrc, activeSrc, onActivated }) {
   const activeRef = useRef(isActive);
   useEffect(() => { activeRef.current = isActive; }, [isActive]);
 
@@ -17,7 +17,10 @@ export function useMW1VideoLogic({ isActive, setIsActive, setSrc, setVideoKey, i
     setIsActive(true);
     setSrc(activeSrc);
     setVideoKey('active-' + Date.now());
-  }, [setIsActive, setSrc, setVideoKey, activeSrc]);
+    if (typeof onActivated === 'function') {
+      onActivated();
+    }
+  }, [setIsActive, setSrc, setVideoKey, activeSrc, onActivated]);
 
   return { handleEnded, onEntranceNewUser };
 }

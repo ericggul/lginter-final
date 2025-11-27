@@ -41,7 +41,8 @@ export default function useSocketMobile(options = {}) {
 
     s.on("connect", () => {
       console.log("✅ Mobile socket connected:", s.id);
-      // mobile-init is now emitted from MobileControls component with userId
+      // Notify entrance immediately when QR로 입장 (no userId yet)
+      try { s.emit("mobile-init"); } catch {}
     });
 
     s.on("disconnect", () => {

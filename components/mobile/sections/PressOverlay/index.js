@@ -15,7 +15,7 @@ export default function PressOverlay({
       onMouseDown={onPressStart}
       onMouseUp={onPressEnd}
       onMouseLeave={onPressEnd}
-      aria-label="hold for 3 seconds to speak"
+      aria-label="hold for 1 second to speak"
     >
       <S.HitArea>
         <S.RingPulse $anim={isPressing ? 'softRipple 1600ms ease-out infinite' : 'none'} />
