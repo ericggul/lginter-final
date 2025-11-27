@@ -117,18 +117,19 @@ export const GradientEllipse = styled.div`
   pointer-events: none;
 `;
 
-/* Center pulse waves: multiple thin white rings slowly expanding outward */
+/* Center wave: 중앙에서 물결처럼 천천히 번져 나가는 부드러운 파장 */
 const centerPulseWave = keyframes`
   0% {
-    transform: translate(-50%, -50%) scale(0.7);
-    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.0;
   }
-  70% {
-    opacity: 0.25;
+  18% {
+    opacity: 0.75;
   }
   100% {
-    transform: translate(-50%, -50%) scale(1.4);
-    opacity: 0;
+    /* 화면 바깥까지 한 번 더 넓게 퍼지도록 스케일을 살짝 키움 */
+    transform: translate(-50%, -50%) scale(1.35);
+    opacity: 0.0;
   }
 `;
 
@@ -136,8 +137,9 @@ export const CenterPulse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  width: calc(var(--largestBlobSize) * 2.1);
-  height: calc(var(--largestBlobSize) * 2.1);
+  /* 기본 크기를 키워서 스케일이 커질 때 더 멀리까지 파동이 닿도록 설정 */
+  width: calc(var(--largestBlobSize) * 1.25);
+  height: calc(var(--largestBlobSize) * 1.25);
   transform: translate(-50%, -50%);
   border-radius: 50%;
   pointer-events: none;
@@ -147,12 +149,15 @@ export const CenterPulse = styled.div`
   background: radial-gradient(
     circle,
     rgba(255, 255, 255, 0.0) 0%,
-    rgba(255, 255, 255, 0.0) 58%,
-    rgba(255, 255, 255, 0.75) 64%,
-    rgba(255, 255, 255, 0.0) 74%,
+    rgba(255, 255, 255, 0.0) 64%,
+    rgba(255, 255, 255, 0.95) 72%,
+    rgba(255, 255, 255, 0.0) 88%,
     rgba(255, 255, 255, 0.0) 100%
   );
-  animation: ${centerPulseWave} 11s ease-out infinite;
+  /* 파동이 주인공처럼 보이도록, 경계는 유지하면서 살짝 번지는 정도의 블러 */
+  filter: blur(0.14vw);
+  /* 한 파동이 약 9초 동안 진행되고, 총 3개의 링이 3초 간격으로 이어지도록 설정 */
+  animation: ${centerPulseWave} 9s ease-out infinite;
 
   /* 2, 3번 파동을 약간의 딜레이를 두고 이어서 발생시키기 위해 pseudo 사용 */
   &::before,
@@ -162,15 +167,16 @@ export const CenterPulse = styled.div`
     inset: 0;
     border-radius: inherit;
     background: inherit;
-    animation: ${centerPulseWave} 11s ease-out infinite;
+    filter: inherit;
+    animation: ${centerPulseWave} 9s ease-out infinite;
   }
 
   &::before {
-    animation-delay: 3.7s;
+    animation-delay: 3s;
   }
 
   &::after {
-    animation-delay: 7.4s;
+    animation-delay: 6s;
   }
 `;
 
@@ -324,6 +330,19 @@ const blobMoistureDrift = keyframes`
   100% { transform: translate(-50%, -50%); }
 `;
 
+/* 내부 그라데이션이 살짝 흐르듯이 움직이면서 입체감이 느껴지도록 하는 패럴럭스 모션 */
+const blobInnerParallax = keyframes`
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 50% 48%;
+  }
+  100% {
+    background-position: 100% 52%;
+  }
+`;
+
 const blobInterestSize = keyframes`
   0%   { width: 20vw; height: 20vw; }
   40%  { width: 26vw; height: 26vw; }
@@ -359,6 +378,8 @@ const BlobBase = styled.div`
   overflow: visible;
   /* 기본 원은 투명, 실제 색/그라데이션은 ::before/::after 레이어에서만 렌더 */
   background: transparent;
+  /* 전체 투명도를 조정해 주변 원이 너무 죽지 않으면서도 중앙보다 한 단계 뒤에 있도록 설정 */
+  opacity: 0.9;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -392,12 +413,14 @@ const BlobBase = styled.div`
   &::before {
     content: '';
     position: absolute;
-    inset: -1.6vw;            /* 원보다 조금 더 크게 (halo) */
+    /* 중앙 원 주변에 아주 부드럽게 깔리는 큰 광원 느낌을 위해 더 크게 확장 */
+    inset: -3.6vw;            /* 원보다 훨씬 더 크게 (halo) */
     border-radius: inherit;
     /* 각 블롭에서 정의한 --blob-bg 그라데이션을 사용해 컬러가 밖으로 퍼지게 */
     background: var(--blob-bg, transparent);
-    filter: blur(2.1vw);      /* 외곽 블러 강도 */
-    opacity: 0.55;            /* 안쪽 원을 가리지 않도록 투명도 조절 */
+    /* 주변이 부드럽게 깔리되, 화면 전체가 새하얗게 되지 않도록 블러/투명도 조정 */
+    filter: blur(4.2vw);      /* 외곽 블러 강도 */
+    opacity: 0.2;             /* 은은하지만 존재감은 유지 */
     z-index: 0;               /* 텍스트/콘텐츠(1)보다 아래, 내부 그라데이션보다 아래 */
     pointer-events: none;
   }
@@ -407,22 +430,41 @@ const BlobBase = styled.div`
     position: absolute;
     inset: 0.2vw;             /* halo 안쪽을 채우는 몸통 */
     border-radius: inherit;
-    background: var(--blob-bg, transparent);
+    /* 입체감을 주기 위해 밝은 하이라이트 레이어만 컬러 그라데이션 위에 겹쳐서 사용 (뚜렷한 그림자 레이어는 제거) */
+    background:
+      /* 구의 정면이 살짝 더 밝게 보이도록 하는 넓은 하이라이트 (더 낮은 알파/짧은 범위) */
+      radial-gradient(
+        circle at 50% 38%,
+        rgba(255, 255, 255, 0.24) 0%,
+        rgba(255, 255, 255, 0.0) 45%
+      ),
+      /* 코어 하이라이트도 영역과 알파를 줄여서 컬러가 더 잘 드러나도록 조정 */
+      radial-gradient(
+        circle at 26% 20%,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.0) 24%
+      ),
+      var(--blob-bg, transparent);
     background-size: 320% 320%;
     background-position: 0% 50%;
-    /* 가장자리로 갈수록 투명해지도록 마스크 → 외곽 경계선 제거 */
+    /* 가장자리로 갈수록 부드럽게 투명해지도록 마스크 → 외곽 경계선이 딱 끊겨 보이지 않게 처리 */
     -webkit-mask-image: radial-gradient(
       circle at 50% 45%,
       rgba(0, 0, 0, 1) 0%,
-      rgba(0, 0, 0, 1) 60%,
+      rgba(0, 0, 0, 1) 52%,
+      rgba(0, 0, 0, 0.55) 76%,
       rgba(0, 0, 0, 0) 100%
     );
     mask-image: radial-gradient(
       circle at 50% 45%,
       rgba(0, 0, 0, 1) 0%,
-      rgba(0, 0, 0, 1) 60%,
+      rgba(0, 0, 0, 1) 52%,
+      rgba(0, 0, 0, 0.55) 76%,
       rgba(0, 0, 0, 0) 100%
     );
+    /* 안쪽 색은 선명하게, 외곽은 살짝 더 퍼져 보이도록 블러 강도 상향 */
+    filter: blur(0.35vw);
+    /* 주변 4개 원에서는 파동/물결 느낌이 나지 않도록 내부 그라데이션은 고정 (애니메이션 제거) */
     z-index: 0.5;
     pointer-events: none;
   }
@@ -434,17 +476,15 @@ export const Sw1InterestBlob = styled(BlobBase)`
   /* 입체감을 위한 구형(원형) 그라데이션 - ::before에서 blur와 함께 사용 */
   --blob-bg: radial-gradient(
     circle at 32% 28%,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.92) 32%,
-    rgba(255, 132, 94, 0.32) 60%,
-    rgba(55, 255, 252, 0.24) 78%,
-    rgba(66, 255, 142, 0.26) 100%
+    /* 중심을 살짝 따뜻한 색으로 시작해서 흰 영역이 넓게 차지하지 않도록 조정 */
+    rgba(255, 222, 203, 0.8) 0%,
+    rgba(255, 187, 150, 0.32) 42%,
+    rgba(255, 132, 94, 0.2) 70%,
+    rgba(154, 237, 180, 0.2) 100%
   );
   background-size: 320% 320%;
-  /* 위치와 색만 천천히 움직이고, 크기는 고정 */
-  animation:
-    ${blobDriftGradient} 9.3s ease-in-out infinite,
-    ${blobInterestDrift} 18s ease-in-out infinite;
+  /* 주변 블롭은 위치만 천천히 드리프트하고 내부 그라데이션은 고정 */
+  animation: ${blobInterestDrift} 18s ease-in-out infinite;
 `;
 
 export const Sw1WonderBlob = styled(BlobBase)`
@@ -452,16 +492,13 @@ export const Sw1WonderBlob = styled(BlobBase)`
   left: 24vw;
   --blob-bg: radial-gradient(
     circle at 30% 30%,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.9) 30%,
-    rgba(0, 0, 255, 0.28) 60%,
-    rgba(170, 0, 255, 0.26) 80%,
-    rgba(0, 255, 179, 0.34) 100%
+    rgba(222, 231, 255, 0.82) 0%,
+    rgba(160, 190, 255, 0.28) 50%,
+    rgba(170, 130, 255, 0.2) 78%,
+    rgba(140, 255, 210, 0.22) 100%
   );
   background-size: 320% 320%;
-  animation:
-    ${blobDriftGradient} 9.8s ease-in-out infinite,
-    ${blobWonderDrift} 19s ease-in-out infinite;
+  animation: ${blobWonderDrift} 19s ease-in-out infinite;
 `;
 
 export const Sw1HappyBlob = styled(BlobBase)`
@@ -469,16 +506,13 @@ export const Sw1HappyBlob = styled(BlobBase)`
   left: 22vw;
   --blob-bg: radial-gradient(
     circle at 34% 26%,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.9) 30%,
-    rgba(255, 74, 158, 0.34) 60%,
-    rgba(255, 60, 120, 0.3) 85%,
-    rgba(255, 255, 255, 0.85) 100%
+    rgba(255, 223, 240, 0.8) 0%,
+    rgba(255, 160, 190, 0.3) 52%,
+    rgba(255, 120, 170, 0.2) 80%,
+    rgba(248, 245, 255, 0.3) 100%
   );
   background-size: 320% 320%;
-  animation:
-    ${blobDriftGradient} 8.9s ease-in-out infinite,
-    ${blobHappyDrift} 17s ease-in-out infinite;
+  animation: ${blobHappyDrift} 17s ease-in-out infinite;
 `;
 
 export const Sw1MoistureBlob = styled(BlobBase)`
@@ -486,14 +520,11 @@ export const Sw1MoistureBlob = styled(BlobBase)`
   left: 74vw;
   --blob-bg: radial-gradient(
     circle at 30% 30%,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.9) 30%,
-    rgba(30, 72, 255, 0.3) 58%,
-    rgba(208, 136, 168, 0.3) 80%,
-    rgba(129, 198, 255, 0.34) 100%
+    rgba(219, 236, 255, 0.8) 0%,
+    rgba(120, 165, 255, 0.24) 50%,
+    rgba(190, 150, 210, 0.2) 80%,
+    rgba(170, 210, 255, 0.24) 100%
   );
   background-size: 320% 320%;
-  animation:
-    ${blobDriftGradient} 9.5s ease-in-out infinite,
-    ${blobMoistureDrift} 20s ease-in-out infinite;
+  animation: ${blobMoistureDrift} 20s ease-in-out infinite;
 `;
