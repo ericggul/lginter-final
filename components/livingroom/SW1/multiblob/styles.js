@@ -324,6 +324,19 @@ const blobMoistureDrift = keyframes`
   100% { transform: translate(-50%, -50%); }
 `;
 
+/* 내부 그라데이션이 살짝 흐르듯이 움직이면서 입체감이 느껴지도록 하는 패럴럭스 모션 */
+const blobInnerParallax = keyframes`
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 50% 48%;
+  }
+  100% {
+    background-position: 100% 52%;
+  }
+`;
+
 const blobInterestSize = keyframes`
   0%   { width: 20vw; height: 20vw; }
   40%  { width: 26vw; height: 26vw; }
@@ -359,6 +372,8 @@ const BlobBase = styled.div`
   overflow: visible;
   /* 기본 원은 투명, 실제 색/그라데이션은 ::before/::after 레이어에서만 렌더 */
   background: transparent;
+  /* 전체 투명도를 살짝 낮춰 중앙 원보다 한 단계 뒤에 있는 듯한 깊이감 부여 */
+  opacity: 0.9;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -392,12 +407,15 @@ const BlobBase = styled.div`
   &::before {
     content: '';
     position: absolute;
-    inset: -1.6vw;            /* 원보다 조금 더 크게 (halo) */
+    /* 중앙 원 주변에 아주 부드럽게 깔리는 큰 광원 느낌을 위해 더 크게 확장 */
+    inset: -3.6vw;            /* 원보다 훨씬 더 크게 (halo) */
     border-radius: inherit;
     /* 각 블롭에서 정의한 --blob-bg 그라데이션을 사용해 컬러가 밖으로 퍼지게 */
     background: var(--blob-bg, transparent);
-    filter: blur(2.1vw);      /* 외곽 블러 강도 */
-    opacity: 0.55;            /* 안쪽 원을 가리지 않도록 투명도 조절 */
+    /* 주변이 예시처럼 훨씬 더 부드럽게 퍼져 보이도록 블러 강도 대폭 상향 */
+    filter: blur(4.8vw);      /* 외곽 블러 강도 */
+    /* 넓은 영역에 흐리게 퍼지지만, 화면 전체가 하얗게 뜨지 않도록 투명도 더 감소 */
+    opacity: 0.22;            /* 안쪽 원을 가리지 않도록 투명도 조절 */
     z-index: 0;               /* 텍스트/콘텐츠(1)보다 아래, 내부 그라데이션보다 아래 */
     pointer-events: none;
   }
@@ -407,22 +425,42 @@ const BlobBase = styled.div`
     position: absolute;
     inset: 0.2vw;             /* halo 안쪽을 채우는 몸통 */
     border-radius: inherit;
-    background: var(--blob-bg, transparent);
+    /* 입체감을 주기 위해 밝은 하이라이트 레이어만 컬러 그라데이션 위에 겹쳐서 사용 (뚜렷한 그림자 레이어는 제거) */
+    background:
+      /* 구의 정면이 살짝 더 밝게 보이도록 하는 넓은 하이라이트 (강도/범위 축소) */
+      radial-gradient(
+        circle at 50% 38%,
+        rgba(255, 255, 255, 0.35) 0%,
+        rgba(255, 255, 255, 0.0) 55%
+      ),
+      /* 코어 하이라이트도 영역과 알파를 줄여서 컬러가 더 잘 드러나도록 조정 */
+      radial-gradient(
+        circle at 26% 20%,
+        rgba(255, 255, 255, 0.82) 0%,
+        rgba(255, 255, 255, 0.0) 30%
+      ),
+      var(--blob-bg, transparent);
     background-size: 320% 320%;
     background-position: 0% 50%;
-    /* 가장자리로 갈수록 투명해지도록 마스크 → 외곽 경계선 제거 */
+    /* 가장자리로 갈수록 부드럽게 투명해지도록 마스크 → 외곽 경계선이 딱 끊겨 보이지 않게 처리 */
     -webkit-mask-image: radial-gradient(
       circle at 50% 45%,
       rgba(0, 0, 0, 1) 0%,
-      rgba(0, 0, 0, 1) 60%,
+      rgba(0, 0, 0, 1) 52%,
+      rgba(0, 0, 0, 0.55) 76%,
       rgba(0, 0, 0, 0) 100%
     );
     mask-image: radial-gradient(
       circle at 50% 45%,
       rgba(0, 0, 0, 1) 0%,
-      rgba(0, 0, 0, 1) 60%,
+      rgba(0, 0, 0, 1) 52%,
+      rgba(0, 0, 0, 0.55) 76%,
       rgba(0, 0, 0, 0) 100%
     );
+    /* 안쪽 색은 선명하게, 외곽은 살짝 더 퍼져 보이도록 블러 강도 상향 */
+    filter: blur(0.35vw);
+    /* 내부 그라데이션이 천천히 움직이면서 입체적인 볼륨감이 느껴지도록 배경 위치를 부드럽게 애니메이션 */
+    animation: ${blobInnerParallax} 22s ease-in-out infinite alternate;
     z-index: 0.5;
     pointer-events: none;
   }
@@ -435,9 +473,10 @@ export const Sw1InterestBlob = styled(BlobBase)`
   --blob-bg: radial-gradient(
     circle at 32% 28%,
     rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.92) 32%,
-    rgba(255, 132, 94, 0.32) 60%,
-    rgba(55, 255, 252, 0.24) 78%,
+    /* 중앙의 강한 하이라이트는 유지하되, 순수 흰색이 차지하는 반경을 줄여서 가장자리 컬러가 더 빨리 드러나도록 조정 */
+    rgba(255, 255, 255, 0.9) 16%,
+    rgba(255, 132, 94, 0.32) 52%,
+    rgba(55, 255, 252, 0.24) 74%,
     rgba(66, 255, 142, 0.26) 100%
   );
   background-size: 320% 320%;
@@ -453,8 +492,8 @@ export const Sw1WonderBlob = styled(BlobBase)`
   --blob-bg: radial-gradient(
     circle at 30% 30%,
     rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.9) 30%,
-    rgba(0, 0, 255, 0.28) 60%,
+    rgba(255, 255, 255, 0.88) 18%,
+    rgba(0, 0, 255, 0.28) 56%,
     rgba(170, 0, 255, 0.26) 80%,
     rgba(0, 255, 179, 0.34) 100%
   );
@@ -470,10 +509,11 @@ export const Sw1HappyBlob = styled(BlobBase)`
   --blob-bg: radial-gradient(
     circle at 34% 26%,
     rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.9) 30%,
-    rgba(255, 74, 158, 0.34) 60%,
-    rgba(255, 60, 120, 0.3) 85%,
-    rgba(255, 255, 255, 0.85) 100%
+    rgba(255, 255, 255, 0.88) 18%,
+    rgba(255, 74, 158, 0.34) 58%,
+    rgba(255, 60, 120, 0.28) 82%,
+    /* 가장 바깥쪽 흰색 림도 살짝 줄여서 주변이 과하게 새하얗게 보이지 않도록 조정 */
+    rgba(255, 255, 255, 0.65) 100%
   );
   background-size: 320% 320%;
   animation:
@@ -487,8 +527,8 @@ export const Sw1MoistureBlob = styled(BlobBase)`
   --blob-bg: radial-gradient(
     circle at 30% 30%,
     rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.9) 30%,
-    rgba(30, 72, 255, 0.3) 58%,
+    rgba(255, 255, 255, 0.88) 18%,
+    rgba(30, 72, 255, 0.3) 56%,
     rgba(208, 136, 168, 0.3) 80%,
     rgba(129, 198, 255, 0.34) 100%
   );
