@@ -1,4 +1,10 @@
 import styled, { keyframes } from 'styled-components';
+import { BlobRotator as SharedBlobRotator, ContentRotator as SharedContentRotator } from '../shared/rotationStyles';
+
+export const BlobRotator = styled(SharedBlobRotator)`
+  z-index: 1; /* Ensure above FrameBg */
+`;
+export const ContentRotator = SharedContentRotator;
 
 export const Root = styled.div`
   width: 100vw;

@@ -1,5 +1,6 @@
 import * as S from './styles';
 import { useSW2Logic } from './logic';
+import { useControls } from 'leva';
 
 export default function SW2Controls() {
   const {
@@ -15,30 +16,38 @@ export default function SW2Controls() {
     blobRefs,
   } = useSW2Logic();
 
+  const animation = useControls('SW2 Animation', {
+    rotationDuration: { value: 15, min: 0, max: 120, step: 1 },
+  });
+
   return (
     <S.Root>
-      {blobConfigs.map((blob, idx) => {
-        const Component = S[blob.componentKey];
-        const keyword = keywords[idx] || blob.labelBottom;
-        return (
-          <Component
-            key={blob.id}
-            ref={(node) => {
-              if (node) {
-                blobRefs.current[blob.id] = node;
-                node.style.setProperty('--blob-top', `${blob.anchor.y}vw`);
-                node.style.setProperty('--blob-left', `${blob.anchor.x}vw`);
-                node.style.setProperty('--blob-size', `${blob.size.base}vw`);
-              } else {
-                delete blobRefs.current[blob.id];
-              }
-            }}
-          >
-            {/* 온도/모드 텍스트 제거, 사용자 키워드만 중앙에 표시 */}
-            <span>{keyword}</span>
-          </Component>
-        );
-      })}
+      <S.BlobRotator $duration={animation.rotationDuration}>
+        {blobConfigs.map((blob, idx) => {
+          const Component = S[blob.componentKey];
+          const keyword = keywords[idx] || blob.labelBottom;
+          return (
+            <Component
+              key={blob.id}
+              ref={(node) => {
+                if (node) {
+                  blobRefs.current[blob.id] = node;
+                  node.style.setProperty('--blob-top', `${blob.anchor.y}vw`);
+                  node.style.setProperty('--blob-left', `${blob.anchor.x}vw`);
+                  node.style.setProperty('--blob-size', `${blob.size.base}vw`);
+                } else {
+                  delete blobRefs.current[blob.id];
+                }
+              }}
+            >
+              <S.ContentRotator $duration={animation.rotationDuration}>
+                {/* 온도/모드 텍스트 제거, 사용자 키워드만 중앙에 표시 */}
+                <span>{keyword}</span>
+              </S.ContentRotator>
+            </Component>
+          );
+        })}
+      </S.BlobRotator>
       {/* If background frame image is unavailable, pass empty to avoid 404 */}
       <S.FrameBg $url="" />
       <S.TopStatus>

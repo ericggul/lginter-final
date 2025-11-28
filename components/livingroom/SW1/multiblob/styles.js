@@ -1,4 +1,5 @@
 import styled, { createGlobalStyle, keyframes } from 'styled-components';
+import { BlobRotator as SharedBlobRotator, ContentRotator as SharedContentRotator } from '../../shared/rotationStyles';
 
 export const MotionProps = createGlobalStyle`
   @property --p1x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
@@ -54,36 +55,8 @@ const rimScale = keyframes`
   100% { --blobScale: 0.88; }
 `;
 
-const rotateCCW = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
-`;
-
-const rotateCW = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
-
-export const BlobRotator = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  animation: ${rotateCCW} ${({ $duration }) => $duration}s linear infinite;
-  will-change: transform;
-  z-index: 0; /* Keep it separate from center elements */
-`;
-
-export const ContentRotator = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.02vw;
-  width: 100%;
-  height: 100%;
-  animation: ${rotateCW} ${({ $duration }) => $duration}s linear infinite;
-  will-change: transform;
-`;
+export const BlobRotator = SharedBlobRotator;
+export const ContentRotator = SharedContentRotator;
 
 export const Root = styled.div`
   position: relative;
