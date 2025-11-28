@@ -3,12 +3,14 @@ import styled, { keyframes } from 'styled-components';
 export const Viewport = styled.div`
   position: fixed; inset: 0;
   overflow: hidden;
-  display: grid; place-items: center;
   background: #FFFFFF;
   touch-action: none;
 `;
 
 export const Scaler = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 3840px;
   height: 2160px;
   transform-origin: center center;
@@ -24,6 +26,11 @@ export const Root = styled.div`
   font-family: 'Inter', 'Pretendard', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 `;
 
+const headerGradientSlide = keyframes`
+  0%   { background-position: 0% 0; }
+  100% { background-position: 100% 0; }
+`;
+
 export const Header = styled.div`
   position: absolute; top: 0; left: 0; right: 0;
   /* 상단 파란 박스를 조금 더 두껍게 */
@@ -35,15 +42,11 @@ export const Header = styled.div`
     rgba(102,157,255,1) 0%,
     rgba(143,168,224,1) 45%,
     rgba(196,201,206,1) 100%);
-  background-size: 400% 100%;
-  animation: headerGradientSlide 8s ease-in-out infinite alternate;
-  will-change: background-position;
+  background-size: 200% 100%;
+  animation: ${headerGradientSlide} 8s ease-in-out infinite alternate;
+  /* Removed will-change to prevent potential flickering */
   box-shadow: 0 10px 40px rgba(0,0,0,0.08) inset;
   z-index: 3;
-  @keyframes headerGradientSlide{
-    0%   { background-position: 0% 0; }
-    100% { background-position: 100% 0; }
-  }
 `;
 
 export const HeaderIcon = styled.div`

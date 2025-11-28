@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { useTV2Logic } from './logic';
 
 export default function TV2Controls() {
   const { env, title, artist, coverSrc } = useTV2Logic();
+  const scalerRef = useRef(null);
 
   const cssVars = useBlobVars(env);
 
@@ -39,6 +40,30 @@ export default function TV2Controls() {
       }
     };
   }, []);
+
+  // Debug logging for layout analysis
+  useEffect(() => {
+    const check = () => {
+      if (!scalerRef.current) return;
+      const r = scalerRef.current.getBoundingClientRect();
+      console.log("TV2 Layout Debug:", {
+        vw: window.innerWidth,
+        vh: window.innerHeight,
+        scale,
+        rect: { x: r.x, y: r.y, w: r.width, h: r.height },
+        transform: scalerRef.current.style.transform
+      });
+    };
+    const timer = setInterval(check, 2000);
+    window.addEventListener('resize', check);
+    // Initial check
+    setTimeout(check, 500);
+    
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('resize', check);
+    };
+  }, [scale]);
 
   // Block browser zoom gestures/shortcuts to keep the view locked
   useEffect(() => {
@@ -98,7 +123,7 @@ export default function TV2Controls() {
 
   return (
     <S.Viewport>
-      <S.Scaler style={{ transform: `scale(${scale})` }}>
+      <S.Scaler ref={scalerRef} style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         <S.Root>
           <S.Header>
             <S.HeaderIcon>
