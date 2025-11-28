@@ -38,6 +38,9 @@ export const BlobBase = styled.div`
   font-size: 2.822266vw; /* further 15% */
   line-height: 1;
   padding: 0 0.752604vw; /* further 15% */
+  opacity: ${(p) => (p.$visible ? 1 : 0)};
+  transition: opacity 1600ms ease-in-out;
+  pointer-events: ${(p) => (p.$visible ? 'auto' : 'none')};
 `;
 
 // 흥미로움
@@ -274,7 +277,6 @@ export const AnnoyedBox = styled(BlobBase)`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
-  opacity: 0.69;
   overflow: hidden; /* clip blur overlays to rounded shape */
 `;
 
@@ -302,7 +304,6 @@ export const HungryBox = styled(BlobBase)`
   animation: ${driftX} 10.4s ease-in-out infinite;
   will-change: background-position;
   box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
-  opacity: 0.69;
   overflow: hidden; /* clip blur overlays to rounded shape */
 `;
 
