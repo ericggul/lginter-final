@@ -46,6 +46,10 @@ export default function SW1Controls() {
     midStop2:     { value: 100, min: 0, max: 100 },
   });
 
+  const animation = useControls('SW1 Animation', {
+    rotationDuration: { value: 15, min: 0, max: 120, step: 1 },
+  });
+
   const hexToRgb = (hex) => {
     const normalized = hex.replace('#', '');
     const full = normalized.length === 3
@@ -116,15 +120,19 @@ export default function SW1Controls() {
         </S.Dots>
       </S.TopStatus>
       <S.Stage>
-        {blobConfigs.map((b) => {
-          const Component = S[b.componentKey];
-          return (
-            <Component key={b.id}>
-              <strong>{b.top}</strong>
-              <span>{b.bottom}</span>
-            </Component>
-          );
-        })}
+        <S.BlobRotator $duration={animation.rotationDuration}>
+          {blobConfigs.map((b) => {
+            const Component = S[b.componentKey];
+            return (
+              <Component key={b.id}>
+                <S.ContentRotator $duration={animation.rotationDuration}>
+                  <strong>{b.top}</strong>
+                  <span>{b.bottom}</span>
+                </S.ContentRotator>
+              </Component>
+            );
+          })}
+        </S.BlobRotator>
         <S.GradientEllipse style={centerGlowStyle} />
         {/* 중앙에서만 아주 부드럽게 퍼져 나가는 물결 파장 */}
         <S.CenterPulse />
@@ -140,7 +148,3 @@ export default function SW1Controls() {
     </S.Root>
   );
 }
-
-
-
-
