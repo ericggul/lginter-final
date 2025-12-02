@@ -152,21 +152,33 @@ export default function ReasonPanel({ typedReason, fullTypedText, paragraphs, sh
   const typed = typedReason || '';
   const total = fullTypedText ? fullTypedText.length : 0;
   const isTyping = Boolean(fullTypedText) && typed.length < total;
+
+  // Prefer splitting the exact fullTypedText into blocks to keep cursor mapping 1:1
+  const sourceParagraphs = useMemo(() => {
+    if (typeof fullTypedText === 'string' && fullTypedText.indexOf('\n') >= 0) {
+      return fullTypedText.split(/\n{2,}/);
+    }
+    return Array.isArray(paragraphs) ? paragraphs : [fullTypedText];
+  }, [fullTypedText, paragraphs]);
+
   const newlineLen = 2; // "\n\n"
   let remaining = typed.length;
   let activeIdx = 0;
-  const displayBlocks = paragraphs.map((para, i) => {
+  const displayBlocks = sourceParagraphs.map((para, i) => {
     if (remaining <= 0) return '';
     const take = Math.min(para.length, remaining);
     const out = para.slice(0, take);
     remaining -= take;
-    if (remaining > 0 && i < paragraphs.length - 1) {
+    if (remaining > 0 && i < sourceParagraphs.length - 1) {
       remaining = Math.max(0, remaining - newlineLen);
     }
     if (remaining > 0) activeIdx = i + 1; else activeIdx = i;
     return out;
   });
-  const keywordRegex = /(\d+°C|\d+%|#[A-Fa-f0-9]{6}|온도|습도|조명|음악|색상)/g;
+
+  // Use non-global regex for per-part tests to avoid lastIndex side effects
+  const splitRegex = /(\d+°C|\d+%|#[A-Fa-f0-9]{6}|온도|습도|조명|음악|색상)/g;
+  const testRegex = /(\d+°C|\d+%|#[A-Fa-f0-9]{6}|온도|습도|조명|음악|색상)/;
 
   return (
     <ReasonRoot>
@@ -174,12 +186,12 @@ export default function ReasonPanel({ typedReason, fullTypedText, paragraphs, sh
         {displayBlocks.map((block, idx) => (
           <ReasonParagraph key={idx} $first={idx === 0} $strong={idx === 0}>
             {showHighlights
-              ? block.split(keywordRegex).map((part, i) => {
+              ? block.split(splitRegex).map((part, i) => {
                   if (/^#[A-Fa-f0-9]{6}$/.test(part)) {
                     const enabled = !isTyping && (typeof typingDone === 'boolean' ? typingDone : true);
                     return <ColorSwap key={i} hex={part} enabled={enabled} />;
                   }
-                  return keywordRegex.test(part)
+                  return testRegex.test(part)
                     ? <Bold key={i}>{part}</Bold>
                     : <span key={i}>{part}</span>;
                 })

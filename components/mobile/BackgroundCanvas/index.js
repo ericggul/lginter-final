@@ -81,6 +81,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
     blend: 'normal',
     showPanel: false,
   })
+  const [wobbleStrength, setWobbleStrength] = useState(1)
 
   useEffect(() => {
     setMounted(true)
@@ -198,6 +199,14 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
             blend: typeof ms.blend === 'string' ? ms.blend : prev.blend,
             showPanel: Boolean(ms.showPanel ?? prev.showPanel),
           }))
+        }
+        // Smoothly approach wobble target (default 1)
+        {
+          const target = (window.wobbleTarget != null) ? Math.max(0, Math.min(1, Number(window.wobbleTarget))) : 1
+          setWobbleStrength(prev => {
+            const next = prev + (target - prev) * 0.1
+            return Math.abs(next - prev) > 0.001 ? next : prev
+          })
         }
       }
 
@@ -325,7 +334,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           $opacity={blobAlpha}
           $opacityMs={blobOpacityMs}
           $brightness={brightnessIncrease}
-          style={{ '--cluster-offset-y': '14%' }}
+          style={{ '--cluster-offset-y': '14%', '--wobble-strength': wobbleStrength }}
         >
           <S.BGGlow />
           <S.Cluster $spin={clusterSpin}>
@@ -459,16 +468,16 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
             '--kw-center-y': hasShownKeywords ? '31%' : '34%',
           }}
         >
-          <S.KeywordItem $pos="top" $visible={hasShownKeywords}>
+          <S.KeywordItem $pos="top" $visible={hasShownKeywords} style={{ left: 'var(--kw-center-x)', top: 'var(--kw-center-y)', transform: 'translate(-50%, -50%) translateY(calc(-1.5 * var(--kw-spacing-y))) translateX(calc(-0.5 * var(--kw-spacing-x)))' }}>
             {keywordLabels[0] ?? ''}
           </S.KeywordItem>
-          <S.KeywordItem $pos="right" $visible={hasShownKeywords}>
+          <S.KeywordItem $pos="right" $visible={hasShownKeywords} style={{ left: 'var(--kw-center-x)', top: 'var(--kw-center-y)', transform: 'translate(-50%, -50%) translateY(calc(-0.5 * var(--kw-spacing-y))) translateX(calc(0.5 * var(--kw-spacing-x)))' }}>
             {keywordLabels[3] ?? ''}
           </S.KeywordItem>
-          <S.KeywordItem $pos="bottom" $visible={hasShownKeywords}>
+          <S.KeywordItem $pos="bottom" $visible={hasShownKeywords} style={{ left: 'var(--kw-center-x)', top: 'var(--kw-center-y)', transform: 'translate(-50%, -50%) translateY(calc(0.5 * var(--kw-spacing-y))) translateX(calc(-0.5 * var(--kw-spacing-x)))' }}>
             {keywordLabels[2] ?? ''}
           </S.KeywordItem>
-          <S.KeywordItem $pos="left" $visible={hasShownKeywords}>
+          <S.KeywordItem $pos="left" $visible={hasShownKeywords} style={{ left: 'var(--kw-center-x)', top: 'var(--kw-center-y)', transform: 'translate(-50%, -50%) translateY(calc(1.5 * var(--kw-spacing-y))) translateX(calc(0.5 * var(--kw-spacing-x)))' }}>
             {keywordLabels[1] ?? ''}
           </S.KeywordItem>
         </S.KeywordLayer>

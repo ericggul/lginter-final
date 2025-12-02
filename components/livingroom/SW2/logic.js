@@ -136,6 +136,17 @@ export function useSW2Logic() {
         pushKeyword(payload.text || payload.emotion);
       }
     },
+    onNewUser: (payload) => {
+      // 새로운 사용자 입장(QR 스캔 등) 시 카운트 증가
+      const uid = payload?.userId ? String(payload.userId) : null;
+      if (uid) {
+        setActiveUsers((prev) => {
+          const next = new Set(prev);
+          next.add(uid);
+          return next;
+        });
+      }
+    },
   });
 
   useEffect(() => {

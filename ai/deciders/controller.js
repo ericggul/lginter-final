@@ -62,7 +62,16 @@ export async function decideController({ currentProgram = {}, currentUser = {}, 
   const lightColor = parsed.hex;
   const prevTitle = String(previousMusicId || currentProgram?.env?.music || '').trim();
   const baseTitle = String(parsed.music_title || '').trim();
-  const music = pickCatalogTitle({ baseTitle, previousTitle: prevTitle, emotion: parsed.emotion });
+  
+  // 1. Pick a canonical title from the catalog
+  const musicTitle = pickCatalogTitle({ baseTitle, previousTitle: prevTitle, emotion: parsed.emotion });
+  
+  // 2. Append artist if found in catalog (ensure "Title - Artist" format for devices)
+  const catalogEntry = MUSIC_CATALOG.find((m) => normalizeTitle(m.title) === normalizeTitle(musicTitle));
+  const music = catalogEntry && catalogEntry.artist 
+    ? `${catalogEntry.title} - ${catalogEntry.artist}`
+    : musicTitle;
+
   const lightingMode = parsed.lighting_mode;
   const lightingR = parsed.lighting_r ?? null;
   const lightingG = parsed.lighting_g ?? null;
@@ -76,5 +85,3 @@ export async function decideController({ currentProgram = {}, currentUser = {}, 
     emotionKeyword: parsed.emotion || '',
   };
 }
-
-

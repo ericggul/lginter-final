@@ -466,9 +466,9 @@ export const BlobCssGlobal = createGlobalStyle`
     border-radius: 50%;
     background: none;
     isolation: isolate;
-    --start-anim: clamp(0%, calc(var(--start) + var(--start-wobble)), 90%);
-    --end-anim: clamp(0%, calc(var(--end) + var(--end-wobble)), 100%);
-    --feather-anim: clamp(0%, calc(var(--feather) + var(--feather-wobble)), 25%);
+    --start-anim: clamp(0%, calc(var(--start) + calc(var(--start-wobble) * var(--wobble-strength, 1))), 90%);
+    --end-anim: clamp(0%, calc(var(--end) + calc(var(--end-wobble) * var(--wobble-strength, 1))), 100%);
+    --feather-anim: clamp(0%, calc(var(--feather) + calc(var(--feather-wobble) * var(--wobble-strength, 1))), 25%);
     animation: ringPulse 6s ease-in-out infinite;
     will-change: transform, opacity;
     transform: translateZ(0);
@@ -493,7 +493,7 @@ export const BlobCssGlobal = createGlobalStyle`
         rgba(235, 201, 255, 0) 0 calc(var(--end) - (var(--feather) * 0.7)),
         rgba(235, 201, 255, calc(var(--tint-alpha) * 0.9)) calc(var(--end) + (var(--feather) * 0.3)));
     background-blend-mode: normal, screen;
-    filter: blur(calc((var(--blur) + var(--blur-wobble)) * var(--boost))) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35));
+    filter: blur(calc((var(--blur) + calc(var(--blur-wobble) * var(--wobble-strength, 1))) * var(--boost))) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35));
     -webkit-mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--end) - var(--feather)), #000 calc(var(--end) - var(--feather)) calc(var(--end) + (var(--feather) * 1.6)), transparent calc(var(--end) + (var(--feather) * 1.8)));
             mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--end) - var(--feather)), #000 calc(var(--end) - var(--feather)) calc(var(--end) + (var(--feather) * 1.6)), transparent calc(var(--end) + (var(--feather) * 1.8)));
     will-change: opacity, transform;
@@ -530,7 +530,7 @@ export const BlobCssGlobal = createGlobalStyle`
         rgba(235, 201, 255, 0) 0 calc(var(--start-anim) - var(--feather-anim)),
         rgba(235, 201, 255, var(--tint-alpha)) var(--end-anim));
     background-blend-mode: normal, screen;
-    filter: blur(calc(var(--blur) + var(--blur-wobble))) drop-shadow(0 24px 36px rgba(186, 136, 255, 0.4));
+    filter: blur(calc(var(--blur) + calc(var(--blur-wobble) * var(--wobble-strength, 1)))) drop-shadow(0 24px 36px rgba(186, 136, 255, 0.4));
     opacity: 1;
     -webkit-mask: radial-gradient(
       circle at var(--center-x) var(--center-y),
@@ -568,7 +568,7 @@ export const BlobCssGlobal = createGlobalStyle`
         rgba(235, 201, 255, 0) 0 calc(var(--start-anim) - var(--feather-anim)),
         rgba(235, 201, 255, var(--tint-alpha)) var(--end-anim));
     background-blend-mode: normal, screen;
-    filter: blur(calc(var(--blur) + var(--blur-wobble))) drop-shadow(0 24px 36px rgba(186, 136, 255, 0.35));
+    filter: blur(calc(var(--blur) + calc(var(--blur-wobble) * var(--wobble-strength, 1)))) drop-shadow(0 24px 36px rgba(186, 136, 255, 0.35));
     opacity: 1;
     -webkit-mask: radial-gradient(
       circle at var(--center-x) var(--center-y),

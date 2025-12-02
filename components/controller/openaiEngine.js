@@ -1,7 +1,7 @@
 import { decideEnv } from '@/src/services/openai.service';
 import { DEFAULT_ENV } from './stateStore';
 import { normalizeEnv } from './logic/controllerMerge';
-import { CONTROLLER_SYSTEM_PROMPT } from '@/ai/prompts/controller';
+import { CONTROLLER_SYSTEM_PROMPT, SW2_MAPPING_PROMPT } from '@/ai/prompts/controller';
 
 function clamp(n, min, max) {
   const v = Number(n);
@@ -66,8 +66,8 @@ function diversifyEnv(env, userId = '', locks = { temp: false, humidity: false }
 
 export async function requestControllerDecision({ userId, userContext, lastDecision, systemPrompt }) {
   const result = await decideEnv({
-    // Prefer provided override; fall back to existing legacy prompt (used only in non-structured mode)
-    systemPrompt: systemPrompt || CONTROLLER_SYSTEM_PROMPT,
+    // Prefer provided override; default to SW2 mapping prompt for strict pipeline
+    systemPrompt: systemPrompt || SW2_MAPPING_PROMPT,
     latestConversation: [],
     currentProgram: {
       version: lastDecision?.version || 0,

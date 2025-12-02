@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import useSocketController from '@/utils/hooks/useSocketController';
 import useControllerFlow from './hooks/useControllerFlow';
-import { CONTROLLER_SYSTEM_MIN_PROMPT, CONTROLLER_SYSTEM_PROMPT } from '@/ai/prompts/controller';
+import { CONTROLLER_SYSTEM_MIN_PROMPT, CONTROLLER_SYSTEM_PROMPT, SW2_MAPPING_PROMPT } from '@/ai/prompts/controller';
 import {
   Container,
   TopSection,
@@ -99,6 +99,21 @@ export default function ControllerView() {
                     }}
                   >
                     짧은 버전 불러오기
+                  </button>
+                  <button
+                    onClick={() => setPromptDraft(SW2_MAPPING_PROMPT)}
+                    style={{
+                      background: '#E5F4FF',
+                      color: '#074B7A',
+                      border: '1px solid rgba(7,75,122,0.18)',
+                      borderRadius: '8px',
+                      padding: '0.5rem 0.9rem',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    SW2 매핑 프롬프트 불러오기
                   </button>
                 </div>
                 <SettingLabel>시스템 프롬프트(구조화 출력용)</SettingLabel>

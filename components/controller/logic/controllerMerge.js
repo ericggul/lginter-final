@@ -38,44 +38,13 @@ function normalizeLightColor(color, { soft = false } = {}) {
   return DEFAULT_ENV.lightColor || '#FFFFFF';
 }
 
-function hexComplement(hex) {
-  const v = (hex || '').replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(v)) return normalizeLightColor(hex);
-  const r = 255 - parseInt(v.slice(0, 2), 16);
-  const g = 255 - parseInt(v.slice(2, 4), 16);
-  const b = 255 - parseInt(v.slice(4, 6), 16);
-  return rgbToHex(r, g, b);
-}
-
-function isNegativeEmotion(s = '') {
-  const t = String(s || '').toLowerCase();
-  return /(슬픔|우울|화|분노|짜증|불안|피곤|지침|스트레스|우울감|슬퍼|화나|짜증나|불편|불쾌|불행|불만|절망|좌절|angry|mad|upset|annoyed|irritated|stressed|anxious|anxiety|sad|depress|depressed|gloomy|frustrat|rage|furious|bad|terrible|awful|negative)/i.test(
-    t
-  );
-}
-function isMoodyEmotion(s = '') {
-  const t = String(s || '').toLowerCase();
-  return /(무드|무드있|mood|moody|차분|calm|chill|lofi|low[\s-]?key|melancholy|ambient|soothing|relax|relaxed|serene|peaceful|tranquil|mellow)/i.test(
-    t
-  );
-}
-
-function normalizeMusic(id, _emotionHint = '') {
-  if (typeof id === 'string' && id.trim().length > 0) return id.trim();
-  return DEFAULT_ENV.music || 'ambient';
-}
-
 export function normalizeEnv(params, emotionHint, context = {}) {
   if (!params) return { ...DEFAULT_ENV };
   const temp = normalizeTemperature(params.temp, context);
   const humidity = normalizeHumidity(params.humidity, emotionHint);
-  const softTone = /부드럽|편안|휴식|따뜻|soft|calm|cozy|warm|relax|gentle|soothing|serene|peaceful|mellow|comfy/i.test(
-    String(emotionHint || '')
-  );
-  const baseColor = normalizeLightColor(params.lightColor, { soft: softTone });
-  // Rule: if emotion is negative → use complementary color; if moody/calm → keep; otherwise keep
-  const lightColor = isNegativeEmotion(emotionHint) && !isMoodyEmotion(emotionHint) ? hexComplement(baseColor) : baseColor;
-  const music = normalizeMusic(params.music, emotionHint);
+  const baseColor = normalizeLightColor(params.lightColor, { soft: false });
+  const lightColor = baseColor; // keep AI-provided color as-is (no complement flip)
+  const music = typeof params.music === 'string' && params.music ? params.music : (DEFAULT_ENV.music || 'ambient');
   // Controller env is strictly 4 params
   return { temp, humidity, lightColor, music };
 }
