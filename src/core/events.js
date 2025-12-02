@@ -12,6 +12,10 @@ export const EV = {
   CONTROLLER_NEW_NAME: "controller-new-name",
   CONTROLLER_NEW_VOICE: "controller-new-voice",
 
+  // Server → Controller
+  CONTROLLER_NEW_USER: "controller-new-user",
+  CONTROLLER_USER_LEFT: "controller-user-left",
+
   // Server → LivingRoom (broadcast)
   // Canonical server emission for device updates
   DEVICE_DECISION: "device-decision",
@@ -30,6 +34,7 @@ export const EV = {
   // Server → Entrance (broadcast)
   ENTRANCE_NEW_USER: "entrance-new-user",
   ENTRANCE_NEW_NAME: "entrance-new-name",
+  ENTRANCE_USER_LEFT: "entrance-user-left",
 
   // Server → Mobile (targeted to user room)
   MOBILE_NEW_DECISION: "mobile-new-decision",

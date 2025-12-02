@@ -137,6 +137,7 @@ export function useSW2Logic() {
       }
     },
     onNewUser: (payload) => {
+      console.log('👤 SW2 onNewUser:', payload);
       // 새로운 사용자 입장(QR 스캔 등) 시 카운트 증가
       const uid = payload?.userId ? String(payload.userId) : null;
       if (uid) {

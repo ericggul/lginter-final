@@ -80,6 +80,28 @@ function toHslString(color) {
   return raw;
 }
 
+// Map raw user input to a short, safe emotion keyword (3-5 chars where possible)
+function toEmotionKeyword(input) {
+  const s = String(input || '').toLowerCase().replace(/\s+/g, '');
+  // Profanity → anger
+  if (/씨발|시발|ㅅㅂ|좆|존나|개새|병신|fuck|fxxk|shit|bitch|asshole/i.test(s)) return '분노';
+  if (/짜증|빡|열받|화남|빡침|개빡/i.test(s)) return '짜증';
+  if (/피곤|지침|피로|졸(려|림)/i.test(s)) return '피곤';
+  if (/슬픔|슬퍼|우울|서운|눈물|울적/i.test(s)) return '슬픔';
+  if (/불안|초조|긴장|걱정|두려/i.test(s)) return '불안';
+  if (/행복|기쁨|좋아|신나|즐거|설렘|설레/i.test(s)) return '기쁨';
+  if (/상쾌|청량|상큼|산뜻|맑음/i.test(s)) return '상쾌';
+  if (/지루|무료|심심/i.test(s)) return '지루';
+  if (/답답|막막/i.test(s)) return '답답';
+  if (/편안|차분|고요|평온|안정/i.test(s)) return '차분';
+  if (/집중|몰입|포커스/i.test(s)) return '집중';
+  if (/덥|더워|후끈|뜨거/i.test(s)) return '더위';
+  if (/춥|추워|차갑/i.test(s)) return '추위';
+  if (/건조|드라이/i.test(s)) return '건조';
+  if (/습|눅눅|꿉꿉|후텁/i.test(s)) return '습함';
+  return '중립';
+}
+
 export const config = {
   api: { bodyParser: false },
 };
@@ -87,6 +109,9 @@ export const config = {
 // SW2 music delay helpers (server-only memory; harmless for SSR reloads)
 let __sw2LastSong = '';
 let __sw2DelayTimer = null;
+// Track unique mobile device connections per deviceId (for decrement on disconnect)
+const __mobileDeviceSockets = new Map(); // deviceId => Set(socketId)
+const __socketToDevice = new Map();
 
 export default function handler(req, res) {
   if (res.socket.server.io) {
@@ -135,20 +160,21 @@ export default function handler(req, res) {
         console.log(`✅ Mobile ${socket.id} joined room: user:${p.userId}`);
       }
       
-      // Register guest/user so they count immediately
-      upsertUser(uid, { name: '방문객' });
+      // Record socket under deviceId
+      let set = __mobileDeviceSockets.get(uid);
+      if (!set) { set = new Set(); __mobileDeviceSockets.set(uid, set); }
+      if (!set.has(socket.id)) {
+        set.add(socket.id);
+        __socketToDevice.set(socket.id, uid);
+      }
 
-      // QR 입장 알림: MW1/SBM1/Controller/SW2 활성화를 위해 방송
-      const userPayload = { userId: uid, name: '방문객', ts: Date.now() };
-      
-      // 1. Entrance (MW1, SBM1)
-      io.to("entrance").emit("entrance-new-user", userPayload);
-      
-      // 2. LivingRoom (SW2 count)
-      io.to("livingroom").emit("entrance-new-user", userPayload);
-      
-      // 3. Controller (User count)
-      io.to("controller").emit("controller-new-user", userPayload);
+      // First connection for this deviceId → count as new user
+      if (set.size === 1) {
+        upsertUser(uid, { name: '방문객' });
+        const userPayload = { userId: uid, name: '방문객', ts: Date.now() };
+        io.emit(EV.ENTRANCE_NEW_USER, userPayload);
+        io.emit(EV.CONTROLLER_NEW_USER, userPayload);
+      }
     });
     socket.on("livingroom-init", () => socket.join("livingroom"));
     socket.on("entrance-init", () => socket.join("entrance"));
@@ -170,8 +196,8 @@ export default function handler(req, res) {
       const v = safe(MobileNewName, data); if (!v.ok) { console.warn("❌ invalid mobile-new-name", v.error?.message); return; }
       const payload = v.data;
       if (payload?.userId) upsertUser(payload.userId, { name: payload.name });
-      io.to("controller").emit("controller-new-name", payload);
-      io.to("entrance").emit("entrance-new-name", { userId: payload.userId, name: payload.name });
+      io.to("controller").emit(EV.CONTROLLER_NEW_NAME, payload);
+      io.to("entrance").emit(EV.ENTRANCE_NEW_NAME, { userId: payload.userId, name: payload.name });
     });
 
     socket.on("mobile-new-user", (raw) => {
@@ -181,8 +207,8 @@ export default function handler(req, res) {
       const v = safe(MobileNewUser, data); if (!v.ok) { console.warn("❌ invalid mobile-new-user", v.error?.message); return; }
       const payload = v.data;
       if (payload?.userId) upsertUser(payload.userId, { name: payload.name });
-      io.to("controller").emit("controller-new-user", payload);
-      io.to("entrance").emit("entrance-new-user", { userId: payload.userId, name: payload.name });
+      io.emit(EV.CONTROLLER_NEW_USER, payload);
+      io.emit(EV.ENTRANCE_NEW_USER, { userId: payload.userId, name: payload.name });
 
       // Start a new global session timeline at t1 (welcome)
       const sessionId = timeline.startNewSession(`u:${payload.userId || 'anon'}:${payload.uuid || nanoid()}`);
@@ -201,10 +227,12 @@ export default function handler(req, res) {
 
       console.log("🎤 Received mobile-new-voice:", payload);
 
-      io.to("entrance").emit("entrance-new-voice", { userId: payload.userId, text: payload.text, emotion: payload.emotion });
-      // also surface to livingroom so SW2 can show keyword instantly
-      io.to("livingroom").emit("device-new-voice", { userId: payload.userId, text: payload.text, emotion: payload.emotion });
-      io.to("controller").emit("controller-new-voice", payload);
+      const keyword = toEmotionKeyword(payload.text || payload.emotion);
+      // Entrance & LivingRoom: show sanitized short keyword only
+      io.to("entrance").emit("entrance-new-voice", { userId: payload.userId, text: keyword, emotion: keyword });
+      io.to("livingroom").emit(EV.DEVICE_NEW_VOICE, { userId: payload.userId, text: keyword, emotion: keyword });
+      // Controller: keep raw text for climate overrides; pass sanitized emotion
+      io.to("controller").emit(EV.CONTROLLER_NEW_VOICE, { ...payload, emotion: keyword });
 
       // Move timeline to t3 (voiceInput). Controller decision will move to t4.
       const sessionId = timeline.getSessionId() || timeline.startNewSession(`u:${payload.userId || 'anon'}:${payload.uuid || nanoid()}`);
@@ -464,6 +492,22 @@ export default function handler(req, res) {
 
     socket.on("disconnect", () => {
       console.log(`❌ Socket disconnected: ${socket.id}`);
+      try {
+        const uid = __socketToDevice.get(socket.id);
+        if (uid) {
+          const set = __mobileDeviceSockets.get(uid);
+          if (set) {
+            set.delete(socket.id);
+            if (set.size === 0) {
+              __mobileDeviceSockets.delete(uid);
+              const userPayload = { userId: uid, ts: Date.now() };
+              io.emit(EV.ENTRANCE_USER_LEFT, userPayload);
+              io.emit(EV.CONTROLLER_USER_LEFT, userPayload);
+            }
+          }
+          __socketToDevice.delete(socket.id);
+        }
+      } catch {}
     });
   });
 
