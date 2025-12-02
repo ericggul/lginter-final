@@ -45,6 +45,11 @@ export default function useSocketMobile(options = {}) {
       try { s.emit("mobile-init"); } catch {}
     });
 
+    // If already connected (re-mount or quick connection), emit init immediately
+    if (s.connected) {
+       try { s.emit("mobile-init"); } catch {}
+    }
+
     s.on("disconnect", () => {
       console.log("❌ Mobile socket disconnected");
     });

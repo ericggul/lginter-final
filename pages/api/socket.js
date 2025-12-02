@@ -141,14 +141,9 @@ export default function handler(req, res) {
       // QR 입장 알림: MW1/SBM1/Controller/SW2 활성화를 위해 방송
       const userPayload = { userId: uid, name: '방문객', ts: Date.now() };
       
-      // 1. Entrance (MW1, SBM1)
-      io.to("entrance").emit("entrance-new-user", userPayload);
-      
-      // 2. LivingRoom (SW2 count)
-      io.to("livingroom").emit("entrance-new-user", userPayload);
-      
-      // 3. Controller (User count)
-      io.to("controller").emit("controller-new-user", userPayload);
+      // Broadcast globally to ensure all screens (Entrance, LivingRoom, Controller) update count immediately
+      io.emit("entrance-new-user", userPayload);
+      io.emit("controller-new-user", userPayload);
     });
     socket.on("livingroom-init", () => socket.join("livingroom"));
     socket.on("entrance-init", () => socket.join("entrance"));
