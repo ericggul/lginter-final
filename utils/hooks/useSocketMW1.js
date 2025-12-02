@@ -64,19 +64,21 @@ export default function useSocketMW1(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onEntranceNewVoice, onEntranceNewUser } = options || {};
+    const { onEntranceNewVoice, onEntranceNewUser, onEntranceUserLeft } = options || {};
 
     if (onEntranceNewVoice) s.on('entrance-new-voice', onEntranceNewVoice);
     if (onEntranceNewUser) s.on('entrance-new-user', onEntranceNewUser);
     // Treat new-name as a user arrival as well (robustness)
     if (onEntranceNewUser) s.on('entrance-new-name', onEntranceNewUser);
+    if (onEntranceUserLeft) s.on('entrance-user-left', onEntranceUserLeft);
 
     return () => {
       if (onEntranceNewVoice) s.off('entrance-new-voice', onEntranceNewVoice);
       if (onEntranceNewUser) s.off('entrance-new-user', onEntranceNewUser);
       if (onEntranceNewUser) s.off('entrance-new-name', onEntranceNewUser);
+      if (onEntranceUserLeft) s.off('entrance-user-left', onEntranceUserLeft);
     };
-  }, [socket, options?.onEntranceNewVoice, options?.onEntranceNewUser]);
+  }, [socket, options?.onEntranceNewVoice, options?.onEntranceNewUser, options?.onEntranceUserLeft]);
 
   return { 
     socket,

@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 export const Container = styled.div`
   min-height: 100vh;
-  background: #ffffff;
+  background: #000000;
   display: block;
   margin: 0;
   padding: 0;
@@ -12,14 +12,18 @@ export const Container = styled.div`
   position: relative;
 `;
 
-export const FullscreenVideo = styled.video`
+export const LayerVideo = styled.video`
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
   object-fit: cover;
-  background: #ffffff;
+  background: #000000; /* avoid white flash during decode */
+  opacity: ${(p) => (p.$show ? 1 : 0)};
+  transition: opacity 600ms ease;
+  will-change: opacity;
+  pointer-events: none;
 `;
 
 export const CenterTip = styled.div`
