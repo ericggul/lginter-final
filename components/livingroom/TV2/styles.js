@@ -448,4 +448,23 @@ export const BlobSpot = styled.div`
   z-index: 1;
 `;
 
+/* Idle thinking overlay */
+const dotPulse = keyframes`
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.45; }
+  40% { transform: scale(1); opacity: 1; }
+`;
+export const ThinkingOverlay = styled.div`
+  position: absolute; inset: 324px 0 0 0; /* below header */
+  display: flex; align-items: center; justify-content: center;
+  z-index: 6; pointer-events: none;
+`;
+export const ThinkingDot = styled.span`
+  width: 28px; height: 28px; border-radius: 50%;
+  margin: 0 16px; background: rgba(255,255,255,0.95);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  animation: ${dotPulse} 1.2s ease-in-out infinite;
+  &:nth-child(2) { animation-delay: .15s; }
+  &:nth-child(3) { animation-delay: .30s; }
+`;
+
 
