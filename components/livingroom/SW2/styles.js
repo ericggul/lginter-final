@@ -1,4 +1,10 @@
 import styled, { keyframes } from 'styled-components';
+import { BlobRotator as SharedBlobRotator, ContentRotator as SharedContentRotator } from '../shared/rotationStyles';
+
+export const BlobRotator = styled(SharedBlobRotator)`
+  z-index: 1; /* Ensure above FrameBg */
+`;
+export const ContentRotator = SharedContentRotator;
 
 export const Root = styled.div`
   width: 100vw;
@@ -215,49 +221,33 @@ const driftGradient = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
+/* Updated drift animations: Combine translate with scale.
+   Previously, size was animated via width/height which doesn't scale content.
+   Now we use a separate scale animation on the container to scale everything together.
+*/
+
 const interestDrift = keyframes`
-  0%   { transform: translate(-50%, -50%); }
-  30%  { transform: translate(calc(-50% + 2.5vw), calc(-50% + 1.2vw)); }
-  60%  { transform: translate(calc(-50% - 1.8vw), calc(-50% + 1vw)); }
-  85%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 1.6vw)); }
-  100% { transform: translate(-50%, -50%); }
-`;
-
-const interestSize = keyframes`
-  0%   { width: 32vw; height: 32vw; }
-  40%  { width: 44vw; height: 44vw; }
-  70%  { width: 28vw; height: 28vw; }
-  100% { width: 36vw; height: 36vw; }
-`;
-
-const wonderSize = keyframes`
-  0%   { width: 32vw; height: 32vw; }
-  45%  { width: 44vw; height: 44vw; }
-  75%  { width: 28vw; height: 28vw; }
-  100% { width: 38vw; height: 38vw; }
-`;
-
-const happySize = keyframes`
-  0%   { width: 32vw; height: 32vw; }
-  35%  { width: 44vw; height: 44vw; }
-  65%  { width: 28vw; height: 28vw; }
-  100% { width: 37vw; height: 37vw; }
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  30%  { transform: translate(calc(-50% + 2.5vw), calc(-50% + 1.2vw)) scale(1.375); } /* 22/16 ≈ 1.375 */
+  60%  { transform: translate(calc(-50% - 1.8vw), calc(-50% + 1vw)) scale(0.875); }   /* 14/16 ≈ 0.875 */
+  85%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 1.6vw)) scale(1.125); }  /* 18/16 ≈ 1.125 */
+  100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
 const wonderDrift = keyframes`
-  0%   { transform: translate(-50%, -50%); }
-  35%  { transform: translate(calc(-50% + 2vw), calc(-50% - 1.4vw)); }
-  60%  { transform: translate(calc(-50% + 2.4vw), calc(-50% + 1.5vw)); }
-  85%  { transform: translate(calc(-50% - 1.6vw), calc(-50% + 1.3vw)); }
-  100% { transform: translate(-50%, -50%); }
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  35%  { transform: translate(calc(-50% + 2vw), calc(-50% - 1.4vw)) scale(1.375); }    /* 22/16 */
+  60%  { transform: translate(calc(-50% + 2.4vw), calc(-50% + 1.5vw)) scale(0.875); }    /* 14/16 */
+  85%  { transform: translate(calc(-50% - 1.6vw), calc(-50% + 1.3vw)) scale(1.1875); }   /* 19/16 */
+  100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
 const happyDrift = keyframes`
-  0%   { transform: translate(-50%, -50%); }
-  30%  { transform: translate(calc(-50% + 2.1vw), calc(-50% + 2.6vw)); }
-  60%  { transform: translate(calc(-50% - 2.4vw), calc(-50% + 1.1vw)); }
-  90%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 2.2vw)); }
-  100% { transform: translate(-50%, -50%); }
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  30%  { transform: translate(calc(-50% + 2.1vw), calc(-50% + 2.6vw)) scale(1.375); }    /* 22/16 */
+  60%  { transform: translate(calc(-50% - 2.4vw), calc(-50% + 1.1vw)) scale(0.875); }    /* 14/16 */
+  90%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 2.2vw)) scale(1.156); }    /* 18.5/16 */
+  100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
 export const LoadingBlock = styled.div`
@@ -431,8 +421,7 @@ export const Sw2InterestBox = styled.div`
   z-index: 1;
   animation:
     ${driftGradient} 9.3s ease-in-out infinite,
-    ${interestDrift} 18s ease-in-out infinite,
-    ${interestSize} 28s ease-in-out infinite alternate;
+    ${interestDrift} 28s ease-in-out infinite; /* Merged drift & size scale into one animation */
   isolation: isolate;
 
   &::after {
@@ -500,8 +489,7 @@ export const Sw2WonderBox = styled.div`
   will-change: background-position, transform;
   animation:
     ${driftGradient} 9.8s ease-in-out infinite,
-    ${wonderDrift} 16s ease-in-out infinite,
-    ${wonderSize} 29s ease-in-out infinite alternate-reverse;
+    ${wonderDrift} 29s ease-in-out infinite; /* Merged */
   isolation: isolate;
 
   & > * {
@@ -557,8 +545,7 @@ export const Sw2HappyBox = styled.div`
   will-change: background-position, transform;
   animation:
     ${driftGradient} 8.9s ease-in-out infinite,
-    ${happyDrift} 15s ease-in-out infinite,
-    ${happySize} 26s ease-in-out infinite alternate;
+    ${happyDrift} 26s ease-in-out infinite; /* Merged */
   isolation: isolate;
 
   &::after {
@@ -590,4 +577,3 @@ export const Sw2HappyBox = styled.div`
       0 0.104167vw 0.208333vw currentColor;
   }
 `;
-

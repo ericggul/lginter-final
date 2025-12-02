@@ -1,5 +1,6 @@
 import * as S from './styles';
 import { useSW2Logic } from './logic';
+import { useControls } from 'leva';
 
 function emotionToHsl(keyword) {
   const k = String(keyword || '').trim();
@@ -38,31 +39,39 @@ export default function SW2Controls() {
     blobRefs,
   } = useSW2Logic();
 
+  const animation = useControls('SW2 Animation', {
+    rotationDuration: { value: 15, min: 0, max: 120, step: 1 },
+  });
+
   return (
     <S.Root>
-      {blobConfigs.map((blob, idx) => {
-        const Component = S[blob.componentKey];
-        const keyword = keywords[idx] || blob.labelBottom;
-        const hsl = emotionToHsl(keyword);
-        return (
-          <Component
-            key={blob.id}
-            ref={(node) => {
-              if (node) {
-                blobRefs.current[blob.id] = node;
-                node.style.setProperty('--blob-top', `${blob.anchor.y}vw`);
-                node.style.setProperty('--blob-left', `${blob.anchor.x}vw`);
-                node.style.setProperty('--blob-size', `${blob.size.base}vw`);
-              } else {
-                delete blobRefs.current[blob.id];
-              }
-            }}
-            style={{ '--blob-h': hsl.h, '--blob-s': `${hsl.s}%`, '--blob-l': `${hsl.l}%` }}
-          >
-            <span>{keyword}</span>
-          </Component>
-        );
-      })}
+      <S.BlobRotator $duration={animation.rotationDuration}>
+        {blobConfigs.map((blob, idx) => {
+          const Component = S[blob.componentKey];
+          const keyword = keywords[idx] || blob.labelBottom;
+          const hsl = emotionToHsl(keyword);
+          return (
+            <Component
+              key={blob.id}
+              ref={(node) => {
+                if (node) {
+                  blobRefs.current[blob.id] = node;
+                  node.style.setProperty('--blob-top', `${blob.anchor.y}vw`);
+                  node.style.setProperty('--blob-left', `${blob.anchor.x}vw`);
+                  node.style.setProperty('--blob-size', `${blob.size.base}vw`);
+                } else {
+                  delete blobRefs.current[blob.id];
+                }
+              }}
+              style={{ '--blob-h': hsl.h, '--blob-s': `${hsl.s}%`, '--blob-l': `${hsl.l}%` }}
+            >
+              <S.ContentRotator $duration={animation.rotationDuration}>
+                <span>{keyword}</span>
+              </S.ContentRotator>
+            </Component>
+          );
+        })}
+      </S.BlobRotator>
       <S.FrameBg $url="" />
       <S.TopStatus>
         <span>사용자 {participantCount}명을 위한 조율중</span>
