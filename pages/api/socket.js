@@ -129,15 +129,26 @@ export default function handler(req, res) {
     // --- Init & Rooms ---
     socket.on("mobile-init", (p) => {
       socket.join("mobile");
+      const uid = (p && p.userId) ? String(p.userId) : `guest:${socket.id.slice(0, 6)}`;
       if (p?.userId) {
         socket.join(`user:${p.userId}`);
         console.log(`✅ Mobile ${socket.id} joined room: user:${p.userId}`);
       }
-      // QR 입장 알림: MW1/SBM1 활성화를 위해 즉시 방송
-      try {
-        const uid = (p && p.userId) ? String(p.userId) : `guest:${socket.id.slice(0, 6)}`;
-        io.to("entrance").emit("entrance-new-user", { userId: uid });
-      } catch {}
+      
+      // Register guest/user so they count immediately
+      upsertUser(uid, { name: '방문객' });
+
+      // QR 입장 알림: MW1/SBM1/Controller/SW2 활성화를 위해 방송
+      const userPayload = { userId: uid, name: '방문객', ts: Date.now() };
+      
+      // 1. Entrance (MW1, SBM1)
+      io.to("entrance").emit("entrance-new-user", userPayload);
+      
+      // 2. LivingRoom (SW2 count)
+      io.to("livingroom").emit("entrance-new-user", userPayload);
+      
+      // 3. Controller (User count)
+      io.to("controller").emit("controller-new-user", userPayload);
     });
     socket.on("livingroom-init", () => socket.join("livingroom"));
     socket.on("entrance-init", () => socket.join("entrance"));
