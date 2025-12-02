@@ -130,7 +130,7 @@ export default function MobileControls() {
     } catch {}
   }, []);
 
-  const { emitNewName, emitNewVoice, socket } = useSocketMobile({
+  const { emitNewName, emitNewVoice, socket, deviceId } = useSocketMobile({
     onMobileDecision: (payload) => {
       if (!submittedRef.current) {
         // ignore stale broadcasts if user hasn't submitted in this session
@@ -298,13 +298,13 @@ export default function MobileControls() {
     console.log('📱 Mobile: Submitting data:', { name: nm, mood: md });
     
     // 이름과 기분 전송 (서버 스키마에 맞춰 userId 포함)
-    const userId = nm;
+    const userId = deviceId;
     try {
       // 방 참가 (타겟 전송을 위해)
       socket?.emit('mobile-init', { userId });
     } catch {}
     emitNewName(nm, { userId, mood: md });
-    emitNewVoice(md, md, 0.8, { userId, name: userId });
+    emitNewVoice(md, md, 0.8, { userId, name: nm });
     
     console.log('✅ Mobile: Data emitted successfully');
     
@@ -315,7 +315,7 @@ export default function MobileControls() {
       window.showOrbits = true;
       window.clusterSpin = true;
     } catch {}
-  }, [name, mood, emitNewName, emitNewVoice, socket]);
+  }, [name, mood, emitNewName, emitNewVoice, socket, deviceId]);
 
   const handleReset = useCallback(() => {
     // Soft reset to voice-start screen (final headline), preserving page session

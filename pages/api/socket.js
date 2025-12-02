@@ -109,6 +109,8 @@ export const config = {
 // SW2 music delay helpers (server-only memory; harmless for SSR reloads)
 let __sw2LastSong = '';
 let __sw2DelayTimer = null;
+// Track unique mobile deviceIds seen during this server session to avoid double-counting per device
+const __knownMobileDevices = new Set();
 
 export default function handler(req, res) {
   if (res.socket.server.io) {
@@ -157,15 +159,18 @@ export default function handler(req, res) {
         console.log(`✅ Mobile ${socket.id} joined room: user:${p.userId}`);
       }
       
-      // Register guest/user so they count immediately
-      upsertUser(uid, { name: '방문객' });
+      // Register guest/user so they count immediately (once per device)
+      if (!__knownMobileDevices.has(uid)) {
+        __knownMobileDevices.add(uid);
+        upsertUser(uid, { name: '방문객' });
 
-      // QR 입장 알림: MW1/SBM1/Controller/SW2 활성화를 위해 방송
-      const userPayload = { userId: uid, name: '방문객', ts: Date.now() };
-      
-      // Broadcast globally to ensure all screens (Entrance, LivingRoom, Controller) update count immediately
-      io.emit(EV.ENTRANCE_NEW_USER, userPayload);
-      io.emit(EV.CONTROLLER_NEW_USER, userPayload);
+        // QR 입장 알림: MW1/SBM1/Controller/SW2 활성화를 위해 방송
+        const userPayload = { userId: uid, name: '방문객', ts: Date.now() };
+        
+        // Broadcast globally to ensure all screens update count immediately
+        io.emit(EV.ENTRANCE_NEW_USER, userPayload);
+        io.emit(EV.CONTROLLER_NEW_USER, userPayload);
+      }
     });
     socket.on("livingroom-init", () => socket.join("livingroom"));
     socket.on("entrance-init", () => socket.join("entrance"));

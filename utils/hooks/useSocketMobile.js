@@ -14,13 +14,33 @@ const createMobileUserPayload = (userId, meta = {}) => createBasePayload("mobile
 const createMobileNamePayload = (name, meta = {}) => createBasePayload("mobile", { name, userId: meta.userId, meta });
 const createMobileVoicePayload = (text, emotion, score = 0.5, meta = {}) => createBasePayload("mobile", { text, emotion, score, userId: meta.userId, meta });
 
+function getOrCreateDeviceId() {
+  try {
+    if (typeof window === 'undefined') return `dev-${Math.random().toString(36).slice(2, 10)}`;
+    const key = 'mobile:deviceId';
+    let id = localStorage.getItem(key);
+    if (!id) {
+      const rnd = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+      id = String(rnd);
+      localStorage.setItem(key, id);
+    }
+    return id;
+  } catch {
+    return `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+  }
+}
+
 // mobile-side socket: init and emit actions
 export default function useSocketMobile(options = {}) {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
+  const deviceIdRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
+
+    // Stable per-device ID (persists across tabs for same origin)
+    deviceIdRef.current = getOrCreateDeviceId();
 
     // Socket 즉시 초기화 (fetch 제거로 지연 최소화)
     console.log("Mobile Hook: Initializing socket connection...");
@@ -39,16 +59,17 @@ export default function useSocketMobile(options = {}) {
     socketRef.current = s;
     setSocket(s);
 
+    const emitInit = () => {
+      try { s.emit("mobile-init", { userId: deviceIdRef.current }); } catch {}
+    };
+
     s.on("connect", () => {
       console.log("✅ Mobile socket connected:", s.id);
-      // Notify entrance immediately when QR로 입장 (no userId yet)
-      try { s.emit("mobile-init"); } catch {}
+      emitInit();
     });
 
     // If already connected (re-mount or quick connection), emit init immediately
-    if (s.connected) {
-       try { s.emit("mobile-init"); } catch {}
-    }
+    if (s.connected) emitInit();
 
     s.on("disconnect", () => {
       console.log("❌ Mobile socket disconnected");
@@ -78,32 +99,35 @@ export default function useSocketMobile(options = {}) {
     };
   }, []);
 
+  const ensureMeta = (meta = {}) => ({ userId: deviceIdRef.current, ...meta });
+
   // emits: mobile-new-user, mobile-new-name, mobile-new-voice, mobile-user-needs
   const emitNewUser = (payload = {}) => {
-    const finalPayload = payload.uuid ? payload : createMobileUserPayload(payload.userId, payload.meta);
+    const finalPayload = payload.uuid ? payload : createMobileUserPayload(payload.userId || deviceIdRef.current, ensureMeta(payload.meta));
     console.log("📱 Mobile Hook: Emitting mobile-new-user:", finalPayload);
     socketRef.current?.emit("mobile-new-user", finalPayload);
   };
 
   const emitNewName = (name, meta = {}) => {
-    const payload = createMobileNamePayload(name, meta);
+    const payload = createMobileNamePayload(name, ensureMeta(meta));
     console.log("📱 Mobile Hook: Emitting mobile-new-name:", payload);
     socketRef.current?.emit("mobile-new-name", payload);
   };
 
   const emitNewVoice = (text, emotion, score = 0.5, meta = {}) => {
-    const payload = createMobileVoicePayload(text, emotion, score, meta);
+    const payload = createMobileVoicePayload(text, emotion, score, ensureMeta(meta));
     console.log("📱 Mobile Hook: Emitting mobile-new-voice:", payload);
     socketRef.current?.emit("mobile-new-voice", payload);
   };
 
   const emitUserNeeds = (needs) => {
     // expects { userId, temperature, humidity, lightColor, song, priority, timestamp }
-    socketRef.current?.emit("mobile-user-needs", needs);
+    socketRef.current?.emit("mobile-user-needs", { userId: deviceIdRef.current, ...needs });
   };
 
   return { 
     socket,
+    deviceId: deviceIdRef.current,
     emitNewUser, 
     emitNewName, 
     emitNewVoice,
