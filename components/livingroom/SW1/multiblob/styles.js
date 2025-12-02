@@ -1,4 +1,5 @@
 import styled, { createGlobalStyle, keyframes } from 'styled-components';
+import { BlobRotator as SharedBlobRotator, ContentRotator as SharedContentRotator } from '../../shared/rotationStyles';
 
 export const MotionProps = createGlobalStyle`
   @property --p1x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
@@ -53,6 +54,9 @@ const rimScale = keyframes`
   35%  { --blobScale: 1.45; }
   100% { --blobScale: 0.88; }
 `;
+
+export const BlobRotator = SharedBlobRotator;
+export const ContentRotator = SharedContentRotator;
 
 export const Root = styled.div`
   position: relative;

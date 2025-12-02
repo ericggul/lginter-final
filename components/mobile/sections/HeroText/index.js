@@ -78,7 +78,7 @@ export default function HeroText({ isModal = false, onFinalPhase, forceFinal }) 
   }, [phase]);
 
   if (phase === 'hidden') {
-    return <div style={S.root} />;
+    return <div></div>
   }
 
   return (

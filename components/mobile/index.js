@@ -220,6 +220,7 @@ export default function MobileControls() {
   // Prefer AI-provided reason string when available, fallback to composed paragraphs
   const fullTypedText = recommendations ? templateText : null;
 
+
   // 오케스트레이팅 화면이 완전히 끝난 뒤에만 타이핑을 시작해야,
   // 사용자가 실제로 타이핑 모션을 볼 수 있다.
   const isOrchestrating = isIOS ? loading : (loading || orchestratingLock);

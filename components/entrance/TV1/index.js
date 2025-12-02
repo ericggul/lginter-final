@@ -12,6 +12,43 @@ export default function TV1Controls() {
   // Top row 4 containers (left→right) dynamic texts; newest always goes to first
   const [topTexts, setTopTexts] = useState(['언짢음', '뿌듯함', '부끄러움', '정신없음']);
 
+  // Blob appear sequence only (1 → 11), 2.5s gap, then stay visible
+  const sequence = useMemo(() => [
+    'Upset','Proud','Shy','Chaotic','Sad','Wonder','Interest','Playful','Happy','Annoyed','Hungry'
+  ], []);
+  const [show, setShow] = useState({});
+  useEffect(() => {
+    const stepMs = 3500; // slower gap (3.5s)
+    let phase = 'in'; // 'in' then 'out', repeat
+    let idx = -1;
+    let timer;
+    const step = () => {
+      idx += 1;
+      if (idx >= sequence.length) {
+        idx = 0;
+        phase = phase === 'in' ? 'out' : 'in';
+      }
+      const key = sequence[idx];
+      setShow((prev) => ({ ...prev, [key]: phase === 'in' }));
+      timer = setTimeout(step, stepMs);
+    };
+    timer = setTimeout(step, 0); // kick off immediately
+    return () => { if (timer) clearTimeout(timer); };
+  }, [sequence]);
+  const vis = useMemo(() => ({
+    Upset:  !!show.Upset,
+    Proud:  !!show.Proud,
+    Shy:    !!show.Shy,
+    Chaotic:!!show.Chaotic,
+    Sad:    !!show.Sad,
+    Wonder: !!show.Wonder,
+    Interest:!!show.Interest,
+    Playful: !!show.Playful,
+    Happy:   !!show.Happy,
+    Annoyed: !!show.Annoyed,
+    Hungry:  !!show.Hungry,
+  }), [show]);
+
   // Scaling handled via CSS (viewport width) in styles.Canvas
 
   useEffect(() => {
@@ -53,17 +90,17 @@ export default function TV1Controls() {
             <S.Dot $visible={dotCount >= 3}>.</S.Dot>
           </S.Dots>
         </S.TopText>
-        <B.InterestBox $fontFamily={unifiedFont}>흥미로움</B.InterestBox>
-        <B.PlayfulBox $fontFamily={unifiedFont}>장난스러움</B.PlayfulBox>
-        <B.HappyBox $fontFamily={unifiedFont}>행복함</B.HappyBox>
-        <B.UpsetBox $fontFamily={unifiedFont}>{topTexts[0]}</B.UpsetBox>
-        <B.ProudBox $fontFamily={unifiedFont}>{topTexts[1]}</B.ProudBox>
-        <B.ShyBox $fontFamily={unifiedFont}>{topTexts[2]}</B.ShyBox>
-        <B.ChaoticBox $fontFamily={unifiedFont}>{topTexts[3]}</B.ChaoticBox>
-        <B.SadBox $fontFamily={unifiedFont}>슬픔</B.SadBox>
-        <B.WonderBox $fontFamily={unifiedFont}>신기함</B.WonderBox>
-        <B.AnnoyedBox $fontFamily={unifiedFont}>짜증남</B.AnnoyedBox>
-        <B.HungryBox $fontFamily={unifiedFont}>배고픔</B.HungryBox>
+        <B.InterestBox $fontFamily={unifiedFont} $visible={vis.Interest}>흥미로움</B.InterestBox>
+        <B.PlayfulBox $fontFamily={unifiedFont} $visible={vis.Playful}>장난스러움</B.PlayfulBox>
+        <B.HappyBox $fontFamily={unifiedFont} $visible={vis.Happy}>행복함</B.HappyBox>
+        <B.UpsetBox $fontFamily={unifiedFont} $visible={vis.Upset}>{topTexts[0]}</B.UpsetBox>
+        <B.ProudBox $fontFamily={unifiedFont} $visible={vis.Proud}>{topTexts[1]}</B.ProudBox>
+        <B.ShyBox $fontFamily={unifiedFont} $visible={vis.Shy}>{topTexts[2]}</B.ShyBox>
+        <B.ChaoticBox $fontFamily={unifiedFont} $visible={vis.Chaotic}>{topTexts[3]}</B.ChaoticBox>
+        <B.SadBox $fontFamily={unifiedFont} $visible={vis.Sad}>슬픔</B.SadBox>
+        <B.WonderBox $fontFamily={unifiedFont} $visible={vis.Wonder}>신기함</B.WonderBox>
+        <B.AnnoyedBox $fontFamily={unifiedFont} $visible={vis.Annoyed}>짜증남</B.AnnoyedBox>
+        <B.HungryBox $fontFamily={unifiedFont} $visible={vis.Hungry}>배고픔</B.HungryBox>
         
       </S.Canvas>
     </S.Root>
