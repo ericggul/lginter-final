@@ -224,24 +224,24 @@ const interestDrift = keyframes`
 `;
 
 const interestSize = keyframes`
-  0%   { width: 16vw; height: 16vw; }
-  40%  { width: 22vw; height: 22vw; }
-  70%  { width: 14vw; height: 14vw; }
-  100% { width: 18vw; height: 18vw; }
+  0%   { width: 32vw; height: 32vw; }
+  40%  { width: 44vw; height: 44vw; }
+  70%  { width: 28vw; height: 28vw; }
+  100% { width: 36vw; height: 36vw; }
 `;
 
 const wonderSize = keyframes`
-  0%   { width: 16vw; height: 16vw; }
-  45%  { width: 22vw; height: 22vw; }
-  75%  { width: 14vw; height: 14vw; }
-  100% { width: 19vw; height: 19vw; }
+  0%   { width: 32vw; height: 32vw; }
+  45%  { width: 44vw; height: 44vw; }
+  75%  { width: 28vw; height: 28vw; }
+  100% { width: 38vw; height: 38vw; }
 `;
 
 const happySize = keyframes`
-  0%   { width: 16vw; height: 16vw; }
-  35%  { width: 22vw; height: 22vw; }
-  65%  { width: 14vw; height: 14vw; }
-  100% { width: 18.5vw; height: 18.5vw; }
+  0%   { width: 32vw; height: 32vw; }
+  35%  { width: 44vw; height: 44vw; }
+  65%  { width: 28vw; height: 28vw; }
+  100% { width: 37vw; height: 37vw; }
 `;
 
 const wonderDrift = keyframes`
@@ -399,17 +399,17 @@ export const Sw2InterestBox = styled.div`
   top: 18vw;
   left: 84vw;
   transform: translate(-50%, -50%);
-  width: 16vw;
-  height: 16vw;
+  width: 32vw;
+  height: 32vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFF;
   background: linear-gradient(
     110deg,
-    rgba(91, 76, 255, 0.42) 10%,
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.42) 10%,
     rgba(255, 255, 255, 0.88) 28%,
-    rgba(255, 132, 94, 0.42) 52%,
-    rgba(55, 255, 252, 0.32) 74%,
-    rgba(66, 255, 142, 0.38) 92%
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.42) 52%,
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.32) 74%,
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.38) 92%
   );
   background-size: 320% 320%;
   will-change: background-position, transform;
@@ -470,16 +470,16 @@ export const Sw2WonderBox = styled.div`
   top: 40vw;
   left:32vw;
   transform: translate(-50%, -50%);
-  width: 16vw;
-  height: 16vw;
+  width: 32vw;
+  height: 32vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFFFFF;
   background: linear-gradient(
     259.38deg,
     rgba(255, 255, 255, 0.92) 12%,
-    rgba(0, 0, 255, 0.5) 32%,
-    rgba(170, 0, 255, 0.38) 56%,
-    rgba(0, 255, 179, 0.52) 82%
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.50) 32%,
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.38) 56%,
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.52) 82%
   );
   background-size: 320% 320%;
   box-shadow:
@@ -526,16 +526,16 @@ export const Sw2HappyBox = styled.div`
   top: 8vw;
   left: 18vw;
   transform: translate(-50%, -50%);
-  width: 16vw;
-  height: 16vw;
+  width: 32vw;
+  height: 32vw;
   border-radius: 50%;
   border: 0.026042vw solid #FFFFFF;
   background: linear-gradient(
     131.16deg,
     rgba(255, 255, 255, 0.92) 12%,
-    rgba(255, 74, 158, 0.58) 34%,
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.58) 34%,
     rgba(255, 255, 255, 0.88) 62%,
-    rgba(255, 60, 120, 0.52) 88%
+    hsla(var(--blob-h, 280), var(--blob-s, 55%), var(--blob-l, 62%), 0.52) 88%
   );
   background-size: 320% 320%;
   box-shadow:
