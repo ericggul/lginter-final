@@ -9,6 +9,8 @@ export const MotionProps = createGlobalStyle`
   @property --holeInner { syntax: '<length>'; inherits: false; initial-value: 14vmin; }
   @property --outerFeather { syntax: '<length>'; inherits: false; initial-value: 8vmin; }
   @property --blobScale { syntax: '<number>'; inherits: false; initial-value: 1; }
+  /* 중심 공전 반경 호흡용 커스텀 프로퍼티 */
+  @property --orbit-radius-mod { syntax: '<number>'; inherits: false; initial-value: 1; }
 `;
 
 /* BackgroundCanvas blob center swirl for D (matches SmallBlobD path/speed) */
@@ -59,10 +61,12 @@ export const BlobRotator = SharedBlobRotator;
 export const ContentRotator = SharedContentRotator;
 
 export const Root = styled.div`
-  position: relative;
+  /* TV용 풀 화면 캔버스: 스크롤이 생기지 않도록 화면에 고정 */
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100vw;
   height: 56.25vw; /* 2160 / 3840 * 100 */
-  min-height: 56.25vw;
   background-color: #FAEFFA;
   background-image: ${({ $backgroundUrl }) => ($backgroundUrl ? `url(${$backgroundUrl})` : 'none')};
   background-position: center center;
@@ -95,8 +99,8 @@ export const Stage = styled.div`
   width: 100vw;
   height: 56.25vw;
   pointer-events: none;
-  /* reference size for the largest small blob (D) */
-  --largestBlobSize: clamp(11.588542vw, 52.65vmin, 31.640625vw);
+  /* reference size for the 중심 블롭과 오빗 블롭 크기 (한 단계 더 축소) */
+  --largestBlobSize: clamp(7.5vw, 36vmin, 20vw);
 `;
 
 /* 화면 가장자리에 글라스모피즘(유리) 느낌을 주는 레이어
@@ -189,9 +193,9 @@ export const GradientEllipse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  /* Match Figma: 2293px circle on 3840px-wide canvas → ~59.7vw */
-  width: calc(100vw * 2293 / 3840);
-  height: calc(100vw * 2293 / 3840);
+  /* 중앙 화이트 코어 영역을 살짝 더 작게 */
+  width: calc(100vw * 2100 / 3840);
+  height: calc(100vw * 2100 / 3840);
   transform: translate(-50%, -50%) rotate(-90deg);
   background: radial-gradient(
     47.13% 47.13% at 50% 50%,
@@ -263,9 +267,9 @@ export const CenterPulse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  /* 기본 크기를 키워서 스케일이 커질 때 더 멀리까지 파동이 닿도록 설정 */
-  width: calc(var(--largestBlobSize) * 1.25);
-  height: calc(var(--largestBlobSize) * 1.25);
+  /* 파동 기본 크기도 줄여서 화이트 링 영역이 과하게 커지지 않도록 조정 */
+  width: calc(var(--largestBlobSize) * 1.05);
+  height: calc(var(--largestBlobSize) * 1.05);
   transform: translate(-50%, -50%);
   border-radius: 50%;
   pointer-events: none;
@@ -329,8 +333,9 @@ export const CircleContainer = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: calc(56.25vw * 5 / 7);
-  height: calc(56.25vw * 5 / 7);
+  /* 중앙 원 그룹 크기 추가 축소 */
+  width: calc(56.25vw * 4.1 / 7);
+  height: calc(56.25vw * 4.1 / 7);
   border-radius: 50%;
   z-index: 0;
 `;
@@ -342,16 +347,32 @@ export const BaseWhite = styled.div`
   background: #FFFFFF;
 `;
 
+/* 중앙 화이트+핑크 블롭의 글로우 레이어 */
+const centerBreath = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+`;
+
 export const GradientBlur = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: calc(100% * 3012 / 3104);
-  height: calc(100% * 3012 / 3104);
+  /* 중앙 핑크 블롭(글로우)도 한 단계 더 작게 */
+  width: calc(100% * 2600 / 3104);
+  height: calc(100% * 2600 / 3104);
   border-radius: 50%;
   background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFFFFF 34.13%, #FCCCC1 44.23%, #DDDBDD 79.81%, #FFC9E3 87.98%, #FFFFFF 100%);
   filter: blur(1.302083vw);
+  /* 숨쉬듯이 아주 천천히 커졌다 작아지는 루프 */
+  animation: ${centerBreath} 18s ease-in-out infinite;
 `;
 
 export const CenterTextWrap = styled.div`
@@ -456,6 +477,19 @@ const blobMoistureDrift = keyframes`
   100% { transform: translate(-50%, -50%); }
 `;
 
+/* 공전 반경이 아주 살짝 안팎으로 움직이는 호흡 모션 */
+const orbitRadiusPulse = keyframes`
+  0% {
+    --orbit-radius-mod: 1;
+  }
+  40% {
+    --orbit-radius-mod: 0.9;
+  }
+  100% {
+    --orbit-radius-mod: 1;
+  }
+`;
+
 /* 내부 그라데이션이 살짝 흐르듯이 움직이면서 입체감이 느껴지도록 하는 패럴럭스 모션 */
 const blobInnerParallax = keyframes`
   0% {
@@ -483,7 +517,7 @@ const zPulse = keyframes`
   }
   70% {
     transform: translate(-50%, -50%) var(--orbit-transform)
-               scale(calc(var(--z-scale-base) * 0.85));
+               scale(calc(var(--z-scale-base) * 0.9));
     opacity: calc(var(--z-opacity-base) - 0.16);
   }
 `;
@@ -512,9 +546,9 @@ const blobHappySize = keyframes`
 const BlobBase = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
-  /* 주변 원 크기 - 중앙보다 한 단계 작게, 살짝 여유 있게 조정 */
-  width: 28vw;
-  height: 28vw;
+  /* 주변 원 크기 - 전체적으로 한 단계 더 작게 축소 */
+  width: 22vw;
+  height: 22vw;
   border-radius: 50%;
   /* 테두리를 제거해서 외곽 블러가 더 자연스럽게 보이도록 처리 */
   border: none;
@@ -621,8 +655,10 @@ export const Sw1OrbitBlob = styled(BlobBase)`
 
   /* 각 슬롯마다 궤도 각도 정의 */
   --orbit-angle: ${({ $angleDeg = 0 }) => `${$angleDeg}deg`};
+  /* 각 슬롯별 중심에서의 거리 배율 (radiusFactor) */
+  --orbit-radius-factor: ${({ $radiusFactor = 1.55 }) => $radiusFactor};
   --orbit-transform: rotate(var(--orbit-angle))
-                     translateX(calc(var(--R) * 1.55))
+                     translateX(calc(var(--R) * var(--orbit-radius-factor) * var(--orbit-radius-mod)))
                      rotate(calc(-1 * var(--orbit-angle)));
 
   /* 깊이 레이어별 기본 scale/blur/opacity 세팅 */
@@ -630,7 +666,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     if ($depthLayer === 0) {
       // 가장 앞 (사용자 가까이) → 크고 선명
       return `
-        --z-scale-base: 1.35;
+        --z-scale-base: 1.15;
         --z-blur-base: 0.35vw;
         --z-opacity-base: 1;
         z-index: 5;
@@ -639,7 +675,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     if ($depthLayer === 2) {
       // 가장 뒤 → 작고 흐림
       return `
-        --z-scale-base: 0.8;
+        --z-scale-base: 0.7;
         --z-blur-base: 1.5vw;
         --z-opacity-base: 0.45;
         z-index: 1;
@@ -647,7 +683,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     }
     // 중간 레이어
     return `
-      --z-scale-base: 1.05;
+      --z-scale-base: 0.9;
       --z-blur-base: 1.1vw;
       --z-opacity-base: 0.8;
       z-index: 3;
@@ -669,14 +705,19 @@ export const Sw1OrbitBlob = styled(BlobBase)`
 
   background-size: 320% 320%;
 
-  /* 내부 컬러 패럴럭스 + z축 펄스를 동시에 적용
+  /* 내부 컬러 패럴럭스 + z축 펄스 + 공전 반경 호흡을 동시에 적용
      - zSeed에 따라 duration/딜레이를 달리 줘서 랜덤하게 보이게 함 */
   animation:
-    ${blobInnerParallax} 30s ease-in-out infinite,
-    ${zPulse} ${({ $zSeed = 0 }) => 10 + Math.round($zSeed * 6)}s ease-in-out infinite;
+    /* 내부 컬러 패럴럭스는 아주 느리게 */
+    ${blobInnerParallax} 48s ease-in-out infinite,
+    /* z축 펄스도 전체적으로 더 느리게 (기존보다 약 1.5배) */
+    ${zPulse} ${({ $zSeed = 0 }) => 16 + Math.round($zSeed * 9)}s ease-in-out infinite,
+    /* 공전 반경 호흡: 천천히 안팎으로 미세하게 이동 */
+    ${orbitRadiusPulse} ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s ease-in-out infinite;
   animation-delay:
     0s,
-    ${({ $zSeed = 0 }) => `${Math.round($zSeed * 4)}s`};
+    ${({ $zSeed = 0 }) => `${Math.round($zSeed * 4)}s`},
+    ${({ $zSeed = 0 }) => `${2 + Math.round($zSeed * 5)}s`};
 
   /* BlobBase에서 정의한 before/after를 오빗 블롭 전용 값으로 살짝 재조정:
      - 바깥 halo는 44px 정도의 블러 느낌
@@ -707,9 +748,9 @@ const SmallOrbitDotBase = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  /* 작은 장식 원은 주변 블롭보다 작지만, 충분히 눈에 띄도록 사이즈 상향 */
-  width: 12vw;
-  height: 12vw;
+  /* 작은 장식 원은 주변 블롭보다 한 단계 더 작게 조정 */
+  width: 8vw;
+  height: 8vw;
   border-radius: 50%;
   pointer-events: none;
   /* 주변 블롭(z-index:2)과 중앙 그라데이션(6) 사이에서 또렷하게 보이도록 4로 설정 */

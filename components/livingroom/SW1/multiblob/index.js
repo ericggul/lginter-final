@@ -1,14 +1,65 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useControls } from "leva";
 import { KeyframesGlobal as BGKeyframesGlobal, BlobCssGlobal as BGBlobCssGlobal } from "@/components/mobile/BackgroundCanvas/styles";
 import * as S from './styles';
 import { useSW1Logic } from "./logic";
+
+// 중앙 화이트 영역을 약간 일렁이는 유기적 형태로 만드는 SVG Path 생성 유틸
+function useOrganicCenterPath() {
+  const [phase, setPhase] = useState(0);
+
+  // 천천히 phase를 증가시켜서 시간이 지남에 따라 살짝 형태가 변하도록 함
+  useEffect(() => {
+    let frame;
+    let lastTime = performance.now();
+
+    const tick = (now) => {
+      const dt = now - lastTime;
+      lastTime = now;
+      // 약 14초에 한 바퀴 정도 도는 속도로, 숨쉬는 느낌이 더 잘 느껴지도록 조정
+      const speed = (2 * Math.PI) / 14000; // rad/ms
+      setPhase((prev) => prev + speed * dt);
+      frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const pathD = useMemo(() => {
+    const cx = 0;
+    const cy = 0;
+    const baseR = 50; // 기준 반경
+    const steps = 80;
+    // 숨쉬는 느낌이 눈에 띄게 보이도록 흔들림 강도를 조금 더 키움
+    const epsilon = 0.12;
+    const harmonic = 5; // 물결 개수
+
+    let d = "";
+    for (let i = 0; i <= steps; i += 1) {
+      const t = (2 * Math.PI * i) / steps;
+      const wobble = 1 + epsilon * Math.sin(harmonic * t + phase);
+      const r = baseR * wobble;
+      const x = cx + r * Math.cos(t);
+      const y = cy + r * Math.sin(t);
+      const cmd = i === 0 ? "M" : "L";
+      d += `${cmd}${x.toFixed(2)},${y.toFixed(2)} `;
+    }
+    d += "Z";
+    return d;
+  }, [phase]);
+
+  return pathD;
+}
 
 export default function SW1Controls() {
   const BACKGROUND_URL = null; // remove background PNG (big pink blobs)
   const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
 
   const { blobConfigs, centerTemp, centerHumidity, participantCount, dotCount } = useSW1Logic();
+  const organicCenterPath = useOrganicCenterPath();
 
   // Leva controls for live-tuning center glow & background gradient (front-end only)
   const centerGlow = useControls('SW1 Center Glow', {
@@ -47,7 +98,8 @@ export default function SW1Controls() {
   });
 
   const animation = useControls('SW1 Animation', {
-    rotationDuration: { value: 15, min: 0, max: 120, step: 1 },
+    // 공전 속도를 좀 더 느리게: 기본값을 크게 늘려서 천천히 도는 느낌으로
+    rotationDuration: { value: 40, min: 10, max: 180, step: 1 },
   });
 
   const edgeBlur = useControls('SW1 Edge Blur', {
@@ -148,6 +200,7 @@ export default function SW1Controls() {
                 key={b.id}
                 $angleDeg={b.angleDeg}
                 $depthLayer={b.depthLayer}
+                $radiusFactor={b.radiusFactor}
                 $zSeed={b.zSeed}
               >
                 <S.ContentRotator $duration={animation.rotationDuration}>
@@ -162,6 +215,28 @@ export default function SW1Controls() {
           <S.Sw1SmallOrbitDot2 />
           <S.Sw1SmallOrbitDot3 />
         </S.BlobRotator>
+        {/* 유기적으로 일렁이는 중앙 화이트 코어 (기존 GradientEllipse 아래에 베이스로 깔림) */}
+        <svg
+          width="0"
+          height="0"
+          style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}
+          viewBox="-60 -60 120 120"
+        >
+          <defs>
+            <radialGradient id="sw1CenterOrganicFill" cx="50%" cy="45%" r="60%">
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+              <stop offset="45%" stopColor="#FFE4F0" stopOpacity="0.95" />
+              <stop offset="80%" stopColor="#FAD4E6" stopOpacity="0.75" />
+              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.0" />
+            </radialGradient>
+          </defs>
+          <g>
+            <path
+              d={organicCenterPath}
+              fill="url(#sw1CenterOrganicFill)"
+            />
+          </g>
+        </svg>
         <S.GradientEllipse style={centerGlowStyle} />
         {/* 가운데 원 mid1Color 채도 펄스 오버레이 */}
         <S.CenterSaturationPulse />

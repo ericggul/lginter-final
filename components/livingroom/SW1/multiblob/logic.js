@@ -6,11 +6,12 @@ import { playSfx } from '@/utils/hooks/useSound';
 // 백엔드 payload는 그대로 두고, 프론트에서 몇 명까지 배치할지만 제어한다.
 export const SW1_BLOB_CONFIGS = [
   // depthLayer: 0 = 가장 앞, 1 = 중간, 2 = 뒤
-  { id: 'slot1', componentKey: 'Sw1OrbitBlob', angleDeg: -90,  depthLayer: 2 }, // 위, 뒤쪽
-  { id: 'slot2', componentKey: 'Sw1OrbitBlob', angleDeg: -25,  depthLayer: 1 }, // 좌-위, 중간
-  { id: 'slot3', componentKey: 'Sw1OrbitBlob', angleDeg: 25,   depthLayer: 0 }, // 정면 오른쪽, 앞
-  { id: 'slot4', componentKey: 'Sw1OrbitBlob', angleDeg: 140,  depthLayer: 0 }, // 정면 왼쪽, 앞
-  { id: 'slot5', componentKey: 'Sw1OrbitBlob', angleDeg: -155, depthLayer: 1 }, // 우-아래, 중간
+  // radiusFactor: 중심에서의 거리(기본 궤도 반지름에 대한 배율) → 간격을 서로 다르게
+  { id: 'slot1', componentKey: 'Sw1OrbitBlob', angleDeg: -90,  depthLayer: 2, radiusFactor: 1.45 }, // 위, 뒤쪽 (조금 안쪽)
+  { id: 'slot2', componentKey: 'Sw1OrbitBlob', angleDeg: -25,  depthLayer: 1, radiusFactor: 1.70 }, // 좌-위, 중간 (가장 바깥쪽 중 하나)
+  { id: 'slot3', componentKey: 'Sw1OrbitBlob', angleDeg: 25,   depthLayer: 0, radiusFactor: 1.55 }, // 정면 오른쪽, 앞 (기준에 가깝게)
+  { id: 'slot4', componentKey: 'Sw1OrbitBlob', angleDeg: 140,  depthLayer: 0, radiusFactor: 1.80 }, // 정면 왼쪽, 앞 (가장 바깥)
+  { id: 'slot5', componentKey: 'Sw1OrbitBlob', angleDeg: -155, depthLayer: 1, radiusFactor: 1.30 }, // 우-아래, 중간 (가장 안쪽)
 ];
 
 const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
@@ -237,6 +238,7 @@ export function useSW1Logic() {
         top,
         bottom,
         depthLayer: cfg.depthLayer ?? 1,
+        radiusFactor: cfg.radiusFactor ?? 1.55,
         zSeed: zSeeds[idx] ?? 0,
       };
     });
