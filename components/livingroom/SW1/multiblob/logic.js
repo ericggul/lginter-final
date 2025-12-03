@@ -2,13 +2,19 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import useSocketSW1 from '@/utils/hooks/useSocketSW1';
 import { playSfx } from '@/utils/hooks/useSound';
 
-// Blob layout config for SW1 (independent)
+// 최대 슬롯 개수 (화면에 표현할 수 있는 사용자 수)
+// 백엔드 payload는 그대로 두고, 프론트에서 몇 명까지 배치할지만 제어한다.
 export const SW1_BLOB_CONFIGS = [
-  { id: 'interest',  componentKey: 'Sw1InterestBlob' },
-  { id: 'wonder',    componentKey: 'Sw1WonderBlob' },
-  { id: 'happy',     componentKey: 'Sw1HappyBlob' },
-  { id: 'moisture',  componentKey: 'Sw1MoistureBlob' },
+  // depthLayer: 0 = 가장 앞, 1 = 중간, 2 = 뒤
+  { id: 'slot1', componentKey: 'Sw1OrbitBlob', angleDeg: -90,  depthLayer: 2 }, // 위, 뒤쪽
+  { id: 'slot2', componentKey: 'Sw1OrbitBlob', angleDeg: -25,  depthLayer: 1 }, // 좌-위, 중간
+  { id: 'slot3', componentKey: 'Sw1OrbitBlob', angleDeg: 25,   depthLayer: 0 }, // 정면 오른쪽, 앞
+  { id: 'slot4', componentKey: 'Sw1OrbitBlob', angleDeg: 140,  depthLayer: 0 }, // 정면 왼쪽, 앞
+  { id: 'slot5', componentKey: 'Sw1OrbitBlob', angleDeg: -155, depthLayer: 1 }, // 우-아래, 중간
 ];
+
+const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
+const DUMMY_ID_REGEX = /^u[A-E]$/;
 
 // Humidity → mode label
 export function computeMode(humidity) {
@@ -55,15 +61,25 @@ export function useSW1Logic() {
   const [dotCount, setDotCount] = useState(0);
   const [activeUsers, setActiveUsers] = useState(new Set());
 
-  // Mini blobs: per-user results (up to 4). Start with dummy values.
-  const [miniResults, setMiniResults] = useState([
-    { userId: 'uA', temp: 22, humidity: 68 },
-    { userId: 'uB', temp: 24, humidity: 56 },
-    { userId: 'uC', temp: 21, humidity: 36 },
-    { userId: 'uD', temp: 20, humidity: 44 },
-  ]);
+  // Mini blobs: per-user results (up to MAX_BLOBS). Start with dummy values.
+  const [miniResults, setMiniResults] = useState(() => {
+    // uA ~ uE 까지를 더미 아이디로 사용 (백엔드와는 무관한 프론트 전용)
+    return Array.from({ length: MAX_BLOBS }, (_, idx) => {
+      const letter = String.fromCharCode(65 + idx); // A, B, ...
+      return {
+        userId: `u${letter}`,
+        temp: 23,
+        humidity: 50,
+      };
+    });
+  });
   // Track previously seen real userIds to detect new blob creations
   const prevRealUsersRef = useRef(new Set());
+
+  // 각 블롭마다 서로 다른 z축 애니메이션 위상을 주기 위한 랜덤 seed (프론트 전용)
+  const [zSeeds] = useState(
+    () => Array.from({ length: MAX_BLOBS }, () => Math.random())
+  );
 
   // Optional: capture latest voice keywords (independent, not reused from SW2)
   const [keywords, setKeywords] = useState([]); // keep last 4 (recency list for fallback)
@@ -78,16 +94,16 @@ export function useSW1Logic() {
     if (slotByUserRef.current.has(id)) return slotByUserRef.current.get(id);
     // Find first free slot by user occupancy
     const occupied = new Set(prev.map((r) => String(r?.userId || '')));
-    for (let i = 0; i < 4; i += 1) {
+    for (let i = 0; i < MAX_BLOBS; i += 1) {
       const r = prev[i];
-      if (!r || /^u[A-D]$/.test(String(r.userId || '')) || !occupied.has(String(r.userId))) {
+      if (!r || DUMMY_ID_REGEX.test(String(r.userId || '')) || !occupied.has(String(r.userId))) {
         slotByUserRef.current.set(id, i);
         return i;
       }
     }
     // Round-robin fallback
-    const idx = nextSlotRef.current % 4;
-    nextSlotRef.current = (nextSlotRef.current + 1) % 4;
+    const idx = nextSlotRef.current % MAX_BLOBS;
+    nextSlotRef.current = (nextSlotRef.current + 1) % MAX_BLOBS;
     slotByUserRef.current.set(id, idx);
     return idx;
   }, []);
@@ -129,7 +145,7 @@ export function useSW1Logic() {
 
       // Per-user individuals (if server provides). Otherwise keep rolling list.
       if (Array.isArray(msg.individuals)) {
-        const list = msg.individuals.filter(Boolean).slice(0, 4);
+        const list = msg.individuals.filter(Boolean).slice(0, MAX_BLOBS);
         if (list.length) {
           setMiniResults((prev) => {
             const next = [...prev];
@@ -151,7 +167,9 @@ export function useSW1Logic() {
         }
       } else if (Array.isArray(merged) && merged.length) {
         // Fallback: synthesize per-user entries from mergedFrom (unique users)
-        const uniq = Array.from(new Set(merged.map((u) => String(u)).filter(Boolean))).slice(0, 4);
+        const uniq = Array.from(
+          new Set(merged.map((u) => String(u)).filter(Boolean))
+        ).slice(0, MAX_BLOBS);
         if (uniq.length) {
           setMiniResults((prev) => {
             const next = [...prev];
@@ -214,14 +232,20 @@ export function useSW1Logic() {
       const r = miniResults[idx];
       const top = r?.temp != null ? `${r.temp}℃` : '';
       const bottom = r?.humidity != null ? `${Math.round(r.humidity)}%` : '';
-      return { ...cfg, top, bottom };
+      return {
+        ...cfg,
+        top,
+        bottom,
+        depthLayer: cfg.depthLayer ?? 1,
+        zSeed: zSeeds[idx] ?? 0,
+      };
     });
-  }, [miniResults]);
+  }, [miniResults, zSeeds]);
 
   // Play sfx when a new real user appears in mini blobs
   useEffect(() => {
     try {
-      const isReal = (id) => id && !/^u[A-D]$/.test(String(id));
+      const isReal = (id) => id && !DUMMY_ID_REGEX.test(String(id));
       const curr = new Set(
         miniResults
           .map((r) => (r && r.userId) ? String(r.userId) : '')
@@ -246,7 +270,7 @@ export function useSW1Logic() {
   // Derive participant count robustly (no stale state): max of unique active users and non-dummy mini slots
   const participantCount = useMemo(() => {
     const nonDummy = miniResults.filter(
-      (r) => r && r.userId && !/^u[A-D]$/.test(String(r.userId))
+      (r) => r && r.userId && !DUMMY_ID_REGEX.test(String(r.userId))
     ).length;
     return Math.max(activeUsers.size || 0, nonDummy || 0);
   }, [activeUsers, miniResults]);

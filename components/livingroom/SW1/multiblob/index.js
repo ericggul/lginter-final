@@ -13,41 +13,51 @@ export default function SW1Controls() {
   // Leva controls for live-tuning center glow & background gradient (front-end only)
   const centerGlow = useControls('SW1 Center Glow', {
     innerColor:      { value: '#ffffff' },
-    innerRingColor:  { value: '#fdfddc' },
-    mid1Color:       { value: '#c79c9c' },
-    mid2Color:       { value: '#befcce' },
-    outerColor:      { value: '#ffffff' },
+    innerRingColor:  { value: '#b0f6ff' },
+    mid1Color:       { value: '#db9db0' },
+    mid2Color:       { value: '#f8cfc1' },
+    outerColor:      { value: '#fff3ef' },
     extraColor:      { value: '#ffffff' },
-    innerAlpha:      { value: 0.04, min: 0, max: 1, step: 0.01 },
-    innerRingAlpha:  { value: 1.00, min: 0, max: 1, step: 0.01 },
-    mid1Alpha:       { value: 1.00, min: 0, max: 1, step: 0.01 },
-    mid2Alpha:       { value: 0.32, min: 0, max: 1, step: 0.01 },
-    outerAlpha:      { value: 0.32, min: 0, max: 1, step: 0.01 },
-    extraAlpha:      { value: 1.00, min: 0, max: 1, step: 0.01 },
-    innerStop:       { value: 25,  min: 0, max: 100 },
-    innerRingStop:   { value: 36,  min: 0, max: 100 },
-    mid1Stop:        { value: 44,  min: 0, max: 100 },
-    mid2Stop:        { value: 100, min: 0, max: 100 },
+    innerAlpha:      { value: 1.0,  min: 0, max: 1, step: 0.01 },
+    innerRingAlpha:  { value: 1.0,  min: 0, max: 1, step: 0.01 },
+    mid1Alpha:       { value: 0.89, min: 0, max: 1, step: 0.01 },
+    mid2Alpha:       { value: 0.76, min: 0, max: 1, step: 0.01 },
+    outerAlpha:      { value: 0.50, min: 0, max: 1, step: 0.01 },
+    extraAlpha:      { value: 0.51, min: 0, max: 1, step: 0.01 },
+    innerStop:       { value: 29,  min: 0, max: 100 },
+    innerRingStop:   { value: 38,  min: 0, max: 100 },
+    mid1Stop:        { value: 42,  min: 0, max: 100 },
+    mid2Stop:        { value: 86,  min: 0, max: 100 },
     extraStop:       { value: 100, min: 0, max: 100 },
-    outerStop:       { value: 100, min: 0, max: 100 },
-    blur:            { value: 27,  min: 0, max: 120 }, // px
-    centerBrightness:{ value: 1.30, min: 0.7, max: 1.8, step: 0.01 },
+    outerStop:       { value: 83,  min: 0, max: 100 },
+    blur:            { value: 32,  min: 0, max: 120 }, // px
+    centerBrightness:{ value: 1.13, min: 0.7, max: 1.8, step: 0.01 },
     outerGlowRadius: { value: 600, min: 0, max: 600 }, // px, 가운데 원 가장 바깥쪽 빛 번짐
-    outerGlowAlpha:  { value: 0.61, min: 0, max: 1, step: 0.01 },
+    outerGlowAlpha:  { value: 0.0,  min: 0, max: 1, step: 0.01 },
   });
 
   const background = useControls('SW1 Background', {
-    baseColor:    { value: '#ffe1e1' },
-    topColor:     { value: '#fffaf2' },
-    midColor:     { value: '#edfdff' },
-    bottomColor:  { value: '#ffe3ac' },
-    angle:        { value: 348, min: 0, max: 360 },
-    midStop:      { value: 76, min: 0, max: 100 },
+    baseColor:    { value: '#f3fbff' },
+    topColor:     { value: '#edfffe' },
+    midColor:     { value: '#f8f8ec' },
+    bottomColor:  { value: '#fffcec' },
+    angle:        { value: 228, min: 0, max: 360 },
+    midStop:      { value: 63, min: 0, max: 100 },
     midStop2:     { value: 100, min: 0, max: 100 },
   });
 
   const animation = useControls('SW1 Animation', {
     rotationDuration: { value: 15, min: 0, max: 120, step: 1 },
+  });
+
+  const edgeBlur = useControls('SW1 Edge Blur', {
+    strength: { value: 3.8, min: 0, max: 4, step: 0.05 },
+    opacity:  { value: 0.13, min: 0, max: 1, step: 0.01 },
+  });
+
+  const edgeGlass = useControls('SW1 Edge Glass', {
+    blur:    { value: 69,  min: 0, max: 80, step: 1 },
+    opacity: { value: 0.29, min: 0, max: 1,  step: 0.01 },
   });
 
   const hexToRgb = (hex) => {
@@ -120,11 +130,26 @@ export default function SW1Controls() {
         </S.Dots>
       </S.TopStatus>
       <S.Stage>
+        {/* 화면 가장자리를 따라 깔리는 글라스모피즘 레이어 (backdrop-filter) */}
+        <S.EdgeGlassLayer
+          $blur={edgeGlass.blur}
+          $opacity={edgeGlass.opacity}
+        />
+        {/* 화면 가장자리를 따라 깔리는 보조 블러 레이어 (Leva로 강도/투명도 조절) */}
+        <S.EdgeBlurLayer
+          $strength={edgeBlur.strength}
+          $opacity={edgeBlur.opacity}
+        />
         <S.BlobRotator $duration={animation.rotationDuration}>
           {blobConfigs.map((b) => {
             const Component = S[b.componentKey];
             return (
-              <Component key={b.id}>
+              <Component
+                key={b.id}
+                $angleDeg={b.angleDeg}
+                $depthLayer={b.depthLayer}
+                $zSeed={b.zSeed}
+              >
                 <S.ContentRotator $duration={animation.rotationDuration}>
                   <strong>{b.top}</strong>
                   <span>{b.bottom}</span>
@@ -132,10 +157,14 @@ export default function SW1Controls() {
               </Component>
             );
           })}
+          {/* 데이터와 무관하게 항상 함께 도는 작은 장식용 원 3개 */}
+          <S.Sw1SmallOrbitDot1 />
+          <S.Sw1SmallOrbitDot2 />
+          <S.Sw1SmallOrbitDot3 />
         </S.BlobRotator>
         <S.GradientEllipse style={centerGlowStyle} />
-        {/* 중앙에서만 아주 부드럽게 퍼져 나가는 물결 파장 */}
-        <S.CenterPulse />
+        {/* 가운데 원 mid1Color 채도 펄스 오버레이 */}
+        <S.CenterSaturationPulse />
         <S.CenterMark src="/figma/Ellipse%202767.png" alt="" />
         <S.EllipseLayer>
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
