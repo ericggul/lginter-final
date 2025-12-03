@@ -42,7 +42,18 @@ function describeHexColor(hex){
 function fallbackCoverForTitle(title){
   const base = String(title || '').trim();
   if (!base) return '';
-  const simple = base.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '_').replace(/^_+|_+$/g, '');
+
+  // 특정 플레이스홀더/무드 텍스트는 개별 파일을 만들지 않고
+  // 항상 존재하는 공통 커버 하나만 사용
+  if (base === '시원한 EDM') {
+    return '/sw2_albumcover/331music.png';
+  }
+
+  const simple = base
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
   return `/sw2_albumcover/${simple}.png`;
 }
 
