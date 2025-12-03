@@ -7,10 +7,12 @@ export const BLOB_CONFIGS = [
   {
     id: 'interest',
     componentKey: 'Sw2InterestBox',
-    anchor: { x: 74, y: 30 },
-    radius: { x: 6.5, y: 5 },
-    jitter: { x: 1.2, y: 0.9 },
-    size: { base: 48, min: 42, max: 54 },
+    // 상단 중앙에 위치한 원 – 앨범 카드 바로 뒤에서 시작
+    anchor: { x: 50, y: 32 },
+    radius: { x: 4.5, y: 3.6 },
+    jitter: { x: 0.8, y: 0.6 },
+    size: { base: 38, min: 32, max: 44 },
+    depthLayer: 2, // 가장 뒤쪽 레이어
     // 초기 더미 감정 키워드
     labelTop: '',
     labelBottom: '설렘',
@@ -18,20 +20,24 @@ export const BLOB_CONFIGS = [
   {
     id: 'happy',
     componentKey: 'Sw2HappyBox',
-    anchor: { x: 28, y: 24 },
-    radius: { x: 5.5, y: 4 },
-    jitter: { x: 0.9, y: 0.7 },
-    size: { base: 36, min: 31, max: 41 },
+    // 화면 오른쪽 아래 큰 원 – 살짝 화면 안쪽으로 당김
+    anchor: { x: 78, y: 56 },
+    radius: { x: 5.8, y: 4.2 },
+    jitter: { x: 1.0, y: 0.8 },
+    size: { base: 50, min: 44, max: 56 },
+    depthLayer: 0, // 가장 앞쪽 레이어
     labelTop: '',
     labelBottom: '평온',
   },
   {
     id: 'wonder',
     componentKey: 'Sw2WonderBox',
-    anchor: { x: 22, y: 64 },
-    radius: { x: 5.2, y: 4.3 },
-    jitter: { x: 0.85, y: 0.75 },
-    size: { base: 34, min: 30, max: 38 },
+    // 화면 왼쪽 아래 큰 원 – 살짝 화면 안쪽으로 당김
+    anchor: { x: 22, y: 56 },
+    radius: { x: 5.4, y: 4.1 },
+    jitter: { x: 0.9, y: 0.75 },
+    size: { base: 46, min: 40, max: 52 },
+    depthLayer: 1, // 중간 레이어
     labelTop: '',
     labelBottom: '집중',
   },
@@ -134,18 +140,6 @@ export function useSW2Logic() {
       // 모바일에서 바로 들어오는 사용자 입력 텍스트도 블롭 키워드로 사용
       if (payload?.text || payload?.emotion) {
         pushKeyword(payload.text || payload.emotion);
-      }
-    },
-    onNewUser: (payload) => {
-      console.log('👤 SW2 onNewUser:', payload);
-      // 새로운 사용자 입장(QR 스캔 등) 시 카운트 증가
-      const uid = payload?.userId ? String(payload.userId) : null;
-      if (uid) {
-        setActiveUsers((prev) => {
-          const next = new Set(prev);
-          next.add(uid);
-          return next;
-        });
       }
     },
   });

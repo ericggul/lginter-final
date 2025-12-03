@@ -99,6 +99,92 @@ export const Stage = styled.div`
   --largestBlobSize: clamp(11.588542vw, 52.65vmin, 31.640625vw);
 `;
 
+/* 화면 가장자리에 글라스모피즘(유리) 느낌을 주는 레이어
+   - 아래에 있는 블롭/배경을 blur 해서 가장자리 쪽만 유리 뒤에 있는 것처럼 보이게 함 */
+export const EdgeGlassLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4; /* 블롭 본체 위, GradientEllipse(6)보다는 아래/위는 필요에 따라 조정 가능 */
+
+  /* 에지 쪽에만 알파가 있는 마스크 형태의 배경 */
+  background:
+    radial-gradient(
+      circle at -5% 50%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.14) 26%,
+      rgba(255, 255, 255, 0.00) 60%
+    ),
+    radial-gradient(
+      circle at 105% 50%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.14) 26%,
+      rgba(255, 255, 255, 0.00) 60%
+    ),
+    radial-gradient(
+      circle at 50% -10%,
+      rgba(255, 255, 255, 0.20) 0%,
+      rgba(255, 255, 255, 0.12) 22%,
+      rgba(255, 255, 255, 0.00) 56%
+    ),
+    radial-gradient(
+      circle at 50% 110%,
+      rgba(255, 255, 255, 0.20) 0%,
+      rgba(255, 255, 255, 0.12) 22%,
+      rgba(255, 255, 255, 0.00) 56%
+    );
+
+  /* backdrop-filter 로 아래 콘텐츠를 블러 → 유리 느낌 */
+  backdrop-filter: ${({ $blur = 28 }) => `blur(${$blur}px) saturate(130%)`};
+  -webkit-backdrop-filter: ${({ $blur = 28 }) =>
+    `blur(${$blur}px) saturate(130%)`};
+
+  opacity: ${({ $opacity = 1 }) => $opacity};
+`;
+
+/* 화면 가장자리 부근에만 추가 블러를 깔아서,
+   블롭이 에지에 가까워질 때 가장자리 쪽이 더 퍼져 보이도록 하는 레이어 */
+export const EdgeBlurLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3; /* 블롭 본체(1~2) 위, GradientEllipse(6) 아래에서 작동 */
+
+  background:
+    /* 왼쪽 가장자리 */
+    radial-gradient(
+      circle at -5% 50%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.6) 18%,
+      rgba(255, 255, 255, 0.0) 55%
+    ),
+    /* 오른쪽 가장자리 */
+    radial-gradient(
+      circle at 105% 50%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.6) 18%,
+      rgba(255, 255, 255, 0.0) 55%
+    ),
+    /* 위쪽 가장자리 */
+    radial-gradient(
+      circle at 50% -10%,
+      rgba(255, 255, 255, 0.75) 0%,
+      rgba(255, 255, 255, 0.55) 16%,
+      rgba(255, 255, 255, 0.0) 52%
+    ),
+    /* 아래쪽 가장자리 */
+    radial-gradient(
+      circle at 50% 110%,
+      rgba(255, 255, 255, 0.75) 0%,
+      rgba(255, 255, 255, 0.55) 16%,
+      rgba(255, 255, 255, 0.0) 52%
+    );
+
+  filter: ${({ $strength = 1.4 }) => `blur(${$strength}vw)`};
+  mix-blend-mode: screen;
+  opacity: ${({ $opacity = 0.8 }) => $opacity};
+`;
+
 export const GradientEllipse = styled.div`
   position: absolute;
   top: 50%;
@@ -119,6 +205,42 @@ export const GradientEllipse = styled.div`
   /* place above side blobs but below text/center mark */
   z-index: 6;
   pointer-events: none;
+`;
+
+/* 가운데 원의 mid1Color 대역 채도가 서서히 강해졌다가 약해지는 효과용 오버레이 */
+const centerSaturationPulse = keyframes`
+  0%, 100% {
+    opacity: 0.0;
+  }
+  45% {
+    opacity: 0.38;
+  }
+  70% {
+    opacity: 0.18;
+  }
+`;
+
+export const CenterSaturationPulse = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100vw * 2293 / 3840);
+  height: calc(100vw * 2293 / 3840);
+  transform: translate(-50%, -50%) rotate(-90deg);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 7; /* GradientEllipse 위, CenterText/CenterMark 아래 */
+
+  /* mid1Color (#f56a94) 영역을 한 겹 더 깔아서 채도 펄스를 표현 */
+  background: radial-gradient(
+    47.13% 47.13% at 50% 50%,
+    rgba(245, 106, 148, 0.00) 0%,
+    rgba(245, 106, 148, 0.00) 36%,
+    rgba(245, 106, 148, 0.55) 55%,
+    rgba(245, 106, 148, 0.00) 90%
+  );
+
+  animation: ${centerSaturationPulse} 6.2s ease-in-out infinite;
 `;
 
 /* Center wave: 중앙에서 물결처럼 천천히 번져 나가는 부드러운 파장 */
@@ -266,7 +388,7 @@ export const CenterMark = styled.img`
 `;
 
 export const CenterTemp = styled.div`
-  font-size: clamp(0.651042vw, 4.5vmin, 1.692708vw);
+  font-size: clamp(0.9vw, 5.5vmin, 2.3vw);
   line-height: 1.08;
   font-weight: 600;
   color: #111827;
@@ -275,7 +397,7 @@ export const CenterTemp = styled.div`
 
 export const CenterMode = styled.div`
   margin-top: 0.6vmin;
-  font-size: clamp(0.651042vw, 4.5vmin, 1.692708vw);
+  font-size: clamp(0.8vw, 4.8vmin, 2.0vw);
   font-weight: 500;
   color: #0F172A;
   text-shadow: 0 0.026042vw 0 rgba(0,0,0,0.48), 0 0.078125vw 0.3125vw rgba(0,0,0,0.36);
@@ -347,6 +469,25 @@ const blobInnerParallax = keyframes`
   }
 `;
 
+/* z축으로 살짝 앞으로/뒤로 튀어나오는 느낌의 스케일/투명도 펄스 */
+const zPulse = keyframes`
+  0%, 100% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(var(--z-scale-base));
+    opacity: var(--z-opacity-base);
+  }
+  40% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(calc(var(--z-scale-base) * 1.2));
+    opacity: calc(var(--z-opacity-base) + 0.18);
+  }
+  70% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(calc(var(--z-scale-base) * 0.85));
+    opacity: calc(var(--z-opacity-base) - 0.16);
+  }
+`;
+
 const blobInterestSize = keyframes`
   0%   { width: 20vw; height: 20vw; }
   40%  { width: 26vw; height: 26vw; }
@@ -371,9 +512,9 @@ const blobHappySize = keyframes`
 const BlobBase = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
-  /* 주변 원 크기 - 살짝 줄여서 중앙보다 덜 강조 */
-  width: 26vw;
-  height: 26vw;
+  /* 주변 원 크기 - 중앙보다 한 단계 작게, 살짝 여유 있게 조정 */
+  width: 28vw;
+  height: 28vw;
   border-radius: 50%;
   /* 테두리를 제거해서 외곽 블러가 더 자연스럽게 보이도록 처리 */
   border: none;
@@ -405,13 +546,11 @@ const BlobBase = styled.div`
   & strong,
   & span {
     font-size: 1.6vw;
-    font-weight: 320;
+    font-weight: 400;
     letter-spacing: 0.01em;
-    color: #A1908A;
-    mix-blend-mode: difference;
-    text-shadow:
-      0 0.052083vw 0.052083vw rgba(161, 144, 138, 0.35),
-      0 0.104167vw 0.208333vw currentColor;
+    color: #FFFFFF;
+    mix-blend-mode: normal;
+    text-shadow: none;
   }
   /* 원보다 살짝 큰 레이어에 blur를 적용해서 외곽이 부드럽게 퍼지도록 처리 (halo) */
   &::before {
@@ -474,61 +613,130 @@ const BlobBase = styled.div`
   }
 `;
 
-export const Sw1InterestBlob = styled(BlobBase)`
-  top: 12vw;
-  left: 78vw;
-  /* 입체감을 위한 구형(원형) 그라데이션 - ::before에서 blur와 함께 사용 */
+// 가운데 원 주변을 도는 7개의 블롭을 위한 공통 오빗 컴포넌트
+// 각 슬롯별 각도는 React 쪽에서 $angleDeg prop으로 전달한다.
+export const Sw1OrbitBlob = styled(BlobBase)`
+  top: 50%;
+  left: 50%;
+
+  /* 각 슬롯마다 궤도 각도 정의 */
+  --orbit-angle: ${({ $angleDeg = 0 }) => `${$angleDeg}deg`};
+  --orbit-transform: rotate(var(--orbit-angle))
+                     translateX(calc(var(--R) * 1.55))
+                     rotate(calc(-1 * var(--orbit-angle)));
+
+  /* 깊이 레이어별 기본 scale/blur/opacity 세팅 */
+  ${({ $depthLayer = 1 }) => {
+    if ($depthLayer === 0) {
+      // 가장 앞 (사용자 가까이) → 크고 선명
+      return `
+        --z-scale-base: 1.35;
+        --z-blur-base: 0.35vw;
+        --z-opacity-base: 1;
+        z-index: 5;
+      `;
+    }
+    if ($depthLayer === 2) {
+      // 가장 뒤 → 작고 흐림
+      return `
+        --z-scale-base: 0.8;
+        --z-blur-base: 1.5vw;
+        --z-opacity-base: 0.45;
+        z-index: 1;
+      `;
+    }
+    // 중간 레이어
+    return `
+      --z-scale-base: 1.05;
+      --z-blur-base: 1.1vw;
+      --z-opacity-base: 0.8;
+      z-index: 3;
+    `;
+  }}
+
+  transform: translate(-50%, -50%) var(--orbit-transform)
+             scale(var(--z-scale-base));
+  opacity: var(--z-opacity-base);
+
+  /* 제공된 디자인 스펙을 반영한 컬러 그라데이션 */
   --blob-bg: radial-gradient(
+    84.47% 61.21% at 66.09% 54.37%,
+    #FF4D8B 0%,
+    #FF8EA6 34.9%,
+    #FDFFE1 80.29%,
+    #DFE4EA 100%
+  );
+
+  background-size: 320% 320%;
+
+  /* 내부 컬러 패럴럭스 + z축 펄스를 동시에 적용
+     - zSeed에 따라 duration/딜레이를 달리 줘서 랜덤하게 보이게 함 */
+  animation:
+    ${blobInnerParallax} 30s ease-in-out infinite,
+    ${zPulse} ${({ $zSeed = 0 }) => 10 + Math.round($zSeed * 6)}s ease-in-out infinite;
+  animation-delay:
+    0s,
+    ${({ $zSeed = 0 }) => `${Math.round($zSeed * 4)}s`};
+
+  /* BlobBase에서 정의한 before/after를 오빗 블롭 전용 값으로 살짝 재조정:
+     - 바깥 halo는 44px 정도의 블러 느낌
+     - 안쪽은 코어 그라데이션을 또렷하게 유지 */
+  &::before {
+    inset: -1.2vw;
+    /* 깊이 레이어에 따라 퍼짐 정도가 달라지도록 블러 강도를 조정 */
+    filter: blur(calc(var(--z-blur-base) * 3.2)); /* ≈ 44px 기준에서 가변 */
+    opacity: 0.45;
+  }
+
+  &::after {
+    inset: 0.35vw;
+    filter: blur(calc(var(--z-blur-base) * 1.4));
+    background:
+      radial-gradient(
+        84.47% 61.21% at 66.09% 54.37%,
+        #FF4D8B 0%,
+        #FF8EA6 34.9%,
+        #FDFFE1 80.29%,
+        #DFE4EA 100%
+      );
+  }
+`;
+
+/* 가운데를 함께 도는 작은 원 3개 (데이터와 무관한 장식용) */
+const SmallOrbitDotBase = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* 작은 장식 원은 주변 블롭보다 작지만, 충분히 눈에 띄도록 사이즈 상향 */
+  width: 12vw;
+  height: 12vw;
+  border-radius: 50%;
+  pointer-events: none;
+  /* 주변 블롭(z-index:2)과 중앙 그라데이션(6) 사이에서 또렷하게 보이도록 4로 설정 */
+  z-index: 4;
+  background: radial-gradient(
     circle at 32% 28%,
-    /* 중심을 살짝 따뜻한 색으로 시작해서 흰 영역이 넓게 차지하지 않도록 조정 */
-    rgba(255, 222, 203, 0.8) 0%,
-    rgba(255, 187, 150, 0.32) 42%,
-    rgba(255, 132, 94, 0.2) 70%,
-    rgba(154, 237, 180, 0.2) 100%
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 214, 234, 0.65) 40%,
+    rgba(255, 214, 234, 0.0) 100%
   );
-  background-size: 320% 320%;
-  /* 주변 블롭은 위치만 천천히 드리프트하고 내부 그라데이션은 고정 */
-  animation: ${blobInterestDrift} 18s ease-in-out infinite;
+  filter: blur(0.18vw);
 `;
 
-export const Sw1WonderBlob = styled(BlobBase)`
-  top: 44vw;
-  left: 24vw;
-  --blob-bg: radial-gradient(
-    circle at 30% 30%,
-    rgba(222, 231, 255, 0.82) 0%,
-    rgba(160, 190, 255, 0.28) 50%,
-    rgba(170, 130, 255, 0.2) 78%,
-    rgba(140, 255, 210, 0.22) 100%
-  );
-  background-size: 320% 320%;
-  animation: ${blobWonderDrift} 19s ease-in-out infinite;
+export const Sw1SmallOrbitDot1 = styled(SmallOrbitDotBase)`
+  /* 큰 블롭들보다 살짝 안쪽 링에서 회전 - 좌상단 */
+  transform: translate(-50%, -50%) rotate(-60deg)
+             translateX(calc(var(--R) * 1.2));
 `;
 
-export const Sw1HappyBlob = styled(BlobBase)`
-  top: 10vw;
-  left: 22vw;
-  --blob-bg: radial-gradient(
-    circle at 34% 26%,
-    rgba(255, 223, 240, 0.8) 0%,
-    rgba(255, 160, 190, 0.3) 52%,
-    rgba(255, 120, 170, 0.2) 80%,
-    rgba(248, 245, 255, 0.3) 100%
-  );
-  background-size: 320% 320%;
-  animation: ${blobHappyDrift} 17s ease-in-out infinite;
+export const Sw1SmallOrbitDot2 = styled(SmallOrbitDotBase)`
+  /* 우상단 */
+  transform: translate(-50%, -50%) rotate(60deg)
+             translateX(calc(var(--R) * 1.2));
 `;
 
-export const Sw1MoistureBlob = styled(BlobBase)`
-  top: 46vw;
-  left: 74vw;
-  --blob-bg: radial-gradient(
-    circle at 30% 30%,
-    rgba(219, 236, 255, 0.8) 0%,
-    rgba(120, 165, 255, 0.24) 50%,
-    rgba(190, 150, 210, 0.2) 80%,
-    rgba(170, 210, 255, 0.24) 100%
-  );
-  background-size: 320% 320%;
-  animation: ${blobMoistureDrift} 20s ease-in-out infinite;
+export const Sw1SmallOrbitDot3 = styled(SmallOrbitDotBase)`
+  /* 하단 중앙 */
+  transform: translate(-50%, -50%) rotate(180deg)
+             translateX(calc(var(--R) * 1.18));
 `;
