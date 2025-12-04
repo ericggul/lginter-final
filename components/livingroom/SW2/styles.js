@@ -643,7 +643,7 @@ const Sw2BlobBase = styled.div`
   /* 바깥 halo: 실제 색과 blur는 ::before 에서만 처리해서 텍스트는 선명하게 유지 */
   &::before {
     content: '';
-    position: absolute;
+  position: absolute;
     inset: -3.2vw;
     border-radius: inherit;
     background: var(--blob-bg, transparent);

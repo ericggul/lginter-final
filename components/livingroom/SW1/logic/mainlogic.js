@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import useSocketSW1 from '@/utils/hooks/useSocketSW1';
 import { playSfx } from '@/utils/hooks/useSound';
+import { ensureBlobCount, computeAgeSizeBoost, computeSimilarityRadiusScale } from './moving';
 
 // 최대 슬롯 개수 (화면에 표현할 수 있는 사용자 수)
 // 백엔드 payload는 그대로 두고, 프론트에서 몇 명까지 배치할지만 제어한다.
@@ -12,10 +13,13 @@ export const SW1_BLOB_CONFIGS = [
   { id: 'slot3', componentKey: 'Sw1OrbitBlob', angleDeg: 25,   depthLayer: 0, radiusFactor: 1.55 }, // 정면 오른쪽, 앞 (기준에 가깝게)
   { id: 'slot4', componentKey: 'Sw1OrbitBlob', angleDeg: 140,  depthLayer: 0, radiusFactor: 1.80 }, // 정면 왼쪽, 앞 (가장 바깥)
   { id: 'slot5', componentKey: 'Sw1OrbitBlob', angleDeg: -155, depthLayer: 1, radiusFactor: 1.30 }, // 우-아래, 중간 (가장 안쪽)
+  // 추가 슬롯(최대 10개까지 확장 가능)
+  { id: 'slot6', componentKey: 'Sw1OrbitBlob', angleDeg: -60,  depthLayer: 2, radiusFactor: 1.62 },
+  { id: 'slot7', componentKey: 'Sw1OrbitBlob', angleDeg: 60,   depthLayer: 1, radiusFactor: 1.68 },
 ];
 
 const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
-const DUMMY_ID_REGEX = /^u[A-E]$/;
+const DUMMY_ID_REGEX = /^dummy:/;
 
 // Humidity → mode label
 export function computeMode(humidity) {
@@ -61,19 +65,13 @@ export function useSW1Logic() {
   const [climate, setClimate] = useState({ temp: 23, humidity: 50 });
   const [dotCount, setDotCount] = useState(0);
   const [activeUsers, setActiveUsers] = useState(new Set());
+  const [timelineState, setTimelineState] = useState('t1'); // t1..t5
+  const [stateTick, setStateTick] = useState(0);
+  const [bloomTick, setBloomTick] = useState(0); // T3/T4 트리거
+  const [typeTick, setTypeTick] = useState(0);  // T4 타이포 라이즈 트리거
 
   // Mini blobs: per-user results (up to MAX_BLOBS). Start with dummy values.
-  const [miniResults, setMiniResults] = useState(() => {
-    // uA ~ uE 까지를 더미 아이디로 사용 (백엔드와는 무관한 프론트 전용)
-    return Array.from({ length: MAX_BLOBS }, (_, idx) => {
-      const letter = String.fromCharCode(65 + idx); // A, B, ...
-      return {
-        userId: `u${letter}`,
-        temp: 23,
-        humidity: 50,
-      };
-    });
-  });
+  const [miniResults, setMiniResults] = useState(() => []);
   // Track previously seen real userIds to detect new blob creations
   const prevRealUsersRef = useRef(new Set());
 
@@ -111,15 +109,66 @@ export function useSW1Logic() {
 
   // Wire socket listeners (orchestrated path only; ignore legacy device-decision to prevent count resets)
   useSocketSW1({
+    onTimelineStage: (payload) => {
+      try {
+        const stage = String(payload?.stage || '').toLowerCase();
+        // map server names to t1..t5
+        const map = {
+          welcome: 't1',
+          voicestart: 't2',
+          voiceinput: 't3',
+          orchestrated: 't4',
+          result: 't5',
+          t1: 't1', t2: 't2', t3: 't3', t4: 't4', t5: 't5',
+        };
+        const next = map[stage] || timelineState;
+        if (next !== timelineState) {
+          setTimelineState(next);
+          setStateTick((x) => x + 1);
+          if (next === 't3') {
+            setBloomTick((x) => x + 1); // enter bloom once
+            // T3에서 미니 블롭 하나 방출(공간이 있으면)
+            setMiniResults((prev) => {
+              const nextArr = [...prev];
+              // find a dummy or earliest slot to replace
+          const idx = nextArr.findIndex((r) => !r || DUMMY_ID_REGEX.test(String(r.userId || '')));
+              const i = idx >= 0 ? idx : 0;
+              nextArr[i] = {
+                userId: `emit:${Date.now()}`,
+                temp: climate.temp,
+                humidity: climate.humidity,
+                addedAt: Date.now(),
+                isNew: true,
+              };
+              return nextArr;
+            });
+          }
+        }
+      } catch {}
+    },
     onDeviceNewDecision: (msg) => {
       if (!msg || msg.target !== 'sw1') return;
       const env = msg.env || {};
+      // Controller가 범위(18~30℃)를 보장해야 함. 여기서는 수신값을 신뢰한다.
+      // 단, 로컬에서 합성하는 fallback(variance)에는 최소한의 안전 클램프만 적용.
+      const clampTempLocal = (t) => {
+        if (typeof t !== 'number' || Number.isNaN(t)) return null;
+        return Math.round(t);
+      };
+      const withVariance = (base, offset) => {
+        const v = (typeof base === 'number' ? base : 23) + offset;
+        // 합성 데이터만 18~30으로 한정해 시각적 일관성 유지
+        return Math.max(18, Math.min(30, Math.round(v)));
+      };
       const nextClimate = {
-        temp: typeof env.temp === 'number' ? env.temp : climate.temp,
+        temp: typeof env.temp === 'number' ? clampTempLocal(env.temp) : climate.temp,
         humidity: typeof env.humidity === 'number' ? env.humidity : climate.humidity,
       };
       setClimate(nextClimate);
       try { window.__sw1DecisionTick = (window.__sw1DecisionTick || 0) + 1; } catch {}
+      // T4: 디시전 수신 시 블룸/타입 트리거
+      setBloomTick((x) => x + 1);
+      setTypeTick((x) => x + 1);
 
       // Participants (source-of-truth from message)
       const merged = Array.isArray(msg.mergedFrom) ? msg.mergedFrom : [];
@@ -156,8 +205,10 @@ export function useSW1Logic() {
               const idx = pickSlotForUser(uid, next);
               next[idx] = {
                 userId: uid || next[idx]?.userId || `u${idx}`,
-                temp: typeof it.temp === 'number' ? it.temp : nextClimate.temp,
+                temp: typeof it.temp === 'number' ? clampTempLocal(it.temp) : nextClimate.temp,
                 humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
+                addedAt: Date.now(),
+                isNew: true,
               };
             });
             return next;
@@ -175,9 +226,17 @@ export function useSW1Logic() {
         if (uniq.length) {
           setMiniResults((prev) => {
             const next = [...prev];
-            uniq.forEach((uid) => {
+            const offsets = [-15, -7, 0, 7, 15]; // spread ≈ 30°
+            uniq.forEach((uid, i) => {
               const idx = pickSlotForUser(uid, next);
-              next[idx] = { userId: uid, temp: nextClimate.temp, humidity: nextClimate.humidity };
+              const off = offsets[i % offsets.length];
+              next[idx] = {
+                userId: uid,
+                temp: withVariance(nextClimate.temp, off),
+                humidity: nextClimate.humidity,
+                addedAt: Date.now() - i * 800,
+                isNew: i === 0,
+              };
             });
             return next;
           });
@@ -192,8 +251,10 @@ export function useSW1Logic() {
           const idx = pickSlotForUser(uid, next);
           next[idx] = {
             userId: uid,
-            temp: typeof it.temp === 'number' ? it.temp : nextClimate.temp,
+            temp: typeof it.temp === 'number' ? clampTempLocal(it.temp) : nextClimate.temp,
             humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
+            addedAt: Date.now(),
+            isNew: true,
           };
           return next;
         });
@@ -230,12 +291,22 @@ export function useSW1Logic() {
 
   // Derive mini-blob display text set (temp on top, humidity% on bottom)
   const miniBlobDisplay = useMemo(() => {
-    return SW1_BLOB_CONFIGS.map((cfg, idx) => {
-      const r = miniResults[idx];
+    // 최대 10, 최소 3개 유지: 부족하면 더미로 채움 (moving helper)
+    const filled = ensureBlobCount(miniResults, climate, 3, MAX_BLOBS);
+    return SW1_BLOB_CONFIGS.slice(0, filled.length).map((cfg, idx) => {
+      const r = filled[idx];
       const top = r?.temp != null ? `${r.temp}℃` : '';
       const bottom = r?.humidity != null ? `${Math.round(r.humidity)}%` : '';
+      const addedAt = r?.addedAt || 0;
+      // size boost by age
+      const ageScale = computeAgeSizeBoost(addedAt);
+      // similarity-based radius scale
+      const radiusScale = computeSimilarityRadiusScale(climate?.temp, r?.temp, { near: 0.88, far: 1.12, normalizeRange: 20 });
       return {
         ...cfg,
+        radiusFactorDynamic: cfg.radiusFactor * radiusScale,
+        sizeBoost: ageScale,
+        isNew: Boolean(r?.isNew),
         // per-blob 기후값을 노출해 개별 컬러 계산에 사용
         temp: r?.temp ?? null,
         humidity: r?.humidity ?? null,
@@ -246,7 +317,7 @@ export function useSW1Logic() {
         zSeed: zSeeds[idx] ?? 0,
       };
     });
-  }, [miniResults, zSeeds]);
+  }, [miniResults, zSeeds, climate]);
 
   // Play sfx when a new real user appears in mini blobs
   useEffect(() => {
@@ -288,6 +359,10 @@ export function useSW1Logic() {
     participantCount,
     dotCount,
     decisionTick: (typeof window !== 'undefined' && window.__sw1DecisionTick) || 0,
+    timelineState,
+    stateTick,
+    bloomTick,
+    typeTick,
   };
 }
 

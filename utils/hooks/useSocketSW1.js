@@ -79,6 +79,37 @@ export default function useSocketSW1(options = {}) {
     socketRef.current?.emit(EVENTS.DEVICE_NEW_DECISION, payload);
   };
 
+  // 테스트용: 타임라인 강제 전송(T1~T5)
+  const emitTimelineStage = (stage) => {
+    try {
+      const payload = { stage, ts: Date.now(), source: 'test' };
+      socketRef.current?.emit(EVENTS.TIMELINE_STAGE, payload);
+    } catch {}
+  };
+
+  // 테스트용: SW1이 필요로 하는 필드를 그대로 보냄
+  // { env: { temp, humidity }, mergedFrom: [userIds], individuals: [{ userId, temp, humidity }] }
+  const emitDecisionWithIndividuals = (msg = {}) => {
+    try {
+      // 컨트롤러 역할을 대체하는 테스트용: 여기서 18~30℃ 보정
+      const clamp = (t) => {
+        if (typeof t !== 'number' || Number.isNaN(t)) return t;
+        return Math.max(18, Math.min(30, Math.round(t)));
+      };
+      const safe = { ...msg };
+      if (safe.env && typeof safe.env.temp === 'number') {
+        safe.env = { ...safe.env, temp: clamp(safe.env.temp) };
+      }
+      if (Array.isArray(safe.individuals)) {
+        safe.individuals = safe.individuals.map((it) => ({
+          ...it,
+          temp: typeof it?.temp === 'number' ? clamp(it.temp) : it?.temp,
+        }));
+      }
+      socketRef.current?.emit(EVENTS.DEVICE_NEW_DECISION, safe);
+    } catch {}
+  };
+
   const emitDeviceVoice = (text, emotion, meta = {}) => {
     const payload = createBasePayload("sw1", { text, emotion, meta });
     socketRef.current?.emit(EVENTS.DEVICE_NEW_VOICE, payload);
@@ -87,6 +118,8 @@ export default function useSocketSW1(options = {}) {
   return { 
     socket,
     emitClimateDecision, 
-    emitDeviceVoice 
+    emitDeviceVoice,
+    emitTimelineStage,
+    emitDecisionWithIndividuals
   };
 }

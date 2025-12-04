@@ -327,7 +327,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           $isIOS={isIOS}
         />
         <S.BlobCssGlobal />
-          <S.BlobWrapper
+        <S.BlobWrapper
           $top={blobTop}
           $size={blobSize}
           $opacity={blobAlpha}

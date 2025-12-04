@@ -12,6 +12,8 @@ export const MotionProps = createGlobalStyle`
   /* 중심 공전 반경 호흡용 커스텀 프로퍼티 */
   @property --orbit-radius-mod { syntax: '<number>'; inherits: false; initial-value: 1; }
   @property --orbit-radius-amp { syntax: '<number>'; inherits: false; initial-value: 0.14; }
+  /* 신규 블롭 등장용 스케일 */
+  @property --new-scale { syntax: '<number>'; inherits: false; initial-value: 1; }
 `;
 
 /* BackgroundCanvas blob center swirl for D (matches SmallBlobD path/speed) */
@@ -198,6 +200,7 @@ export const GradientEllipse = styled.div`
   width: calc(100vw * 2100 / 3840);
   height: calc(100vw * 2100 / 3840);
   transform: translate(-50%, -50%) rotate(-90deg);
+  transition: transform 1200ms cubic-bezier(0.22, 1, 0.36, 1), filter 600ms ease;
   background: radial-gradient(
     47.13% 47.13% at 50% 50%,
     #FFFFFF 37.5%,
@@ -246,6 +249,44 @@ export const CenterSaturationPulse = styled.div`
   );
 
   animation: ${centerSaturationPulse} 6.2s ease-in-out infinite;
+`;
+
+/* T2 진행 중 표시: 중앙에서 작게 퍼지는 인디케이터 */
+const indicatorPulse = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.0;
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.0);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0.0;
+    box-shadow: 0 0 0.35vw 0.10vw rgba(255,255,255,0.75);
+  }
+`;
+
+export const CenterIndicator = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(var(--largestBlobSize) * 0.10);
+  height: calc(var(--largestBlobSize) * 0.10);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255,255,255,1.0) 0%,
+    rgba(255,255,255,0.85) 45%,
+    rgba(255,255,255,0.0) 80%
+  );
+  mix-blend-mode: screen;
+  filter: blur(0.08vw);
+  pointer-events: none;
+  z-index: 8;
+  animation: ${indicatorPulse} 1400ms ease-out infinite;
 `;
 
 /* 중앙 이너 블롭(작은 코어)의 호흡 애니메이션 */
@@ -346,6 +387,12 @@ export const CenterPulse = styled.div`
   &::after {
     animation-delay: 6s;
   }
+`;
+
+/* 결정 순간 한 번만 강하게 퍼지는 링 (T3/T4 트리거용) */
+export const CenterPulseOnce = styled(CenterPulse)`
+  animation: ${centerPulseWave} 1.4s ease-out 1;
+  &::before, &::after { display: none; }
 `;
 
 export const EllipseLayer = styled.div`
@@ -542,6 +589,12 @@ const blobInnerParallax = keyframes`
   }
 `;
 
+/* 신규 블롭 팝-인 스케일 (transform 직접 애니메이션 대신 커스텀 프로퍼티 사용) */
+const newBlobScale = keyframes`
+  0%   { --new-scale: 0.90; }
+  100% { --new-scale: 1.00; }
+`;
+
 /* z축으로 살짝 앞으로/뒤로 튀어나오는 느낌의 스케일/투명도 펄스 */
 const zPulse = keyframes`
   0%, 100% {
@@ -561,6 +614,24 @@ const zPulse = keyframes`
   }
 `;
 
+/* 신규 블롭 전용: 동일한 스케일 펄스지만 opacity는 고정 → 알파 튐 방지 */
+const zPulseNew = keyframes`
+  0%, 100% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(var(--z-scale-base));
+    opacity: var(--z-opacity-base);
+  }
+  40% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(calc(var(--z-scale-base) * 1.2));
+    opacity: var(--z-opacity-base);
+  }
+  70% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(calc(var(--z-scale-base) * 0.9));
+    opacity: var(--z-opacity-base);
+  }
+`;
 const blobInterestSize = keyframes`
   0%   { width: 20vw; height: 20vw; }
   40%  { width: 26vw; height: 26vw; }
@@ -734,7 +805,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   }}
 
   transform: translate(-50%, -50%) var(--orbit-transform)
-             scale(var(--z-scale-base));
+             scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
   opacity: var(--z-opacity-base);
 
   /* 제공된 디자인 스펙을 반영한 컬러 그라데이션 */
@@ -773,12 +844,65 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     opacity: 0.45;
   }
 
+  /* 신규 블롭은 첫 0.9 -> 1.0로 부드럽게 스케일 인 */
+  &[data-new='true'] {
+    animation-name: ${blobInnerParallax}, ${zPulseNew}, ${orbitRadiusPulse}, ${newBlobScale};
+    animation-duration:
+      48s,
+      ${({ $zSeed = 0 }) => 16 + Math.round($zSeed * 9)}s,
+      ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s,
+      900ms;
+    animation-timing-function:
+      ease-in-out,
+      ease-in-out,
+      ease-in-out,
+      cubic-bezier(0.16, 1, 0.3, 1);
+    animation-iteration-count:
+      infinite,
+      infinite,
+      infinite,
+      1;
+    animation-fill-mode:
+      none,
+      none,
+      none,
+      forwards;
+  }
+
   &::after {
     inset: 0.35vw;
     filter: blur(calc(var(--z-blur-base) * 1.4));
     /* 내부 코어 그라데이션도 HSL 변수 기반으로 */
     background: var(--blob-bg, transparent);
   }
+`;
+
+/* T4: 새 미니 블롭이 처음 등장할 때의 흰색 본체 + 핑크 스트로크 오버레이 */
+const sw1NewFade = keyframes`
+  0%   { opacity: 0.0; }
+  35%  { opacity: 0.75; }
+  100% { opacity: 0.0; }
+`;
+
+export const NewBlobOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,0.98) 0%,
+    rgba(255,255,255,0.96) 52%,
+    rgba(255,255,255,0.90) 66%,
+    rgba(255,255,255,0.0) 86%
+  );
+  box-shadow: 0 0 0 0.08vw rgba(245, 106, 148, 0.70), inset 0 0 0 0.08vw rgba(245, 106, 148, 0.62);
+  filter: blur(0.10vw);
+  mix-blend-mode: screen;
+  opacity: 0;
+  will-change: opacity;
+  animation: ${sw1NewFade} 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 `;
 
 /* 가운데를 함께 도는 작은 원 3개 (데이터와 무관한 장식용) */

@@ -59,13 +59,50 @@ export default function SW1Controls() {
   const BACKGROUND_URL = null; // remove background PNG (big pink blobs)
   const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
 
-  const { blobConfigs, centerTemp, centerHumidity, participantCount, dotCount, decisionTick } = useSW1Logic();
+  const { blobConfigs, centerTemp, centerHumidity, participantCount, dotCount, decisionTick, timelineState, bloomTick, typeTick } = useSW1Logic();
   const organicCenterPath = useOrganicCenterPath();
   const [midPulseAlpha, setMidPulseAlpha] = useState(1);
+  const [bloomActive, setBloomActive] = useState(false);
+  useEffect(() => {
+    setBloomActive(true);
+    const id = setTimeout(() => setBloomActive(false), 2000);
+    return () => clearTimeout(id);
+  }, [bloomTick]);
   useEffect(() => {
     // new decision → brief alpha pulse
     pulseMidAlpha(setMidPulseAlpha, { down: 0.24, durationMs: 1000 });
   }, [decisionTick]);
+
+  // HUE/BG를 부드럽게 보간하기 위한 이징 유틸
+  const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const initialHue = computeBigBlobHues(centerTemp).mid2H;
+  const initialBg = computeBackgroundHsl(centerTemp);
+  const [animHue, setAnimHue] = useState(initialHue);
+  const [animBg, setAnimBg] = useState(initialBg); // {h,s,l}
+  useEffect(() => {
+    let raf;
+    const start = performance.now();
+    const duration = 800; // ms
+    const fromHue = animHue;
+    const toHue = computeBigBlobHues(centerTemp).mid2H;
+    const fromBg = animBg;
+    const toBg = computeBackgroundHsl(centerTemp);
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const k = easeInOutCubic(t);
+      const lerp = (a, b) => a + (b - a) * k;
+      setAnimHue(lerp(fromHue, toHue));
+      setAnimBg({
+        h: lerp(fromBg.h, toBg.h),
+        s: lerp(fromBg.s, toBg.s),
+        l: lerp(fromBg.l, toBg.l),
+      });
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centerTemp]);
 
   // Leva controls (HSL) for live-tuning center glow & background gradient
   const centerGlow = useControls('SW1 Center Glow (HSL)', {
@@ -163,7 +200,8 @@ export default function SW1Controls() {
 
   // Display current HSLA strings (for quick copy/reference)
   const rgbDisplay = useMemo(() => {
-    const { innerRingH, mid2H } = computeBigBlobHues(centerTemp);
+    const innerRingH = Math.round(animHue);
+    const mid2H = Math.round(animHue);
     return {
       inner: toHsla(centerGlow.innerH, centerGlow.innerS, centerGlow.innerL, centerGlow.innerAlpha),
       innerRing: toHsla(innerRingH, centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha),
@@ -172,7 +210,7 @@ export default function SW1Controls() {
       outer: toHsla(centerGlow.outerH, centerGlow.outerS, centerGlow.outerL, centerGlow.outerAlpha),
     };
   }, [
-    centerTemp, midPulseAlpha,
+    animHue, midPulseAlpha,
     centerGlow.innerH, centerGlow.innerS, centerGlow.innerL, centerGlow.innerAlpha,
     centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha,
     centerGlow.mid1H, centerGlow.mid1S, centerGlow.mid1L, centerGlow.mid1Alpha,
@@ -180,7 +218,8 @@ export default function SW1Controls() {
     centerGlow.outerH, centerGlow.outerS, centerGlow.outerL, centerGlow.outerAlpha,
   ]);
   const centerGlowStyle = useMemo(() => {
-    const { innerRingH, mid2H } = computeBigBlobHues(centerTemp);
+    const innerRingH = Math.round(animHue);
+    const mid2H = Math.round(animHue);
     const c1     = toHsla(centerGlow.innerH,     centerGlow.innerS,     centerGlow.innerL,     centerGlow.innerAlpha);
     const cRing  = toHsla(innerRingH,            centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha);
     const c2     = toHsla(centerGlow.mid1H,      centerGlow.mid1S,      centerGlow.mid1L,      centerGlow.mid1Alpha * midPulseAlpha);
@@ -204,27 +243,31 @@ export default function SW1Controls() {
 
     return {
       background: gradient,
-      filter: `blur(${centerGlow.blur}px) brightness(${centerGlow.centerBrightness})`,
+      filter: `blur(${centerGlow.blur + (timelineState === 't2' ? 8 : 0)}px) brightness(${centerGlow.centerBrightness})`,
+      // T3/T4: 잠시 블룸 확장
+      transform: `translate(-50%, -50%) rotate(-90deg) scale(${bloomActive ? 1.08 : 1})`,
+      transition: 'background 600ms ease-in-out, transform 1200ms cubic-bezier(0.22,1,0.36,1), filter 600ms ease',
       boxShadow:
         centerGlow.outerGlowRadius > 0 && centerGlow.outerGlowAlpha > 0
           ? `0 0 ${centerGlow.outerGlowRadius}px rgba(255, 255, 255, ${centerGlow.outerGlowAlpha})`
           : 'none',
     };
-  }, [centerGlow]);
+  }, [centerGlow, animHue, midPulseAlpha, bloomActive, timelineState]);
 
   const rootBackgroundStyle = useMemo(() => {
-    const wrap = (h, s, l) =>
-      `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
-    // 더 연한 톤으로 고정(topS=42, topL=88)
-    const top    = wrap(background.topH, 42, 88);
-    const mid    = wrap(background.midH, background.midS, background.midL);
-    const bottom = wrap(background.bottomH, background.bottomS, background.bottomL);
+    const wrap = (h, s, l) => `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+    const H = animBg.h;
+    // 상단은 더 연하고, 전체는 같은 H로 움직여 배경도 온도에 반응
+    const top    = wrap(H, 42, 88);
+    const mid    = wrap(H, Math.max(20, Math.round(animBg.s * 0.8)), Math.min(100, Math.round(animBg.l)));
+    const bottom = wrap(H, Math.max(30, Math.round(animBg.s * 0.9)), Math.min(100, Math.round(animBg.l + 2)));
     const gradient = `linear-gradient(${background.angle}deg, ${top} 0%, ${top} ${background.midStop}%, ${mid} ${background.midStop2}%, ${bottom} 100%)`;
     return {
-      backgroundColor: wrap(background.baseH, background.baseS, background.baseL),
+      backgroundColor: wrap(H, Math.max(15, Math.round(animBg.s * 0.6)), Math.min(100, Math.round(animBg.l + 4))),
       backgroundImage: gradient,
+      transition: 'background-color 700ms ease-in-out, background-image 700ms ease-in-out',
     };
-  }, [background]);
+  }, [background.angle, background.midStop, background.midStop2, animBg]);
 
   return (
     <S.Root $backgroundUrl={BACKGROUND_URL} style={rootBackgroundStyle}>
@@ -256,8 +299,9 @@ export default function SW1Controls() {
                 key={b.id}
                 $angleDeg={b.angleDeg}
                 $depthLayer={b.depthLayer}
-                $radiusFactor={b.radiusFactor}
+                $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
                 $zSeed={b.zSeed}
+                data-new={b.isNew ? 'true' : 'false'}
                 style={{
                   // HSL variables for gradient in styles
                   '--blob-h': miniColor.h,
@@ -269,6 +313,7 @@ export default function SW1Controls() {
                   '--blob-warm-s2': `${miniColor.warmS2}%`,
                   '--blob-warm-l2': '88%',
                   '--blob-warm-start': '60%',
+                  '--size-boost': b.sizeBoost ?? 1,
                   // 각 블롭마다 호흡 강도를 미세하게 다르게
                   '--orbit-radius-amp': (() => {
                     if (b.depthLayer === 0) return '0.22';
@@ -277,6 +322,7 @@ export default function SW1Controls() {
                   })(),
                 }}
               >
+                {b.isNew && <S.NewBlobOverlay />}
                 <S.ContentRotator $duration={animation.rotationDuration}>
                   <strong>{b.top}</strong>
                   <span>{b.bottom}</span>
@@ -312,6 +358,10 @@ export default function SW1Controls() {
           </g>
         </svg>
         <S.GradientEllipse style={centerGlowStyle} />
+        {/* 결정 시 한 번만 강하게 퍼지는 링(화이트 블롭이 분리되어 나오는 느낌 강화) */}
+        {bloomActive && <S.CenterPulseOnce key={bloomTick} />}
+        {/* T2: 중앙 처리 인디케이터 */}
+        {timelineState === 't2' && <S.CenterIndicator />}
         {/* 가운데 원 mid1Color 채도 펄스 오버레이 */}
         <S.CenterSaturationPulse />
         {/* 중앙 작은 코어: 아주 은은한 호흡 애니메이션 */}
