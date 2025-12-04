@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
+import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { useTV2Logic } from './logic';
@@ -62,6 +63,129 @@ export default function TV2Controls() {
   const scalerRef = useRef(null);
 
   const cssVars = useBlobVars(env);
+
+  // Leva 컨트롤
+  const {
+    // 1. 경계 블러값과 범위 조절
+    edgeBlurAmount,
+    edgeBlurWidth,
+    // 2. 상단 헤더 그라데이션
+    headerGradientStart,
+    headerGradientMid,
+    headerGradientEnd,
+    headerGradientMidPos,
+    headerGradientOpacity,
+    // 3. 좌측 패널 백그라운드 그라데이션
+    leftPanelColor1,
+    leftPanelColor2,
+    leftPanelColor3,
+    leftPanelColor4,
+    leftPanelColor5,
+    leftPanelGradientPos1,
+    leftPanelGradientPos2,
+    leftPanelGradientPos3,
+    leftPanelGradientPos4,
+    leftPanelBlur,
+    // 4. 우측 원
+    rightCircleRight,
+    rightCircleTop,
+    rightCircleScale,
+    rightCircleWidth,
+    rightCircleHeight,
+    rightCircleColor1,
+    rightCircleColor1Opacity,
+    rightCircleColor2,
+    rightCircleColor2Opacity,
+    rightCircleColor3,
+    rightCircleColor3Opacity,
+    rightCircleColor4,
+    rightCircleColor4Opacity,
+    rightCircleGradientPos1,
+    rightCircleGradientPos2,
+    rightCircleGradientPos3,
+    rightCircleOpacity,
+    // 5. 우측 패널 배경색
+    rightPanelBgColor1,
+    rightPanelBgColor1Opacity,
+    rightPanelBgColor2,
+    rightPanelBgColor2Opacity,
+    rightPanelBgColor2Pos,
+    rightPanelBgColor3,
+    rightPanelBgColor3Opacity,
+    // 6. 텍스트/아이콘 그림자 및 글로우
+    textGlowColor,
+    textShadowColor,
+    textShadowOpacity,
+    textShadowBlur,
+    textShadowOffsetX,
+    textShadowOffsetY,
+    iconGlowColor,
+    iconShadowColor,
+    iconShadowOpacity,
+    iconShadowBlur,
+    iconShadowOffsetX,
+    iconShadowOffsetY,
+  } = useControls('TV2 Controls', {
+    // 1. 경계 블러값과 범위 조절
+    edgeBlurAmount: { value: 9, min: 0, max: 50, step: 1, label: '경계 블러 강도' },
+    edgeBlurWidth: { value: 8, min: 0, max: 100, step: 1, label: '경계 블러 범위' },
+    // 2. 상단 헤더 그라데이션
+    headerGradientStart: { value: '#4880e2', label: '헤더 시작 색상' },
+    headerGradientMid: { value: '#ffe9f4', label: '헤더 중간 색상' },
+    headerGradientEnd: { value: '#fcfcfc', label: '헤더 끝 색상' },
+    headerGradientMidPos: { value: 73, min: 0, max: 100, step: 1, label: '헤더 중간 위치(%)' },
+    headerGradientOpacity: { value: 1, min: 0, max: 1, step: 0.01, label: '헤더 투명도' },
+    // 3. 좌측 패널 백그라운드 그라데이션
+    leftPanelColor1: { value: '#ff719c', label: '좌측 색상1' },
+    leftPanelColor2: { value: '#ffe2ea', label: '좌측 색상2' },
+    leftPanelColor3: { value: '#fffded', label: '좌측 색상3' },
+    leftPanelColor4: { value: '#ffbac4', label: '좌측 색상4' },
+    leftPanelColor5: { value: '#f2e1e1', label: '좌측 색상5' },
+    leftPanelGradientPos1: { value: 0, min: 0, max: 360, step: 1, label: '좌측 그라데이션 위치1(deg)' },
+    leftPanelGradientPos2: { value: 0, min: 0, max: 360, step: 0.1, label: '좌측 그라데이션 위치2(deg)' },
+    leftPanelGradientPos3: { value: 150, min: 0, max: 360, step: 0.1, label: '좌측 그라데이션 위치3(deg)' },
+    leftPanelGradientPos4: { value: 283, min: 0, max: 360, step: 1, label: '좌측 그라데이션 위치4(deg)' },
+    leftPanelBlur: { value: 1, min: 0, max: 100, step: 1, label: '좌측 블러' },
+    // 4. 우측 원
+    rightCircleRight: { value: -4.9, min: -20, max: 20, step: 0.1, label: '우측 원 오른쪽 위치(%)' },
+    rightCircleTop: { value: 4, min: 0, max: 50, step: 0.1, label: '우측 원 상단 위치(%)' },
+    rightCircleScale: { value: 0.97, min: 0.1, max: 3, step: 0.01, label: '우측 원 크기 스케일' },
+    rightCircleWidth: { value: 2000, min: 500, max: 4000, step: 50, label: '우측 원 너비' },
+    rightCircleHeight: { value: 2000, min: 500, max: 4000, step: 50, label: '우측 원 높이' },
+    rightCircleColor1: { value: '#f8e9eb', label: '우측 원 색상1' },
+    rightCircleColor1Opacity: { value: 1, min: 0, max: 1, step: 0.01, label: '우측 원 색상1 투명도' },
+    rightCircleColor2: { value: '#e8adbe', label: '우측 원 색상2' },
+    rightCircleColor2Opacity: { value: 0.69, min: 0, max: 1, step: 0.01, label: '우측 원 색상2 투명도' },
+    rightCircleColor3: { value: '#d87199', label: '우측 원 색상3' },
+    rightCircleColor3Opacity: { value: 0.37, min: 0, max: 1, step: 0.01, label: '우측 원 색상3 투명도' },
+    rightCircleColor4: { value: '#fff3ed', label: '우측 원 색상4' },
+    rightCircleColor4Opacity: { value: 0.60, min: 0, max: 1, step: 0.01, label: '우측 원 색상4 투명도' },
+    rightCircleGradientPos1: { value: 21.5, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치1(%)' },
+    rightCircleGradientPos2: { value: 58.2, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치2(%)' },
+    rightCircleGradientPos3: { value: 67.5, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치3(%)' },
+    rightCircleOpacity: { value: 1, min: 0, max: 1, step: 0.01, label: '우측 원 전체 투명도' },
+    // 5. 우측 패널 배경색
+    rightPanelBgColor1: { value: '#ffffff', label: '우측 패널 배경색1' },
+    rightPanelBgColor1Opacity: { value: 0.95, min: 0, max: 1, step: 0.01, label: '우측 패널 배경색1 투명도' },
+    rightPanelBgColor2: { value: '#efebe1', label: '우측 패널 배경색2' },
+    rightPanelBgColor2Opacity: { value: 0.78, min: 0, max: 1, step: 0.01, label: '우측 패널 배경색2 투명도' },
+    rightPanelBgColor2Pos: { value: 55, min: 0, max: 100, step: 1, label: '우측 패널 배경색2 위치(%)' },
+    rightPanelBgColor3: { value: '#d8f5f8', label: '우측 패널 배경색3' },
+    rightPanelBgColor3Opacity: { value: 0.90, min: 0, max: 1, step: 0.01, label: '우측 패널 배경색3 투명도' },
+    // 6. 텍스트/아이콘 그림자 및 글로우
+    textGlowColor: { value: '#e9ffe6', label: '텍스트 글로우 색상' },
+    textShadowColor: { value: '#1c1b76', label: '텍스트 그림자 색상' },
+    textShadowOpacity: { value: 0.19, min: 0, max: 1, step: 0.01, label: '텍스트 그림자 투명도' },
+    textShadowBlur: { value: 8, min: 0, max: 20, step: 1, label: '텍스트 그림자 블러' },
+    textShadowOffsetX: { value: 1, min: -10, max: 10, step: 1, label: '텍스트 그림자 X 오프셋' },
+    textShadowOffsetY: { value: 0, min: -10, max: 10, step: 1, label: '텍스트 그림자 Y 오프셋' },
+    iconGlowColor: { value: '#e9ffe6', label: '아이콘 글로우 색상' },
+    iconShadowColor: { value: '#1c1b76', label: '아이콘 그림자 색상' },
+    iconShadowOpacity: { value: 0.19, min: 0, max: 1, step: 0.01, label: '아이콘 그림자 투명도' },
+    iconShadowBlur: { value: 8, min: 0, max: 20, step: 1, label: '아이콘 그림자 블러' },
+    iconShadowOffsetX: { value: 1, min: -10, max: 10, step: 1, label: '아이콘 그림자 X 오프셋' },
+    iconShadowOffsetY: { value: 0, min: -10, max: 10, step: 1, label: '아이콘 그림자 Y 오프셋' },
+  });
 
   // 3s toggle for header label (hex ↔ natural-language name)
   const [showAltLabel, setShowAltLabel] = useState(false);
@@ -185,22 +309,104 @@ export default function TV2Controls() {
     };
   }, []);
 
+  // 헤더 그라데이션 색상을 rgba로 변환
+  const hexToRgba = (hex, opacity = 1) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return hex;
+    const r = parseInt(result[1], 16);
+    const g = parseInt(result[2], 16);
+    const b = parseInt(result[3], 16);
+    return `rgba(${r},${g},${b},${opacity})`;
+  };
+
+  const headerGradientStartRgba = hexToRgba(headerGradientStart, headerGradientOpacity);
+  const headerGradientMidRgba = hexToRgba(headerGradientMid, headerGradientOpacity);
+  const headerGradientEndRgba = hexToRgba(headerGradientEnd, headerGradientOpacity);
+
+  // 우측 원 색상을 rgba로 변환 (각 색상의 투명도 적용)
+  const rightCircleColor1Rgba = hexToRgba(rightCircleColor1, rightCircleColor1Opacity);
+  const rightCircleColor2Rgba = hexToRgba(rightCircleColor2, rightCircleColor2Opacity);
+  const rightCircleColor3Rgba = hexToRgba(rightCircleColor3, rightCircleColor3Opacity);
+  const rightCircleColor4Rgba = hexToRgba(rightCircleColor4, rightCircleColor4Opacity);
+
+  // 우측 패널 배경색을 rgba로 변환
+  const rightPanelBgColor1Rgba = hexToRgba(rightPanelBgColor1, rightPanelBgColor1Opacity);
+  const rightPanelBgColor2Rgba = hexToRgba(rightPanelBgColor2, rightPanelBgColor2Opacity);
+  const rightPanelBgColor3Rgba = hexToRgba(rightPanelBgColor3, rightPanelBgColor3Opacity);
+
+  // 텍스트/아이콘 그림자 색상을 rgba로 변환
+  const textShadowColorRgba = hexToRgba(textShadowColor, textShadowOpacity);
+  const iconShadowColorRgba = hexToRgba(iconShadowColor, iconShadowOpacity);
+  const textGlowColorRgba = hexToRgba(textGlowColor, 0.5);
+  const iconGlowColorRgba = hexToRgba(iconGlowColor, 0.5);
+
   return (
     <S.Viewport>
       <S.Scaler ref={scalerRef} style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         <S.Root>
-          <S.Header>
-            <S.HeaderIcon>
+          <S.Header
+            $gradientStart={headerGradientStartRgba}
+            $gradientMid={headerGradientMidRgba}
+            $gradientEnd={headerGradientEndRgba}
+            $gradientMidPos={headerGradientMidPos}
+            $edgeBlurAmount={edgeBlurAmount}
+            $edgeBlurWidth={edgeBlurWidth}
+          >
+            <S.HeaderIcon
+              $glowColor={iconGlowColorRgba}
+              $shadowColor={iconShadowColorRgba}
+              $shadowBlur={iconShadowBlur}
+              $shadowOffsetX={iconShadowOffsetX}
+              $shadowOffsetY={iconShadowOffsetY}
+            >
               <img src="/figma/tv2-weather.png" alt="" loading="eager" />
             </S.HeaderIcon>
-            <S.HeaderTitle>{headerText}</S.HeaderTitle>
+            <S.HeaderTitle
+              $glowColor={textGlowColorRgba}
+              $shadowColor={textShadowColorRgba}
+              $shadowBlur={textShadowBlur}
+              $shadowOffsetX={textShadowOffsetX}
+              $shadowOffsetY={textShadowOffsetY}
+            >{headerText}</S.HeaderTitle>
           </S.Header>
           <S.Content>
-            <S.LeftPanel>
+            <S.LeftPanel
+              $color1={leftPanelColor1}
+              $color2={leftPanelColor2}
+              $color3={leftPanelColor3}
+              $color4={leftPanelColor4}
+              $color5={leftPanelColor5}
+              $pos1={leftPanelGradientPos1}
+              $pos2={leftPanelGradientPos2}
+              $pos3={leftPanelGradientPos3}
+              $pos4={leftPanelGradientPos4}
+              $blur={leftPanelBlur}
+              $edgeBlurAmount={edgeBlurAmount}
+              $edgeBlurWidth={edgeBlurWidth}
+            >
+              <S.LeftPanelRightEdge
+                $blurAmount={edgeBlurAmount}
+                $blurWidth={edgeBlurWidth}
+                $color1={leftPanelColor1}
+                $color2={leftPanelColor2}
+                $color4={leftPanelColor4}
+              />
               <S.AngularSweep />
               <S.AngularSharp />
-              <S.MusicRow>
-                <S.MusicIcon>
+              <S.MusicRow
+                $glowColor={textGlowColorRgba}
+                $shadowColor={textShadowColorRgba}
+                $shadowBlur={textShadowBlur}
+                $shadowOffsetX={textShadowOffsetX}
+                $shadowOffsetY={textShadowOffsetY}
+              >
+                <S.MusicIcon
+                  $glowColor={iconGlowColorRgba}
+                  $shadowColor={iconShadowColorRgba}
+                  $shadowBlur={iconShadowBlur}
+                  $shadowOffsetX={iconShadowOffsetX}
+                  $shadowOffsetY={iconShadowOffsetY}
+                >
                   <img src="/figma/tv2-song.png" alt="" />
                 </S.MusicIcon>
                 <div>{env.music}</div>
@@ -225,27 +431,88 @@ export default function TV2Controls() {
                   />
                 ) : null}
               </S.AlbumCard>
-              <S.TrackTitle>{title || env.music || ''}</S.TrackTitle>
-              <S.Artist>{artist || ''}</S.Artist>
+              <S.TrackTitle
+                $glowColor={textGlowColorRgba}
+                $shadowColor={textShadowColorRgba}
+                $shadowBlur={textShadowBlur}
+                $shadowOffsetX={textShadowOffsetX}
+                $shadowOffsetY={textShadowOffsetY}
+              >{title || env.music || ''}</S.TrackTitle>
+              <S.Artist
+                $glowColor={textGlowColorRgba}
+                $shadowColor={textShadowColorRgba}
+                $shadowBlur={textShadowBlur}
+                $shadowOffsetX={textShadowOffsetX}
+                $shadowOffsetY={textShadowOffsetY}
+              >{artist || ''}</S.Artist>
             </S.LeftPanel>
-            <S.RightPanel style={cssVars}>
-              <S.RightEllipseMark src="/figma/Ellipse%202767.png" alt="" />
+            <S.RightPanel
+              style={cssVars}
+              $edgeBlurAmount={edgeBlurAmount}
+              $edgeBlurWidth={edgeBlurWidth}
+              $bgColor1={rightPanelBgColor1Rgba}
+              $bgColor2={rightPanelBgColor2Rgba}
+              $bgColor2Pos={rightPanelBgColor2Pos}
+              $bgColor3={rightPanelBgColor3Rgba}
+            >
+              <S.RightEllipseMark 
+                src="/figma/Ellipse%202767.png" 
+                alt=""
+                $right={rightCircleRight}
+                $top={rightCircleTop}
+              />
               <S.ClimateGroup>
-                <S.ClimateRow>
-                  <S.ClimateIcon>
+                <S.ClimateRow
+                  $glowColor={textGlowColorRgba}
+                  $shadowColor={textShadowColorRgba}
+                  $shadowBlur={textShadowBlur}
+                  $shadowOffsetX={textShadowOffsetX}
+                  $shadowOffsetY={textShadowOffsetY}
+                >
+                  <S.ClimateIcon
+                    $glowColor={iconGlowColorRgba}
+                    $shadowColor={iconShadowColorRgba}
+                    $shadowBlur={iconShadowBlur}
+                    $shadowOffsetX={iconShadowOffsetX}
+                    $shadowOffsetY={iconShadowOffsetY}
+                  >
                     <img src="/figma/tv2-temperature.png" alt="" />
                   </S.ClimateIcon>
                   <div>{env.temp}°C</div>
                 </S.ClimateRow>
-                <S.ClimateRow>
-                  <S.ClimateIcon>
+                <S.ClimateRow
+                  $glowColor={textGlowColorRgba}
+                  $shadowColor={textShadowColorRgba}
+                  $shadowBlur={textShadowBlur}
+                  $shadowOffsetX={textShadowOffsetX}
+                  $shadowOffsetY={textShadowOffsetY}
+                >
+                  <S.ClimateIcon
+                    $glowColor={iconGlowColorRgba}
+                    $shadowColor={iconShadowColorRgba}
+                    $shadowBlur={iconShadowBlur}
+                    $shadowOffsetX={iconShadowOffsetX}
+                    $shadowOffsetY={iconShadowOffsetY}
+                  >
                     <img src="/figma/tv2-humidity.png" alt="" />
                   </S.ClimateIcon>
                   <div>{env.humidity}%</div>
                 </S.ClimateRow>
               </S.ClimateGroup>
-              <S.RightSw1Ellipse />
-              <S.RightCenterPulse />
+              <S.RightSw1Ellipse
+                $right={rightCircleRight}
+                $top={rightCircleTop}
+                $width={rightCircleWidth * rightCircleScale}
+                $height={rightCircleHeight * rightCircleScale}
+                $color1={rightCircleColor1Rgba}
+                $color2={rightCircleColor2Rgba}
+                $color3={rightCircleColor3Rgba}
+                $color4={rightCircleColor4Rgba}
+                $pos1={rightCircleGradientPos1}
+                $pos2={rightCircleGradientPos2}
+                $pos3={rightCircleGradientPos3}
+                $opacity={rightCircleOpacity}
+              />
             </S.RightPanel>
           </S.Content>
           {isIdle && (
