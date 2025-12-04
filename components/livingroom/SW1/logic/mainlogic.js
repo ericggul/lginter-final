@@ -301,10 +301,18 @@ export function useSW1Logic() {
       // size boost by age
       const ageScale = computeAgeSizeBoost(addedAt);
       // similarity-based radius scale
-      const radiusScale = computeSimilarityRadiusScale(climate?.temp, r?.temp, { near: 0.88, far: 1.12, normalizeRange: 20 });
+      // 유사도 반경: 너무 가까워져 가려지는 문제를 방지하기 위해 near 상향, 변화 곡선 완화
+      const radiusScale = computeSimilarityRadiusScale(
+        climate?.temp,
+        r?.temp,
+        { near: 1.0, far: 1.8, normalizeRange: 12 }
+      );
+      // 최솟값/최댓값 가드로 시각적 안정성 확보
+      const rfRaw = (cfg.radiusFactor ?? 1.55) * radiusScale;
+      const rfClamped = Math.max(1.18, Math.min(2.10, rfRaw));
       return {
         ...cfg,
-        radiusFactorDynamic: cfg.radiusFactor * radiusScale,
+        radiusFactorDynamic: rfClamped,
         sizeBoost: ageScale,
         isNew: Boolean(r?.isNew),
         // per-blob 기후값을 노출해 개별 컬러 계산에 사용

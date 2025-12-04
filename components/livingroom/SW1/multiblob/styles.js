@@ -14,6 +14,10 @@ export const MotionProps = createGlobalStyle`
   @property --orbit-radius-amp { syntax: '<number>'; inherits: false; initial-value: 0.14; }
   /* 신규 블롭 등장용 스케일 */
   @property --new-scale { syntax: '<number>'; inherits: false; initial-value: 1; }
+  /* 그룹 공전 각도(모든 자식에게 상속되어 역회전 고정에 사용) */
+  @property --sw1-rot-angle { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+  /* 자유 회전 블롭 반경 */
+  @property --free-r { syntax: '<number>'; inherits: false; initial-value: 1.0; }
 `;
 
 /* BackgroundCanvas blob center swirl for D (matches SmallBlobD path/speed) */
@@ -395,6 +399,29 @@ export const CenterPulseOnce = styled(CenterPulse)`
   &::before, &::after { display: none; }
 `;
 
+/* 완전한 화이트 코어가 분리되어 나오는 버스트 (opacity 1로 시작) */
+const whiteBurst = keyframes`
+  0%   { transform: translate(-50%, -50%) scale(0.95); opacity: 1; }
+  40%  { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.48); opacity: 0; }
+`;
+
+export const CenterWhiteBurst = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(var(--largestBlobSize) * 0.86);
+  height: calc(var(--largestBlobSize) * 0.86);
+  border-radius: 50%;
+  background: #FFFFFF;
+  filter: blur(0.10vw);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 8; /* 코어 위, 회전 PNG 아래/위는 필요시 조정 */
+  animation: ${whiteBurst} 1200ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+`;
+
 export const EllipseLayer = styled.div`
   display: none;
 `;
@@ -587,6 +614,24 @@ const blobInnerParallax = keyframes`
   100% {
     background-position: 100% 52%;
   }
+`;
+
+/* 항상 흐릿하게 돌아다니는 자유 블롭용 반경 펄스 */
+const freeRadiusPulse = keyframes`
+  0%   { --free-r: 0.9; }
+  40%  { --free-r: 1.3; }
+  70%  { --free-r: 1.0; }
+  100% { --free-r: 0.9; }
+`;
+
+/* 자유 회전(각속도만 다른 4종) */
+const freeRotateFast = keyframes`
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+`;
+const freeRotateMed = keyframes`
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(-360deg); }
 `;
 
 /* 신규 블롭 팝-인 스케일 (transform 직접 애니메이션 대신 커스텀 프로퍼티 사용) */
@@ -807,6 +852,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   transform: translate(-50%, -50%) var(--orbit-transform)
              scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
   opacity: var(--z-opacity-base);
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
 
   /* 제공된 디자인 스펙을 반영한 컬러 그라데이션 */
   --blob-bg: radial-gradient(
@@ -958,5 +1004,66 @@ export const ColorDebug = styled.div`
   box-shadow: 0 0.25vw 0.8vw rgba(0,0,0,0.08);
   pointer-events: none;
   z-index: 11;
+`;
+
+
+/* ===========================
+   항상 흐릿하게 돌아다니는 자유 블롭 4개
+   =========================== */
+const FreeBlurBase = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16vw;
+  height: 16vw;
+  border-radius: 50%;
+  pointer-events: none;
+  /* 매우 흐릿하고 은은한 존재감 */
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 187, 216, 0.45) 40%,
+    rgba(255, 187, 216, 0.00) 82%
+  );
+  filter: blur(2.4vw);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  z-index: 2;
+`;
+
+/* transform-chain: 중심 기준 회전 → 반경 이동(펄스) */
+const freeTransform = `
+  translate(-50%, -50%)
+  rotate(var(--free-angle, 0deg))
+  translateX(calc(var(--R) * var(--free-r)))
+`;
+
+export const FreeBlur1 = styled(FreeBlurBase)`
+  --free-angle: -30deg;
+  animation:
+    ${freeRotateFast} 36s linear infinite,
+    ${freeRadiusPulse} 9s ease-in-out infinite;
+  transform: ${freeTransform};
+`;
+export const FreeBlur2 = styled(FreeBlurBase)`
+  --free-angle: 60deg;
+  animation:
+    ${freeRotateMed} 44s linear infinite,
+    ${freeRadiusPulse} 12s ease-in-out infinite;
+  transform: ${freeTransform};
+`;
+export const FreeBlur3 = styled(FreeBlurBase)`
+  --free-angle: 150deg;
+  animation:
+    ${freeRotateFast} 52s linear infinite,
+    ${freeRadiusPulse} 10s ease-in-out infinite;
+  transform: ${freeTransform};
+`;
+export const FreeBlur4 = styled(FreeBlurBase)`
+  --free-angle: -140deg;
+  animation:
+    ${freeRotateMed} 40s linear infinite,
+    ${freeRadiusPulse} 11s ease-in-out infinite;
+  transform: ${freeTransform};
 `;
 

@@ -256,18 +256,17 @@ export default function SW1Controls() {
 
   const rootBackgroundStyle = useMemo(() => {
     const wrap = (h, s, l) => `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
-    const H = animBg.h;
-    // 상단은 더 연하고, 전체는 같은 H로 움직여 배경도 온도에 반응
-    const top    = wrap(H, 42, 88);
-    const mid    = wrap(H, Math.max(20, Math.round(animBg.s * 0.8)), Math.min(100, Math.round(animBg.l)));
-    const bottom = wrap(H, Math.max(30, Math.round(animBg.s * 0.9)), Math.min(100, Math.round(animBg.l + 2)));
-    const gradient = `linear-gradient(${background.angle}deg, ${top} 0%, ${top} ${background.midStop}%, ${mid} ${background.midStop2}%, ${bottom} 100%)`;
+    // 요청: S/L은 고정값(Leva baseS/baseL)을 사용하고, H만 변화(=animHue 기반)하도록 설정
+    const H = Math.round(animHue);
+    const S = background.baseS;
+    const L = background.baseL;
+    const solid = wrap(H, S, L);
     return {
-      backgroundColor: wrap(H, Math.max(15, Math.round(animBg.s * 0.6)), Math.min(100, Math.round(animBg.l + 4))),
-      backgroundImage: gradient,
-      transition: 'background-color 700ms ease-in-out, background-image 700ms ease-in-out',
+      backgroundColor: solid,
+      backgroundImage: 'none',
+      transition: 'background-color 700ms ease-in-out',
     };
-  }, [background.angle, background.midStop, background.midStop2, animBg]);
+  }, [animHue, background.baseS, background.baseL]);
 
   return (
     <S.Root $backgroundUrl={BACKGROUND_URL} style={rootBackgroundStyle}>
@@ -335,6 +334,11 @@ export default function SW1Controls() {
           <S.Sw1SmallOrbitDot2 />
           <S.Sw1SmallOrbitDot3 />
         </S.BlobRotator>
+        {/* 항상 흐릿하게 돌아다니는 자유 블롭 4개 (데이터 무관, 아주 부드럽고 은은) */}
+        <S.FreeBlur1 />
+        <S.FreeBlur2 />
+        <S.FreeBlur3 />
+        <S.FreeBlur4 />
         {/* 유기적으로 일렁이는 중앙 화이트 코어 (기존 GradientEllipse 아래에 베이스로 깔림) */}
         <svg
           width="0"
@@ -360,6 +364,8 @@ export default function SW1Controls() {
         <S.GradientEllipse style={centerGlowStyle} />
         {/* 결정 시 한 번만 강하게 퍼지는 링(화이트 블롭이 분리되어 나오는 느낌 강화) */}
         {bloomActive && <S.CenterPulseOnce key={bloomTick} />}
+        {/* 완전한 화이트 코어 버스트(불투명) */}
+        {bloomActive && <S.CenterWhiteBurst key={`wb-${bloomTick}`} />}
         {/* T2: 중앙 처리 인디케이터 */}
         {timelineState === 't2' && <S.CenterIndicator />}
         {/* 가운데 원 mid1Color 채도 펄스 오버레이 */}
