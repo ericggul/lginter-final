@@ -3,7 +3,7 @@ import useSocketTV1 from "@/utils/hooks/useSocketTV1";
 import * as S from './styles';
 import * as B from './blobtextbox/@boxes';
 import { calculateBlobWidth } from './blobtextbox/@boxes';
-import { createSocketHandlers } from './logic';
+import { createSocketHandlers, initializeFixedBlobs } from './logic';
 
 export default function TV1Controls() {
   const [keywords, setKeywords] = useState([]);
@@ -55,9 +55,12 @@ export default function TV1Controls() {
     }
   });
   
-  // 새로운 감정 키워드 블롭 배열 (spawn point에서 시작하는 블롭들)
-  // 각 블롭: { id, blobType, text, gradient, top, left, rowIndex, timestamp, hour }
-  const [newBlobs, setNewBlobs] = useState([]);
+  // 새로운 감정 키워드 블롭 배열 (고정 블롭 + 동적 블롭)
+  // 각 블롭: { id, blobType, text, gradient, top, left, rowIndex, column, timestamp, hour, isFixed }
+  const [newBlobs, setNewBlobs] = useState(() => {
+    // 초기 마운트 시 고정 블롭 24개 생성
+    return initializeFixedBlobs(visibleBlobs, calculateBlobWidth);
+  });
   
   // 시간 표시 배열 (블롭 생성 시 시간대 변경 시 자동 생성)
   // 각 시간 표시: { hour: number, top: number, visible: boolean, timestamp: number }
@@ -316,6 +319,24 @@ export default function TV1Controls() {
         <B.AnnoyedBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Annoyed?.visible} $gradient={visibleBlobs.Annoyed?.gradient} $text={visibleBlobs.Annoyed?.text || ''} $left={blobPositions.Annoyed}>
           <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Annoyed?.text || ''}</span>
         </B.AnnoyedBox>
+        
+        {/* 고정 블롭 + 동적 블롭 렌더링 */}
+        {newBlobs.map((blob) => {
+          const BlobComponent = getBlobComponent(blob.blobType);
+          return (
+            <BlobComponent
+              key={blob.id}
+              $fontFamily={unifiedFont}
+              $visible={true}
+              $gradient={blob.gradient}
+              $text={blob.text}
+              $top={`${blob.top}vw`}
+              $left={`${blob.left}vw`}
+            >
+              <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{blob.text}</span>
+            </BlobComponent>
+          );
+        })}
         
       </S.Canvas>
     </S.Root>

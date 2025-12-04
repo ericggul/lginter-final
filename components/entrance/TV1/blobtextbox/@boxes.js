@@ -87,14 +87,7 @@ export const BlobBase = styled.div`
 `;
 
 // 흥미로움
-const defaultInterestGradient = `linear-gradient(
-    110deg,
-    rgba(91, 76, 255, 0.42) 10%,
-    rgba(255, 255, 255, 0.88) 28%,
-    rgba(255, 132, 94, 0.42) 52%,
-    rgba(55, 255, 252, 0.32) 74%,
-    rgba(66, 255, 142, 0.38) 92%
-  )`;
+const defaultInterestGradient = `linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(156, 75%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const InterestBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
@@ -145,7 +138,7 @@ export const InterestBox = styled(BlobBase)`
 `;
 
 // 장난스러움
-const defaultPlayfulGradient = `linear-gradient(189deg, hsl(328, 95%, 77%) 0%, hsl(165, 100%, 60%) 10%, hsl(165, 100%, 60%) 50%, hsl(165, 100%, 55%) 52%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
+const defaultPlayfulGradient = `linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(242, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const PlayfulBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
@@ -195,13 +188,7 @@ export const PlayfulBox = styled(BlobBase)`
 `;
 
 // 언짢음
-const defaultUpsetGradient = `linear-gradient(
-    151.58deg,
-    rgba(152, 195, 231, 0.34) 8%,
-    rgba(115, 75, 180, 0.38) 38%,
-    rgba(255, 166, 102, 0.44) 66%,
-    rgba(223, 141, 255, 0.36) 92%
-  )`;
+const defaultUpsetGradient = `linear-gradient(200deg, hsl(328, 95%, 77%) 0%, hsl(240, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const UpsetBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */ 
@@ -219,14 +206,7 @@ export const UpsetBox = styled(BlobBase)`
 `;
 
 // 뿌듯함
-const defaultProudGradient = `linear-gradient(
-    223.05deg,
-    rgba(255, 255, 255, 0.92) 10%,
-    rgba(88, 197, 255, 0.55) 28%,
-    rgba(255, 130, 234, 0.42) 52%,
-    rgba(198, 255, 141, 0.58) 76%,
-    rgba(255, 255, 255, 0.88) 92%
-  )`;
+const defaultProudGradient = `linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(72, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const ProudBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
@@ -244,13 +224,7 @@ export const ProudBox = styled(BlobBase)`
 `;
 
 // 부끄러움
-const defaultShyGradient = `linear-gradient(
-    223.05deg,
-    rgba(255, 255, 255, 0.92) 14%,
-    rgba(249, 255, 162, 0.62) 30%,
-    rgba(255, 125, 170, 0.45) 58%,
-    rgba(140, 255, 215, 0.58) 82%
-  )`;
+const defaultShyGradient = `linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(42, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const ShyBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
@@ -268,13 +242,7 @@ export const ShyBox = styled(BlobBase)`
 `;
 
 // 정신없음
-const defaultChaoticGradient = `linear-gradient(
-    223.05deg,
-    rgba(255, 255, 255, 0.92) 12%,
-    rgba(140, 255, 215, 0.58) 32%,
-    rgba(166, 120, 255, 0.45) 56%,
-    rgba(255, 160, 141, 0.62) 82%
-  )`;
+const defaultChaoticGradient = `linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(191, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const ChaoticBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
@@ -292,13 +260,7 @@ export const ChaoticBox = styled(BlobBase)`
 `;
 
 // 행복함
-const defaultHappyGradient = `linear-gradient(
-    131.16deg,
-    rgba(255, 255, 255, 0.92) 12%,
-    rgba(255, 74, 158, 0.58) 34%,
-    rgba(255, 255, 255, 0.88) 62%,
-    rgba(255, 60, 120, 0.52) 88%
-  )`;
+const defaultHappyGradient = `linear-gradient(249deg, hsl(328, 95%, 77%) 0%, hsl(302, 100%, 60%) 10%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const HappyBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
@@ -348,14 +310,7 @@ export const HappyBox = styled(BlobBase)`
 `;
 
 // 짜증남
-const defaultAnnoyedGradient = `linear-gradient(
-    100deg,
-    rgba(255, 255, 255, 0.88) 12%,
-    rgba(91, 76, 255, 0.42) 36%,
-    rgba(255, 80, 80, 0.35) 62%,
-    rgba(55, 255, 252, 0.38) 84%,
-    rgba(66, 255, 142, 0.42) 96%
-  )`;
+const defaultAnnoyedGradient = `linear-gradient(220deg, hsl(328, 95%, 77%) 0%, hsl(0, 100%, 60%) 10%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const AnnoyedBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
@@ -406,14 +361,7 @@ export const AnnoyedBox = styled(BlobBase)`
 `;
 
 // 배고픔
-const defaultHungryGradient = `linear-gradient(
-    243.46deg,
-    rgba(255, 255, 255, 0.92) 8%,
-    rgba(255, 120, 37, 0.6) 30%,
-    rgba(255, 254, 172, 0.62) 56%,
-    rgba(255, 72, 90, 0.45) 78%,
-    rgba(127, 225, 255, 0.55) 94%
-  )`;
+const defaultHungryGradient = `linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(317, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const HungryBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '45.135417vw'}; /* moved down by 2vw */
@@ -433,13 +381,7 @@ export const HungryBox = styled(BlobBase)`
 `;
 
 // 슬픔
-const defaultSadGradient = `linear-gradient(
-    243.46deg,
-    rgba(255, 255, 255, 0.92) 10%,
-    rgba(30, 72, 255, 0.55) 34%,
-    rgba(208, 136, 168, 0.55) 58%,
-    rgba(129, 198, 255, 0.55) 82%
-  )`;
+const defaultSadGradient = `linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(242, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const SadBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
@@ -489,13 +431,7 @@ export const SadBox = styled(BlobBase)`
 `;
 
 // 신기함
-const defaultWonderGradient = `linear-gradient(
-    259.38deg,
-    rgba(255, 255, 255, 0.92) 12%,
-    rgba(0, 0, 255, 0.5) 32%,
-    rgba(170, 0, 255, 0.38) 56%,
-    rgba(0, 255, 179, 0.52) 82%
-  )`;
+const defaultWonderGradient = `linear-gradient(258deg, hsl(328, 95%, 77%) 0%, hsl(18, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const WonderBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '27.135417vw'}; /* moved down by 2vw */
@@ -513,7 +449,7 @@ export const WonderBox = styled(BlobBase)`
 `;
 
 // 자기확신
-const defaultSelfConfidentGradient = `linear-gradient(135deg, hsl(328, 95%, 77%) 0%, hsl(86, 100%, 60%) 10%, hsl(328, 95%, 77%) 55%, hsl(280, 84%, 97%) 95%)`;
+const defaultSelfConfidentGradient = `linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(86, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)`;
 export const SelfConfidentBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */

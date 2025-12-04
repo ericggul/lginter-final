@@ -82,7 +82,36 @@ function toHslString(color) {
 
 // Map raw user input to a short, safe emotion keyword (3-5 chars where possible)
 function toEmotionKeyword(input) {
-  const s = String(input || '').toLowerCase().replace(/\s+/g, '');
+  if (!input || (typeof input !== 'string' && typeof input !== 'number')) {
+    console.log('⚠️ toEmotionKeyword: invalid input type:', typeof input, input);
+    return '중립';
+  }
+  
+  const original = String(input).trim();
+  if (!original) {
+    console.log('⚠️ toEmotionKeyword: empty input');
+    return '중립';
+  }
+  
+  // 한글은 대소문자가 없으므로 toLowerCase() 불필요, 공백만 제거
+  const s = original.replace(/\s+/g, '');
+  
+  console.log('🔍 toEmotionKeyword processing:', { original, normalized: s });
+  
+  // 정확한 매칭 우선 (원본 그대로 비교)
+  if (original === '무기력' || s === '무기력' || original.includes('무기력') || s.includes('무기력')) {
+    console.log('✅ toEmotionKeyword matched: 무기력');
+    return '무기력';
+  }
+  if (original === '자기확신' || s === '자기확신' || original.includes('자기확신') || s.includes('자기확신')) {
+    console.log('✅ toEmotionKeyword matched: 자기확신');
+    return '자기확신';
+  }
+  if (original === '상쾌함' || s === '상쾌함' || (original.includes('상쾌') && original.includes('함')) || (s.includes('상쾌') && s.includes('함'))) {
+    console.log('✅ toEmotionKeyword matched: 상쾌함');
+    return '상쾌함';
+  }
+  
   // Profanity → anger
   if (/씨발|시발|ㅅㅂ|좆|존나|개새|병신|fuck|fxxk|shit|bitch|asshole/i.test(s)) return '분노';
   if (/짜증|빡|열받|화남|빡침|개빡/i.test(s)) return '짜증';
@@ -90,7 +119,8 @@ function toEmotionKeyword(input) {
   if (/슬픔|슬퍼|우울|서운|눈물|울적/i.test(s)) return '슬픔';
   if (/불안|초조|긴장|걱정|두려/i.test(s)) return '불안';
   if (/행복|기쁨|좋아|신나|즐거|설렘|설레/i.test(s)) return '기쁨';
-  if (/상쾌|청량|상큼|산뜻|맑음/i.test(s)) return '상쾌';
+  if (/상쾌|청량|상큼|산뜻/i.test(s)) return '상쾌함'; // 상쾌 → 상쾌함으로 변환
+  if (/맑음/i.test(s)) return '맑음';
   if (/지루|무료|심심/i.test(s)) return '지루';
   if (/답답|막막/i.test(s)) return '답답';
   if (/편안|차분|고요|평온|안정/i.test(s)) return '차분';
@@ -99,7 +129,10 @@ function toEmotionKeyword(input) {
   if (/춥|추워|차갑/i.test(s)) return '추위';
   if (/건조|드라이/i.test(s)) return '건조';
   if (/습|눅눅|꿉꿉|후텁/i.test(s)) return '습함';
-  return '중립';
+  
+  // 매핑 실패 시 원본 텍스트를 그대로 반환 (TV1에서 블롭 생성 가능하도록)
+  console.log('⚠️ toEmotionKeyword: no match, returning original:', original);
+  return original;
 }
 
 export const config = {
@@ -226,10 +259,23 @@ export default function handler(req, res) {
       const payload = v.data;
 
       console.log("🎤 Received mobile-new-voice:", payload);
+      console.log("🎤 Raw text/emotion:", payload.text, payload.emotion);
 
-      const keyword = toEmotionKeyword(payload.text || payload.emotion);
-      // Entrance & LivingRoom: show sanitized short keyword only
-      io.to("entrance").emit("entrance-new-voice", { userId: payload.userId, text: keyword, emotion: keyword });
+      const originalText = String(payload.text || payload.emotion || '').trim();
+      const keyword = toEmotionKeyword(originalText);
+      console.log("🎤 Original text:", originalText, "→ Mapped keyword:", keyword);
+      
+      // Entrance & LivingRoom: 원본 텍스트를 우선 사용 (TV1에서 그라데이션 매칭을 위해)
+      // 매핑된 키워드가 "중립"이거나 원본과 다르면 원본 텍스트 사용
+      const finalText = (keyword === '중립' || !keyword || keyword === originalText) ? originalText : keyword;
+      console.log("🎤 Final text to send:", finalText, "(original:", originalText, ", keyword:", keyword, ")");
+      
+      io.to("entrance").emit("entrance-new-voice", { 
+        userId: payload.userId, 
+        text: finalText, 
+        emotion: finalText,
+        originalText: originalText // 원본 텍스트도 함께 전달
+      });
       io.to("livingroom").emit(EV.DEVICE_NEW_VOICE, { userId: payload.userId, text: keyword, emotion: keyword });
       // Controller: keep raw text for climate overrides; pass sanitized emotion
       io.to("controller").emit(EV.CONTROLLER_NEW_VOICE, { ...payload, emotion: keyword });

@@ -97,7 +97,7 @@ const pulseNow = keyframes`
 /* LeftLine and LeftLineBlur removed per request */
 export const LeftShape = styled.div`
   position: absolute;
-  top: 25.99375vw; /* white ellipse 위치로 이동 */
+  top: 43.2375vw; /* white ellipse 위치로 이동 (+10vw) */
   left: 13.989583vw; /* aligned to the rail, inside viewport */
   transform: translateX(-50%); /* center on the axis */
   width: 2.864583vw; /* 110px */
@@ -150,7 +150,7 @@ export const LeftShape4 = styled(LeftWhiteShape)`
 
 export const LeftNow = styled.div`
   position: absolute;
-  top: 26.2375vw; /* 13:00 위치로 이동 */
+  top: 43.2375vw; /* 13:00 위치로 이동 (+10vw) */
   left: 7.817708vw; /* line (5.859375vw) - 1.041667vw offset */
   transform: translateX(-50%);
   color: #FF72A6;
