@@ -97,7 +97,7 @@ const pulseNow = keyframes`
 /* LeftLine and LeftLineBlur removed per request */
 export const LeftShape = styled.div`
   position: absolute;
-  top: 25.99375vw; /* white ellipse 위치로 이동 */
+  top: 43.2375vw; /* white ellipse 위치로 이동 (+10vw) */
   left: 13.989583vw; /* aligned to the rail, inside viewport */
   transform: translateX(-50%); /* center on the axis */
   width: 2.864583vw; /* 110px */
@@ -150,7 +150,7 @@ export const LeftShape4 = styled(LeftWhiteShape)`
 
 export const LeftNow = styled.div`
   position: absolute;
-  top: 26.2375vw; /* 13:00 위치로 이동 */
+  top: 43.2375vw; /* 13:00 위치로 이동 (+10vw) */
   left: 7.817708vw; /* line (5.859375vw) - 1.041667vw offset */
   transform: translateX(-50%);
   color: #FF72A6;
@@ -274,7 +274,7 @@ export const AnnoyedBox = styled.div`
   border: 0.026042vw solid #FFFFFF; /* 1px */
   background: linear-gradient(98.92deg, rgba(91, 76, 255, 0.092) 23.61%, rgba(55, 255, 252, 0.046) 73.24%, rgba(66, 255, 142, 0.069) 92.2%);
   box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
-  opacity: 0.69;
+  opacity: 0.3;
   overflow: hidden; /* clip blur overlays to rounded shape */
   color: #000000;
   font-family: ${(p) => p.$fontFamily};

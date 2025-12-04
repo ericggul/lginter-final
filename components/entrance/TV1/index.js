@@ -3,7 +3,7 @@ import useSocketTV1 from "@/utils/hooks/useSocketTV1";
 import * as S from './styles';
 import * as B from './blobtextbox/@boxes';
 import { calculateBlobWidth } from './blobtextbox/@boxes';
-import { createSocketHandlers } from './logic';
+import { createSocketHandlers, initializeFixedBlobs } from './logic';
 
 export default function TV1Controls() {
   const [keywords, setKeywords] = useState([]);
@@ -20,38 +20,47 @@ export default function TV1Controls() {
     Annoyed: {
       visible: true,
       text: '짜증',
-      gradient: 'linear-gradient(220deg, hsl(0, 100%, 60%) 21%, hsl(328, 95%, 77%) 69%, hsl(297, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(220deg, hsl(328, 95%, 77%) 0%, hsl(0, 100%, 60%) 10%, hsl(328, 95%, 77%) 55%, hsl(297, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     Sad: {
       visible: true,
       text: '무기력',
-      gradient: 'linear-gradient(226deg, hsl(242, 100%, 60%) 21%, hsl(328, 95%, 77%) 69%, hsl(295, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(242, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     Happy: {
       visible: true,
       text: '설렘',
-      gradient: 'linear-gradient(249deg, hsl(302, 100%, 60%) 21%, hsl(328, 95%, 77%) 69%, hsl(262, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(249deg, hsl(328, 95%, 77%) 0%, hsl(302, 100%, 68.6%) 10%, hsl(328, 95%, 77%) 55%, hsl(262, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     Interest: {
       visible: true,
       text: '맑음',
-      gradient: 'linear-gradient(66deg, hsl(328, 95%, 77%) 21%, hsl(156, 75%, 60%) 69%, hsl(213, 65%, 97%) 95%)',
+      gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(156, 75%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     Playful: {
       visible: true,
       text: '상쾌함',
-      gradient: 'linear-gradient(189deg, hsl(165, 100%, 60%) 10%, hsl(328, 95%, 77%) 75%, hsl(317, 95%, 97%) 95%)',
+      gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(242, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
+      timestamp: Date.now()
+    },
+    SelfConfident: {
+      visible: true,
+      text: '자기확신',
+      gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(86, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
       timestamp: Date.now()
     }
   });
   
-  // 새로운 감정 키워드 블롭 배열 (spawn point에서 시작하는 블롭들)
-  // 각 블롭: { id, blobType, text, gradient, top, left, rowIndex, timestamp, hour }
-  const [newBlobs, setNewBlobs] = useState([]);
+  // 새로운 감정 키워드 블롭 배열 (고정 블롭 + 동적 블롭)
+  // 각 블롭: { id, blobType, text, gradient, top, left, rowIndex, column, timestamp, hour, isFixed }
+  const [newBlobs, setNewBlobs] = useState(() => {
+    // 초기 마운트 시 고정 블롭 24개 생성
+    return initializeFixedBlobs(visibleBlobs, calculateBlobWidth);
+  });
   
   // 시간 표시 배열 (블롭 생성 시 시간대 변경 시 자동 생성)
   // 각 시간 표시: { hour: number, top: number, visible: boolean, timestamp: number }
@@ -70,7 +79,8 @@ export default function TV1Controls() {
       'Sad': B.SadBox,
       'Wonder': B.WonderBox,
       'Annoyed': B.AnnoyedBox,
-      'Hungry': B.HungryBox
+      'Hungry': B.HungryBox,
+      'SelfConfident': B.SelfConfidentBox
     };
     return componentMap[blobType] || B.InterestBox; // 기본값
   };
@@ -216,27 +226,39 @@ export default function TV1Controls() {
     onDeviceNewDecision: handlers.onDeviceNewDecision,
   });
 
-  // 5개 디폴트 블롭의 left 위치를 동적으로 계산 (일정한 간격 3vw 유지)
+  // 6개 디폴트 블롭의 left 위치를 동적으로 계산 (모든 블롭 간 간격 동일하게, 짜증 블롭 기준)
   const blobPositions = useMemo(() => {
     const startLeft = 19.610417; // Annoyed 시작 위치 (vw)
-    const spacing = 3; // 블롭 간 간격 (vw)
+    const endRight = 84; // 오른쪽 끝 위치 (vw) - 간격을 더 좁히기 위해 값 축소
+    const availableWidth = endRight - startLeft; // 사용 가능한 전체 너비
     
     const annoyedText = visibleBlobs.Annoyed?.text || '';
     const sadText = visibleBlobs.Sad?.text || '';
     const interestText = visibleBlobs.Interest?.text || '';
     const happyText = visibleBlobs.Happy?.text || '';
     const playfulText = visibleBlobs.Playful?.text || '';
+    const selfConfidentText = visibleBlobs.SelfConfident?.text || '';
     
     const annoyedWidth = calculateBlobWidth(annoyedText);
     const sadWidth = calculateBlobWidth(sadText);
     const interestWidth = calculateBlobWidth(interestText);
     const happyWidth = calculateBlobWidth(happyText);
+    const playfulWidth = calculateBlobWidth(playfulText);
+    const selfConfidentWidth = calculateBlobWidth(selfConfidentText);
     
+    // 6개 블롭의 총 너비
+    const totalBlobWidth = annoyedWidth + sadWidth + interestWidth + happyWidth + playfulWidth + selfConfidentWidth;
+    
+    // 6개 블롭 사이에는 5개의 간격이 있음 (동일한 간격)
+    const uniformSpacing = (availableWidth - totalBlobWidth) / 4.5;
+    
+    // 각 블롭의 left 위치 계산
     const annoyedLeft = startLeft;
-    const sadLeft = annoyedLeft + annoyedWidth + spacing;
-    const interestLeft = sadLeft + sadWidth + spacing;
-    const happyLeft = interestLeft + interestWidth + spacing;
-    const playfulLeft = happyLeft + happyWidth + spacing;
+    const sadLeft = annoyedLeft + annoyedWidth + uniformSpacing;
+    const interestLeft = sadLeft + sadWidth + uniformSpacing;
+    const happyLeft = interestLeft + interestWidth + uniformSpacing;
+    const playfulLeft = happyLeft + happyWidth + uniformSpacing;
+    const selfConfidentLeft = playfulLeft + playfulWidth + uniformSpacing;
     
     return {
       Annoyed: `${annoyedLeft}vw`,
@@ -244,8 +266,9 @@ export default function TV1Controls() {
       Interest: `${interestLeft}vw`,
       Happy: `${happyLeft}vw`,
       Playful: `${playfulLeft}vw`,
+      SelfConfident: `${selfConfidentLeft}vw`,
     };
-  }, [visibleBlobs.Annoyed?.text, visibleBlobs.Sad?.text, visibleBlobs.Interest?.text, visibleBlobs.Happy?.text, visibleBlobs.Playful?.text]);
+  }, [visibleBlobs.Annoyed?.text, visibleBlobs.Sad?.text, visibleBlobs.Interest?.text, visibleBlobs.Happy?.text, visibleBlobs.Playful?.text, visibleBlobs.SelfConfident?.text]);
 
   return (
     <S.Root $fontFamily={unifiedFont}>
@@ -279,40 +302,25 @@ export default function TV1Controls() {
           </S.Dots>
         </S.TopText>
         <B.InterestBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Interest?.visible} $gradient={visibleBlobs.Interest?.gradient} $text={visibleBlobs.Interest?.text || ''} $left={blobPositions.Interest}>
-          {visibleBlobs.Interest?.text || ''}
+          <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Interest?.text || ''}</span>
         </B.InterestBox>
         <B.PlayfulBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Playful?.visible} $gradient={visibleBlobs.Playful?.gradient} $text={visibleBlobs.Playful?.text || ''} $left={blobPositions.Playful}>
-          {visibleBlobs.Playful?.text || ''}
+          <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Playful?.text || ''}</span>
         </B.PlayfulBox>
+        <B.SelfConfidentBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.SelfConfident?.visible} $gradient={visibleBlobs.SelfConfident?.gradient} $text={visibleBlobs.SelfConfident?.text || ''} $left={blobPositions.SelfConfident}>
+          <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.SelfConfident?.text || ''}</span>
+        </B.SelfConfidentBox>
         <B.HappyBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Happy?.visible} $gradient={visibleBlobs.Happy?.gradient} $text={visibleBlobs.Happy?.text || ''} $left={blobPositions.Happy}>
-          {visibleBlobs.Happy?.text || ''}
+          <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Happy?.text || ''}</span>
         </B.HappyBox>
-        <B.UpsetBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Upset?.visible} $gradient={visibleBlobs.Upset?.gradient} $text={visibleBlobs.Upset?.text || topTexts[0] || ''}>
-          {visibleBlobs.Upset?.text || topTexts[0] || ''}
-        </B.UpsetBox>
-        <B.ProudBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Proud?.visible} $gradient={visibleBlobs.Proud?.gradient} $text={visibleBlobs.Proud?.text || topTexts[1] || ''}>
-          {visibleBlobs.Proud?.text || topTexts[1] || ''}
-        </B.ProudBox>
-        <B.ShyBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Shy?.visible} $gradient={visibleBlobs.Shy?.gradient} $text={visibleBlobs.Shy?.text || topTexts[2] || ''}>
-          {visibleBlobs.Shy?.text || topTexts[2] || ''}
-        </B.ShyBox>
-        <B.ChaoticBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Chaotic?.visible} $gradient={visibleBlobs.Chaotic?.gradient} $text={visibleBlobs.Chaotic?.text || topTexts[3] || ''}>
-          {visibleBlobs.Chaotic?.text || topTexts[3] || ''}
-        </B.ChaoticBox>
         <B.SadBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Sad?.visible} $gradient={visibleBlobs.Sad?.gradient} $text={visibleBlobs.Sad?.text || ''} $left={blobPositions.Sad}>
-          {visibleBlobs.Sad?.text || ''}
+          <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Sad?.text || ''}</span>
         </B.SadBox>
-        <B.WonderBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Wonder?.visible} $gradient={visibleBlobs.Wonder?.gradient} $text={visibleBlobs.Wonder?.text || ''}>
-          {visibleBlobs.Wonder?.text || ''}
-        </B.WonderBox>
         <B.AnnoyedBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Annoyed?.visible} $gradient={visibleBlobs.Annoyed?.gradient} $text={visibleBlobs.Annoyed?.text || ''} $left={blobPositions.Annoyed}>
-          {visibleBlobs.Annoyed?.text || ''}
+          <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Annoyed?.text || ''}</span>
         </B.AnnoyedBox>
-        <B.HungryBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Hungry?.visible} $gradient={visibleBlobs.Hungry?.gradient} $text={visibleBlobs.Hungry?.text || ''}>
-          {visibleBlobs.Hungry?.text || ''}
-        </B.HungryBox>
         
-        {/* 새로운 감정 키워드 블롭들 (spawn point에서 시작) */}
+        {/* 고정 블롭 + 동적 블롭 렌더링 */}
         {newBlobs.map((blob) => {
           const BlobComponent = getBlobComponent(blob.blobType);
           return (
@@ -325,7 +333,7 @@ export default function TV1Controls() {
               $top={`${blob.top}vw`}
               $left={`${blob.left}vw`}
             >
-              {blob.text}
+              <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{blob.text}</span>
             </BlobComponent>
           );
         })}
