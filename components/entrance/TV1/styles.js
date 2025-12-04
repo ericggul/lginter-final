@@ -274,7 +274,7 @@ export const AnnoyedBox = styled.div`
   border: 0.026042vw solid #FFFFFF; /* 1px */
   background: linear-gradient(98.92deg, rgba(91, 76, 255, 0.092) 23.61%, rgba(55, 255, 252, 0.046) 73.24%, rgba(66, 255, 142, 0.069) 92.2%);
   box-shadow: inset 0 0.416667vw 0.268229vw rgba(255, 255, 255, 0.38), inset 0 -0.729167vw 0.804688vw rgba(255, 255, 255, 0.69);
-  opacity: 0.69;
+  opacity: 0.3;
   overflow: hidden; /* clip blur overlays to rounded shape */
   color: #000000;
   font-family: ${(p) => p.$fontFamily};
