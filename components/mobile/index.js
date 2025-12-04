@@ -553,7 +553,8 @@ export default function MobileControls() {
         ) : null}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
       </ContentWrapper>
-      <BlobControls />
+      {/* 임시 비활성화: 조절 레버 패널 숨김 */}
+      {false && <BlobControls />}
       {showResetButton && (
         <>
           {/* Left: Exit (design only) */}

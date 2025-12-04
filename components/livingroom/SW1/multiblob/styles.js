@@ -11,6 +11,7 @@ export const MotionProps = createGlobalStyle`
   @property --blobScale { syntax: '<number>'; inherits: false; initial-value: 1; }
   /* 중심 공전 반경 호흡용 커스텀 프로퍼티 */
   @property --orbit-radius-mod { syntax: '<number>'; inherits: false; initial-value: 1; }
+  @property --orbit-radius-amp { syntax: '<number>'; inherits: false; initial-value: 0.14; }
 `;
 
 /* BackgroundCanvas blob center swirl for D (matches SmallBlobD path/speed) */
@@ -247,6 +248,43 @@ export const CenterSaturationPulse = styled.div`
   animation: ${centerSaturationPulse} 6.2s ease-in-out infinite;
 `;
 
+/* 중앙 이너 블롭(작은 코어)의 호흡 애니메이션 */
+const innerCoreBreath = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.98);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.04);
+    opacity: 1.0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.98);
+    opacity: 0.95;
+  }
+`;
+
+export const CenterInnerCore = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* 중앙 작은 코어는 가장 큰 블롭 기준의 약 22% */
+  width: calc(var(--largestBlobSize) * 0.22);
+  height: calc(var(--largestBlobSize) * 0.22);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 8; /* GradientEllipse(6)/SaturationPulse(7) 위, CenterMark(9) 아래 */
+  background: radial-gradient(
+    circle at 50% 48%,
+    rgba(255,255,255,1.0) 0%,
+    rgba(255,255,255,0.85) 42%,
+    rgba(255,255,255,0.0) 86%
+  );
+  filter: blur(0.18vw);
+  animation: ${innerCoreBreath} 9s ease-in-out infinite;
+`;
+
 /* Center wave: 중앙에서 물결처럼 천천히 번져 나가는 부드러운 파장 */
 const centerPulseWave = keyframes`
   0% {
@@ -350,13 +388,19 @@ export const BaseWhite = styled.div`
 /* 중앙 화이트+핑크 블롭의 글로우 레이어 */
 const centerBreath = keyframes`
   0% {
-    transform: translate(-50%, -50%) scale(0.98);
+    transform: translate(-50%, -50%) scale(0.94);
+    filter: blur(1.00vw);
+    opacity: 0.85;
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.04);
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: blur(1.60vw);
+    opacity: 1.00;
   }
   100% {
-    transform: translate(-50%, -50%) scale(0.98);
+    transform: translate(-50%, -50%) scale(0.94);
+    filter: blur(1.00vw);
+    opacity: 0.85;
   }
 `;
 
@@ -370,9 +414,9 @@ export const GradientBlur = styled.div`
   height: calc(100% * 2600 / 3104);
   border-radius: 50%;
   background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFFFFF 34.13%, #FCCCC1 44.23%, #DDDBDD 79.81%, #FFC9E3 87.98%, #FFFFFF 100%);
-  filter: blur(1.302083vw);
+  filter: blur(1.20vw);
   /* 숨쉬듯이 아주 천천히 커졌다 작아지는 루프 */
-  animation: ${centerBreath} 18s ease-in-out infinite;
+  animation: ${centerBreath} 12s ease-in-out infinite;
 `;
 
 export const CenterTextWrap = styled.div`
@@ -381,8 +425,8 @@ export const CenterTextWrap = styled.div`
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  /* text is above glow, but below rotating white line */
-  z-index: 8;
+  /* 텍스트를 회전 PNG 위에 두어도 잘 보이도록 한 단계 위로 올림 */
+  z-index: 10;
 `;
 
 /* spin for the center mark image */
@@ -396,15 +440,15 @@ export const CenterMark = styled.img`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  /* 50% of the largest small blob diameter */
-  width: calc(var(--largestBlobSize) * 1.2);
-  height: calc(var(--largestBlobSize) * 1.2);
+  /* 회전 라인 PNG를 더 강조해서 키움 */
+  width: calc(var(--largestBlobSize) * 1.6);
+  height: calc(var(--largestBlobSize) * 1.6);
   will-change: transform;
   animation: ${centerMarkSpin} 4s linear infinite;
   pointer-events: none;
   /* 그림자 없이 선 자체의 밝기/대비만 살려서 또렷하게 */
-  filter: brightness(1.25) contrast(1.4);
-  /* top-most: above text and glow */
+  filter: brightness(1.2) contrast(1.3);
+  /* glow 위, 텍스트 바로 아래 레이어에 위치 */
   z-index: 9;
 `;
 
@@ -477,17 +521,12 @@ const blobMoistureDrift = keyframes`
   100% { transform: translate(-50%, -50%); }
 `;
 
-/* 공전 반경이 아주 살짝 안팎으로 움직이는 호흡 모션 */
+/* 공전 반경이 안팎으로 호흡하듯 부드럽게 변화 */
 const orbitRadiusPulse = keyframes`
-  0% {
-    --orbit-radius-mod: 1;
-  }
-  40% {
-    --orbit-radius-mod: 0.9;
-  }
-  100% {
-    --orbit-radius-mod: 1;
-  }
+  0%   { --orbit-radius-mod: 1; }
+  35%  { --orbit-radius-mod: calc(1 - var(--orbit-radius-amp, 0.14)); }
+  70%  { --orbit-radius-mod: calc(1 + (var(--orbit-radius-amp, 0.14) * 0.55)); }
+  100% { --orbit-radius-mod: 1; }
 `;
 
 /* 내부 그라데이션이 살짝 흐르듯이 움직이면서 입체감이 느껴지도록 하는 패럴럭스 모션 */
@@ -583,8 +622,12 @@ const BlobBase = styled.div`
     font-weight: 400;
     letter-spacing: 0.01em;
     color: #FFFFFF;
-    mix-blend-mode: normal;
-    text-shadow: none;
+    mix-blend-mode: screen;
+    /* 약하게 번지는 글로우 느낌 (bloom) */
+    text-shadow:
+      0 0.10vw 0.25vw rgba(255, 255, 255, 0.9),
+      0 0.35vw 0.75vw rgba(255, 193, 218, 0.85),
+      0 0.70vw 1.40vw rgba(255, 193, 218, 0.55);
   }
   /* 원보다 살짝 큰 레이어에 blur를 적용해서 외곽이 부드럽게 퍼지도록 처리 (halo) */
   &::before {
@@ -697,10 +740,11 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   /* 제공된 디자인 스펙을 반영한 컬러 그라데이션 */
   --blob-bg: radial-gradient(
     84.47% 61.21% at 66.09% 54.37%,
-    #FF4D8B 0%,
-    #FF8EA6 34.9%,
-    #FDFFE1 80.29%,
-    #DFE4EA 100%
+    hsla(var(--blob-h, 340), var(--blob-s, 100%), var(--blob-l, 70%), 1.0) 0%,
+    hsla(var(--blob-h, 340), var(--blob-s, 90%),  calc( min( var(--blob-l, 70%), 90% ) ), 0.95) 34.9%,
+    /* 외곽 쪽은 은은한 웜톤(노란 빛)으로 투톤 느낌 복원 */
+    hsla(var(--blob-warm-h, 45), var(--blob-warm-s1, 92%), var(--blob-warm-l1, 94%), 0.80) var(--blob-warm-start, 72%),
+    hsla(var(--blob-warm-h, 45), var(--blob-warm-s2, 96%), var(--blob-warm-l2, 90%), 1.00) 100%
   );
 
   background-size: 320% 320%;
@@ -732,14 +776,8 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   &::after {
     inset: 0.35vw;
     filter: blur(calc(var(--z-blur-base) * 1.4));
-    background:
-      radial-gradient(
-        84.47% 61.21% at 66.09% 54.37%,
-        #FF4D8B 0%,
-        #FF8EA6 34.9%,
-        #FDFFE1 80.29%,
-        #DFE4EA 100%
-      );
+    /* 내부 코어 그라데이션도 HSL 변수 기반으로 */
+    background: var(--blob-bg, transparent);
   }
 `;
 
@@ -781,3 +819,20 @@ export const Sw1SmallOrbitDot3 = styled(SmallOrbitDotBase)`
   transform: translate(-50%, -50%) rotate(180deg)
              translateX(calc(var(--R) * 1.18));
 `;
+/* Read-only display for center glow colors in RGB */
+export const ColorDebug = styled.div`
+  position: absolute;
+  left: 2vw;
+  bottom: 2vw;
+  padding: 0.35vw 0.6vw;
+  border-radius: 0.3vw;
+  background: rgba(255, 255, 255, 0.72);
+  color: #0F172A;
+  font-size: 0.52vw;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  box-shadow: 0 0.25vw 0.8vw rgba(0,0,0,0.08);
+  pointer-events: none;
+  z-index: 11;
+`;
+

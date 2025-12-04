@@ -33,7 +33,7 @@ export default function InputForm({
         />
       )}
 
-      {/* 디버깅용: 가짜 입력란 (손쉽게 삭제 가능) */}
+      {/* 디버그용 가짜 입력란 복구: 엔터 시 submit 동작 */}
       {showPress && !isListening && !showTextFallback && (
         <div
           style={{

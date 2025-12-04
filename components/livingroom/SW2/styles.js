@@ -41,6 +41,10 @@ const topRipple = keyframes`
 `;
 
 export const Root = styled.div`
+  /* TV용 풀 화면 캔버스: 스크롤이 생기지 않도록 화면에 고정 */
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100vw;
   height: 56.25vw; /* 2160 / 3840 * 100 */
   aspect-ratio: 3840 / 2160;
@@ -49,7 +53,6 @@ export const Root = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   overflow: hidden;
 `;
 
@@ -548,6 +551,25 @@ export const AlbumPlaceholder = styled.div`
 `;
 
 /* 공통 SW2 블롭 베이스: SW2 회전 원을 Figma 스펙 느낌으로 단순화한 버전 */
+/* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (미니 블롭 전용) */
+const miniRingPulse = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.0;
+  }
+  25% {
+    opacity: 0.55;
+  }
+  55% {
+    transform: translate(-50%, -50%) scale(1.25);
+    opacity: 0.32;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.45);
+    opacity: 0.0;
+  }
+`;
+
 const Sw2BlobBase = styled.div`
   position: absolute;
   /* 중앙 기준 위치만 맞추고, 회전 각도는 halo(::before)에만 적용.
@@ -556,10 +578,10 @@ const Sw2BlobBase = styled.div`
 
   /**
    * 크기: 백엔드에서 내려오는 blob.size.base 를 그대로 활용하되,
-   *      너무 크지 않도록 0.7배 정도로만 사용
+   *      SW1 대비 한 단계 더 작은 미니 블롭 느낌으로 축소
    */
-  width: calc(var(--blob-size, 16vw) * 0.7);
-  height: calc(var(--blob-size, 16vw) * 0.7);
+  width: calc(var(--blob-size, 16vw) * 0.45);
+  height: calc(var(--blob-size, 16vw) * 0.45);
   border-radius: 50%;
   border: none;
   box-shadow: none;
@@ -567,6 +589,7 @@ const Sw2BlobBase = styled.div`
   background: transparent;
   /* 기본 radial-gradient (Figma 스펙) */
   --blob-bg: radial-gradient(
+    /* 원래 디자인의 기본 핑크 → 화이트 그라디언트로 복원 */
     84.47% 61.21% at 66.09% 54.37%,
     #FF4D8B 0%,
     #FF8EA6 34.9%,
@@ -605,11 +628,16 @@ const Sw2BlobBase = styled.div`
   & span {
     position: relative;
     z-index: 1;
-    font-size: 2vw;
+    font-size: 1.6vw;
     font-weight: 400;
     letter-spacing: 0.02em;
     color: #ffffff;
-    text-shadow: none;
+    /* SW1과 톤을 맞춘 은은한 bloom 효과 */
+    mix-blend-mode: screen;
+    text-shadow:
+      0 0.10vw 0.25vw rgba(255, 255, 255, 0.95),
+      0 0.32vw 0.70vw rgba(255, 192, 220, 0.85),
+      0 0.68vw 1.35vw rgba(255, 192, 220, 0.5);
   }
 
   /* 바깥 halo: 실제 색과 blur는 ::before 에서만 처리해서 텍스트는 선명하게 유지 */
@@ -626,19 +654,47 @@ const Sw2BlobBase = styled.div`
     pointer-events: none;
     will-change: filter, opacity;
 
-    /* depthLayer 에 따라 서로 다른 강도로 채도/블러 펄스 */
+    /* depthLayer 에 따라 서로 다른 강도로 채도/블러 펄스 (메인보다 살짝 더 부드럽게) */
     animation: ${({ $depthLayer = 1 }) => {
       if ($depthLayer === 0) {
-        return css`${frontHaloPulse} 7s ease-in-out infinite`;
+        return css`${frontHaloPulse} 9s ease-in-out infinite`;
       }
       if ($depthLayer === 1) {
-        return css`${midHaloPulse} 9s ease-in-out infinite`;
+        return css`${midHaloPulse} 11s ease-in-out infinite`;
       }
-      return css`${backHaloPulse} 11s ease-in-out infinite`;
+      return css`${backHaloPulse} 13s ease-in-out infinite`;
     }};
   }
 
-  /* ::after 에서 주던 추가 입체감은 제거 – 제공받은 Figma 디자인을 최대한 그대로 사용 */
+  /* ::after: 중앙에서 밖으로 퍼지는 얇은 링 파동 (메인보다 연하고 부드럽게) */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(
+      closest-side,
+      rgba(255, 255, 255, 0.0) 72%,
+      rgba(255, 255, 255, 0.45) 84%,
+      rgba(255, 255, 255, 0.0) 100%
+    );
+    transform-origin: center;
+    /* 링이 중앙에서 바깥으로 퍼져 나가는 느낌 (조금 더 명확하게 보이도록 속도/강도 조정) */
+    animation: ${({ $depthLayer = 1 }) => {
+      if ($depthLayer === 0) {
+        return css`${miniRingPulse} 8s cubic-bezier(0.25, 0.1, 0.25, 1) infinite`;
+      }
+      if ($depthLayer === 1) {
+        return css`${miniRingPulse} 10s cubic-bezier(0.25, 0.1, 0.25, 1) infinite`;
+      }
+      return css`${miniRingPulse} 12s cubic-bezier(0.25, 0.1, 0.25, 1) infinite`;
+    }};
+  }
 `;
 
 export const Sw2InterestBox = styled(Sw2BlobBase)`

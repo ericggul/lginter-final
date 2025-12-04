@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useControls } from "leva";
 import { KeyframesGlobal as BGKeyframesGlobal, BlobCssGlobal as BGBlobCssGlobal } from "@/components/mobile/BackgroundCanvas/styles";
 import * as S from './styles';
-import { useSW1Logic } from "./logic";
+import { useSW1Logic } from "../logic/mainlogic";
+import { computeBigBlobHues, computeBackgroundHsl, computeMiniWarmHue, pulseMidAlpha, toHsla } from "../logic/color";
 
 // 중앙 화이트 영역을 약간 일렁이는 유기적 형태로 만드는 SVG Path 생성 유틸
 function useOrganicCenterPath() {
@@ -58,43 +59,76 @@ export default function SW1Controls() {
   const BACKGROUND_URL = null; // remove background PNG (big pink blobs)
   const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
 
-  const { blobConfigs, centerTemp, centerHumidity, participantCount, dotCount } = useSW1Logic();
+  const { blobConfigs, centerTemp, centerHumidity, participantCount, dotCount, decisionTick } = useSW1Logic();
   const organicCenterPath = useOrganicCenterPath();
+  const [midPulseAlpha, setMidPulseAlpha] = useState(1);
+  useEffect(() => {
+    // new decision → brief alpha pulse
+    pulseMidAlpha(setMidPulseAlpha, { down: 0.24, durationMs: 1000 });
+  }, [decisionTick]);
 
-  // Leva controls for live-tuning center glow & background gradient (front-end only)
-  const centerGlow = useControls('SW1 Center Glow', {
-    innerColor:      { value: '#ffffff' },
-    innerRingColor:  { value: '#b0f6ff' },
-    mid1Color:       { value: '#db9db0' },
-    mid2Color:       { value: '#f8cfc1' },
-    outerColor:      { value: '#fff3ef' },
-    extraColor:      { value: '#ffffff' },
-    innerAlpha:      { value: 1.0,  min: 0, max: 1, step: 0.01 },
-    innerRingAlpha:  { value: 1.0,  min: 0, max: 1, step: 0.01 },
-    mid1Alpha:       { value: 0.89, min: 0, max: 1, step: 0.01 },
-    mid2Alpha:       { value: 0.76, min: 0, max: 1, step: 0.01 },
-    outerAlpha:      { value: 0.50, min: 0, max: 1, step: 0.01 },
-    extraAlpha:      { value: 0.51, min: 0, max: 1, step: 0.01 },
+  // Leva controls (HSL) for live-tuning center glow & background gradient
+  const centerGlow = useControls('SW1 Center Glow (HSL)', {
+    // inner (white)
+    innerH:          { value: 0,   min: 0, max: 360, step: 1 },
+    innerS:          { value: 0,   min: 0, max: 100, step: 1 },
+    innerL:          { value: 100, min: 0, max: 100, step: 1 },
+    innerAlpha:      { value: 1.0, min: 0, max: 1,   step: 0.01 },
+    // inner ring (#b0f6ff ≈ h:189 s:100 l:84)
+    innerRingH:      { value: 189, min: 0, max: 360, step: 1 },
+    innerRingS:      { value: 100, min: 0, max: 100, step: 1 },
+    innerRingL:      { value: 84,  min: 0, max: 100, step: 1 },
+    innerRingAlpha:  { value: 1.0, min: 0, max: 1,   step: 0.01 },
+    // mid1 (#ff679a ≈ h:340) - 요청에 따른 S/L 기본값 조정
+    mid1H:           { value: 340, min: 0, max: 360, step: 1 },
+    mid1S:           { value: 98,  min: 0, max: 100, step: 1 },
+    mid1L:           { value: 66,  min: 0, max: 100, step: 1 },
+    mid1Alpha:       { value: 0.89,min: 0, max: 1,   step: 0.01 },
+    // mid2 (#f8cfc1 ≈ h:15 s:82 l:87)
+    mid2H:           { value: 15,  min: 0, max: 360, step: 1 },
+    mid2S:           { value: 82,  min: 0, max: 100, step: 1 },
+    mid2L:           { value: 87,  min: 0, max: 100, step: 1 },
+    mid2Alpha:       { value: 0.76,min: 0, max: 1,   step: 0.01 },
+    // outer (#fff3ef ≈ h:15 s:100 l:96)
+    outerH:          { value: 15,  min: 0, max: 360, step: 1 },
+    outerS:          { value: 100, min: 0, max: 100, step: 1 },
+    outerL:          { value: 96,  min: 0, max: 100, step: 1 },
+    outerAlpha:      { value: 0.50,min: 0, max: 1,   step: 0.01 },
+    // extra (#ffffff ≈ h:0 s:0 l:100)
+    extraH:          { value: 0,   min: 0, max: 360, step: 1 },
+    extraS:          { value: 0,   min: 0, max: 100, step: 1 },
+    extraL:          { value: 100, min: 0, max: 100, step: 1 },
+    extraAlpha:      { value: 0.51,min: 0, max: 1,   step: 0.01 },
+    // stops
     innerStop:       { value: 29,  min: 0, max: 100 },
     innerRingStop:   { value: 38,  min: 0, max: 100 },
     mid1Stop:        { value: 42,  min: 0, max: 100 },
     mid2Stop:        { value: 86,  min: 0, max: 100 },
     extraStop:       { value: 100, min: 0, max: 100 },
     outerStop:       { value: 83,  min: 0, max: 100 },
+    // post-processing
     blur:            { value: 32,  min: 0, max: 120 }, // px
     centerBrightness:{ value: 1.13, min: 0.7, max: 1.8, step: 0.01 },
-    outerGlowRadius: { value: 600, min: 0, max: 600 }, // px, 가운데 원 가장 바깥쪽 빛 번짐
+    outerGlowRadius: { value: 600, min: 0, max: 600 }, // px
     outerGlowAlpha:  { value: 0.0,  min: 0, max: 1, step: 0.01 },
   });
 
-  const background = useControls('SW1 Background', {
-    baseColor:    { value: '#f3fbff' },
-    topColor:     { value: '#edfffe' },
-    midColor:     { value: '#f8f8ec' },
-    bottomColor:  { value: '#fffcec' },
-    angle:        { value: 228, min: 0, max: 360 },
-    midStop:      { value: 63, min: 0, max: 100 },
-    midStop2:     { value: 100, min: 0, max: 100 },
+  const background = useControls('SW1 Background (HSL)', {
+    baseH:   { value: 198, min: 0, max: 360, step: 1 },
+    baseS:   { value: 90,  min: 0, max: 100, step: 1 },
+    baseL:   { value: 98,  min: 0, max: 100, step: 1 },
+    topH:    { value: 184, min: 0, max: 360, step: 1 },
+    topS:    { value: 42,  min: 0, max: 100, step: 1 },
+    topL:    { value: 88,  min: 0, max: 100, step: 1 },
+    midH:    { value: 66,  min: 0, max: 360, step: 1 },
+    midS:    { value: 34,  min: 0, max: 100, step: 1 },
+    midL:    { value: 96,  min: 0, max: 100, step: 1 },
+    bottomH: { value: 44,  min: 0, max: 360, step: 1 },
+    bottomS: { value: 88,  min: 0, max: 100, step: 1 },
+    bottomL: { value: 97,  min: 0, max: 100, step: 1 },
+    angle:   { value: 228, min: 0, max: 360 },
+    midStop:  { value: 63, min: 0, max: 100 },
+    midStop2: { value: 100, min: 0, max: 100 },
   });
 
   const animation = useControls('SW1 Animation', {
@@ -102,6 +136,19 @@ export default function SW1Controls() {
     rotationDuration: { value: 40, min: 10, max: 180, step: 1 },
   });
 
+  // Mini blob color (HSL) — apply to all mini blobs for quick tuning
+  const miniColor = useControls('SW1 Mini Blob Color (HSL)', {
+    h: { value: 340, min: 0, max: 360, step: 1 },
+    s: { value: 62,  min: 0, max: 100, step: 1 },
+    l: { value: 66,  min: 0, max: 100, step: 1 },
+    // warm outer tone (two stops)
+    warmH:  { value: 45, min: 0, max: 360, step: 1 },
+    warmS1: { value: 98, min: 0, max: 100, step: 1 },
+    warmL1: { value: 85, min: 0, max: 100, step: 1 },
+    warmS2: { value: 100, min: 0, max: 100, step: 1 },
+    warmL2: { value: 88, min: 0, max: 100, step: 1 },
+    warmStart: { value: 60, min: 50, max: 90, step: 1 }, // 퍼지는 구간 시작 퍼센트 (더 넓게)
+  });
   const edgeBlur = useControls('SW1 Edge Blur', {
     strength: { value: 3.8, min: 0, max: 4, step: 0.05 },
     opacity:  { value: 0.13, min: 0, max: 1, step: 0.01 },
@@ -112,31 +159,34 @@ export default function SW1Controls() {
     opacity: { value: 0.29, min: 0, max: 1,  step: 0.01 },
   });
 
-  const hexToRgb = (hex) => {
-    const normalized = hex.replace('#', '');
-    const full = normalized.length === 3
-      ? normalized.split('').map((c) => c + c).join('')
-      : normalized;
-    const num = parseInt(full, 16);
+  const toHsla = (h, s, l, a) => `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, ${a})`;
+
+  // Display current HSLA strings (for quick copy/reference)
+  const rgbDisplay = useMemo(() => {
+    const { innerRingH, mid2H } = computeBigBlobHues(centerTemp);
     return {
-      r: (num >> 16) & 255,
-      g: (num >> 8) & 255,
-      b: num & 255,
+      inner: toHsla(centerGlow.innerH, centerGlow.innerS, centerGlow.innerL, centerGlow.innerAlpha),
+      innerRing: toHsla(innerRingH, centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha),
+      mid1: toHsla(centerGlow.mid1H, centerGlow.mid1S, centerGlow.mid1L, centerGlow.mid1Alpha * midPulseAlpha),
+      mid2: toHsla(mid2H, centerGlow.mid2S, centerGlow.mid2L, centerGlow.mid2Alpha),
+      outer: toHsla(centerGlow.outerH, centerGlow.outerS, centerGlow.outerL, centerGlow.outerAlpha),
     };
-  };
-
-  const toRgba = (hex, alpha) => {
-    const { r, g, b } = hexToRgb(hex);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
-
+  }, [
+    centerTemp, midPulseAlpha,
+    centerGlow.innerH, centerGlow.innerS, centerGlow.innerL, centerGlow.innerAlpha,
+    centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha,
+    centerGlow.mid1H, centerGlow.mid1S, centerGlow.mid1L, centerGlow.mid1Alpha,
+    centerGlow.mid2S, centerGlow.mid2L, centerGlow.mid2Alpha,
+    centerGlow.outerH, centerGlow.outerS, centerGlow.outerL, centerGlow.outerAlpha,
+  ]);
   const centerGlowStyle = useMemo(() => {
-    const c1 = toRgba(centerGlow.innerColor, centerGlow.innerAlpha);
-    const cRing = toRgba(centerGlow.innerRingColor, centerGlow.innerRingAlpha);
-    const c2 = toRgba(centerGlow.mid1Color, centerGlow.mid1Alpha);
-    const c3 = toRgba(centerGlow.mid2Color, centerGlow.mid2Alpha);
-    const c4 = toRgba(centerGlow.outerColor, centerGlow.outerAlpha);
-    const cExtra = toRgba(centerGlow.extraColor, centerGlow.extraAlpha);
+    const { innerRingH, mid2H } = computeBigBlobHues(centerTemp);
+    const c1     = toHsla(centerGlow.innerH,     centerGlow.innerS,     centerGlow.innerL,     centerGlow.innerAlpha);
+    const cRing  = toHsla(innerRingH,            centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha);
+    const c2     = toHsla(centerGlow.mid1H,      centerGlow.mid1S,      centerGlow.mid1L,      centerGlow.mid1Alpha * midPulseAlpha);
+    const c3     = toHsla(mid2H,                 centerGlow.mid2S,      centerGlow.mid2L,      centerGlow.mid2Alpha);
+    const c4     = toHsla(centerGlow.outerH,     centerGlow.outerS,     centerGlow.outerL,     centerGlow.outerAlpha);
+    const cExtra = toHsla(centerGlow.extraH,     centerGlow.extraS,     centerGlow.extraL,     centerGlow.extraAlpha);
 
     const gradient = `radial-gradient(47.13% 47.13% at 50% 50%, ${
       c1
@@ -163,9 +213,15 @@ export default function SW1Controls() {
   }, [centerGlow]);
 
   const rootBackgroundStyle = useMemo(() => {
-    const gradient = `linear-gradient(${background.angle}deg, ${background.topColor} 0%, ${background.topColor} ${background.midStop}%, ${background.midColor} ${background.midStop2}%, ${background.bottomColor} 100%)`;
+    const wrap = (h, s, l) =>
+      `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+    // 더 연한 톤으로 고정(topS=42, topL=88)
+    const top    = wrap(background.topH, 42, 88);
+    const mid    = wrap(background.midH, background.midS, background.midL);
+    const bottom = wrap(background.bottomH, background.bottomS, background.bottomL);
+    const gradient = `linear-gradient(${background.angle}deg, ${top} 0%, ${top} ${background.midStop}%, ${mid} ${background.midStop2}%, ${bottom} 100%)`;
     return {
-      backgroundColor: background.baseColor,
+      backgroundColor: wrap(background.baseH, background.baseS, background.baseL),
       backgroundImage: gradient,
     };
   }, [background]);
@@ -202,6 +258,24 @@ export default function SW1Controls() {
                 $depthLayer={b.depthLayer}
                 $radiusFactor={b.radiusFactor}
                 $zSeed={b.zSeed}
+                style={{
+                  // HSL variables for gradient in styles
+                  '--blob-h': miniColor.h,
+                  '--blob-s': `${miniColor.s}%`,
+                  '--blob-l': `${miniColor.l}%`,
+                  '--blob-warm-h': computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp),
+                  '--blob-warm-s1': `${miniColor.warmS1}%`,
+                  '--blob-warm-l1': '85%',
+                  '--blob-warm-s2': `${miniColor.warmS2}%`,
+                  '--blob-warm-l2': '88%',
+                  '--blob-warm-start': '60%',
+                  // 각 블롭마다 호흡 강도를 미세하게 다르게
+                  '--orbit-radius-amp': (() => {
+                    if (b.depthLayer === 0) return '0.22';
+                    if (b.depthLayer === 1) return '0.18';
+                    return '0.16';
+                  })(),
+                }}
               >
                 <S.ContentRotator $duration={animation.rotationDuration}>
                   <strong>{b.top}</strong>
@@ -240,6 +314,8 @@ export default function SW1Controls() {
         <S.GradientEllipse style={centerGlowStyle} />
         {/* 가운데 원 mid1Color 채도 펄스 오버레이 */}
         <S.CenterSaturationPulse />
+        {/* 중앙 작은 코어: 아주 은은한 호흡 애니메이션 */}
+        <S.CenterInnerCore />
         <S.CenterMark src="/figma/Ellipse%202767.png" alt="" />
         <S.EllipseLayer>
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
@@ -248,6 +324,16 @@ export default function SW1Controls() {
           <S.CenterTemp>{`${centerTemp}°C`}</S.CenterTemp>
           <S.CenterMode>{/* show mode from humidity */}{centerHumidity >= 0 ? (centerHumidity >= 65 ? '강력 제습' : centerHumidity >= 55 ? '적정 제습' : centerHumidity >= 45 ? '기본 제습' : centerHumidity >= 35 ? '적정 가습' : '강력 가습') : ''}</S.CenterMode>
         </S.CenterTextWrap>
+        {/* 디버그 모달 숨김 */}
+        {false && (
+          <S.ColorDebug>
+            inner: {rgbDisplay.inner}<br/>
+            innerRing: {rgbDisplay.innerRing}<br/>
+            mid1: {rgbDisplay.mid1}<br/>
+            mid2: {rgbDisplay.mid2}<br/>
+            outer: {rgbDisplay.outer}
+          </S.ColorDebug>
+        )}
       </S.Stage>
     </S.Root>
   );
