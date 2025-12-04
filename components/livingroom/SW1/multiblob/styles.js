@@ -951,6 +951,25 @@ export const NewBlobOverlay = styled.div`
   animation: ${sw1NewFade} 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 `;
 
+/* T3~T4 동안 유지되는 순백 상태 (페이드 없음, 컬러 위에 얹힘) */
+export const NewBlobWhite = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,1.0) 0%,
+    rgba(255,255,255,0.98) 50%,
+    rgba(255,255,255,0.92) 66%,
+    rgba(255,255,255,0.0) 86%
+  );
+  box-shadow: 0 0 0 0.10vw rgba(245, 106, 148, 0.92), inset 0 0 0 0.10vw rgba(245, 106, 148, 0.85);
+  filter: blur(0.10vw);
+  mix-blend-mode: screen;
+  opacity: 1;
+`;
 /* 가운데를 함께 도는 작은 원 3개 (데이터와 무관한 장식용) */
 const SmallOrbitDotBase = styled.div`
   position: absolute;

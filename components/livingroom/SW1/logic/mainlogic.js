@@ -127,6 +127,8 @@ export function useSW1Logic() {
           setStateTick((x) => x + 1);
           if (next === 't3') {
             setBloomTick((x) => x + 1); // enter bloom once
+            // 기존 isNew 모두 해제 후 T3에서 미니 블롭 하나 방출
+            setMiniResults((prev) => prev.map((r) => (r ? { ...r, isNew: false } : r)));
             // T3에서 미니 블롭 하나 방출(공간이 있으면)
             setMiniResults((prev) => {
               const nextArr = [...prev];
@@ -142,6 +144,9 @@ export function useSW1Logic() {
               };
               return nextArr;
             });
+          } else if (next === 't5') {
+            // T5 진입 시 새 블롭의 화이트 상태 종료 → 컬러로 전환
+            setMiniResults((prev) => prev.map((r) => (r ? { ...r, isNew: false } : r)));
           }
         }
       } catch {}
@@ -208,7 +213,8 @@ export function useSW1Logic() {
                 temp: typeof it.temp === 'number' ? clampTempLocal(it.temp) : nextClimate.temp,
                 humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
                 addedAt: Date.now(),
-                isNew: true,
+                // 외부 업데이트로 들어오는 항목은 기본적으로 isNew=false 유지
+                isNew: next[idx]?.isNew === true,
               };
             });
             return next;
@@ -254,7 +260,7 @@ export function useSW1Logic() {
             temp: typeof it.temp === 'number' ? clampTempLocal(it.temp) : nextClimate.temp,
             humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
             addedAt: Date.now(),
-            isNew: true,
+            isNew: next[idx]?.isNew === true,
           };
           return next;
         });

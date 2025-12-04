@@ -153,7 +153,8 @@ export default function SW1Controls() {
   const background = useControls('SW1 Background (HSL)', {
     baseH:   { value: 198, min: 0, max: 360, step: 1 },
     baseS:   { value: 90,  min: 0, max: 100, step: 1 },
-    baseL:   { value: 98,  min: 0, max: 100, step: 1 },
+    // 요청: baseL은 80으로 고정
+    baseL:   { value: 80,  min: 80, max: 80, step: 1 },
     topH:    { value: 184, min: 0, max: 360, step: 1 },
     topS:    { value: 42,  min: 0, max: 100, step: 1 },
     topL:    { value: 88,  min: 0, max: 100, step: 1 },
@@ -258,15 +259,17 @@ export default function SW1Controls() {
     const wrap = (h, s, l) => `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
     // 요청: S/L은 고정값(Leva baseS/baseL)을 사용하고, H만 변화(=animHue 기반)하도록 설정
     const H = Math.round(animHue);
-    const S = background.baseS;
-    const L = background.baseL;
+    // 너무 진한 문제 방지를 위해 채도 상한 62로 캡
+    const S = Math.min(62, background.baseS);
+    // baseL은 고정 80
+    const L = 80;
     const solid = wrap(H, S, L);
     return {
       backgroundColor: solid,
       backgroundImage: 'none',
       transition: 'background-color 700ms ease-in-out',
     };
-  }, [animHue, background.baseS, background.baseL]);
+  }, [animHue, background.baseS]);
 
   return (
     <S.Root $backgroundUrl={BACKGROUND_URL} style={rootBackgroundStyle}>
@@ -321,6 +324,11 @@ export default function SW1Controls() {
                   })(),
                 }}
               >
+                {/* T3~T4 동안 새 블롭은 흰색 상태로 유지, T5에서 컬러로 전환 */}
+                {b.isNew && (timelineState === 't3' || timelineState === 't4')
+                  ? <S.NewBlobWhite />
+                  : null}
+                {/* 최초 등장 시 짧은 페이드 효과 (겹쳐도 문제 없음) */}
                 {b.isNew && <S.NewBlobOverlay />}
                 <S.ContentRotator $duration={animation.rotationDuration}>
                   <strong>{b.top}</strong>
