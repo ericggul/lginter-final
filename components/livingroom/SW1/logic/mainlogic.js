@@ -360,11 +360,9 @@ export function useSW1Logic() {
 
   // Derive participant count robustly (no stale state): max of unique active users and non-dummy mini slots
   const participantCount = useMemo(() => {
-    const nonDummy = miniResults.filter(
-      (r) => r && r.userId && !DUMMY_ID_REGEX.test(String(r.userId))
-    ).length;
-    return Math.max(activeUsers.size || 0, nonDummy || 0);
-  }, [activeUsers, miniResults]);
+    return activeUsers.size || 0;
+  }, [activeUsers]);
+
 
   return {
     blobConfigs: miniBlobDisplay,
