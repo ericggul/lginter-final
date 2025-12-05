@@ -18,6 +18,9 @@ export const MotionProps = createGlobalStyle`
   @property --sw1-rot-angle { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
   /* 자유 회전 블롭 반경 */
   @property --free-r { syntax: '<number>'; inherits: false; initial-value: 1.0; }
+  /* 미니 블롭의 화면 좌표계 기준 부유 모션 */
+  @property --float-x { syntax: '<number>'; inherits: false; initial-value: 0; }
+  @property --float-y { syntax: '<number>'; inherits: false; initial-value: 0; }
 `;
 
 /* BackgroundCanvas blob center swirl for D (matches SmallBlobD path/speed) */
@@ -640,6 +643,16 @@ const newBlobScale = keyframes`
   100% { --new-scale: 1.00; }
 `;
 
+/* 미니 블롭이 화면 좌표계에서 둥둥 떠다니는 자연스러운 부유 모션 */
+const floatDrift = keyframes`
+  0%   { --float-x:  0.00; --float-y:  0.00; }
+  20%  { --float-x:  0.35; --float-y: -0.25; }
+  40%  { --float-x: -0.30; --float-y:  0.42; }
+  60%  { --float-x:  0.28; --float-y:  0.18; }
+  80%  { --float-x: -0.24; --float-y: -0.32; }
+  100% { --float-x:  0.00; --float-y:  0.00; }
+`;
+
 /* z축으로 살짝 앞으로/뒤로 튀어나오는 느낌의 스케일/투명도 펄스 */
 const zPulse = keyframes`
   0%, 100% {
@@ -850,6 +863,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   }}
 
   transform: translate(-50%, -50%) var(--orbit-transform)
+             translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
              scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
   opacity: var(--z-opacity-base);
   transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -874,11 +888,14 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     /* z축 펄스도 전체적으로 더 느리게 (기존보다 약 1.5배) */
     ${zPulse} ${({ $zSeed = 0 }) => 16 + Math.round($zSeed * 9)}s ease-in-out infinite,
     /* 공전 반경 호흡: 천천히 안팎으로 미세하게 이동 */
-    ${orbitRadiusPulse} ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s ease-in-out infinite;
+    ${orbitRadiusPulse} ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s ease-in-out infinite,
+    /* 화면 좌표계 기준 부유 모션 */
+    ${floatDrift} ${({ $zSeed = 0 }) => 38 + Math.round($zSeed * 18)}s ease-in-out infinite;
   animation-delay:
     0s,
     ${({ $zSeed = 0 }) => `${Math.round($zSeed * 4)}s`},
-    ${({ $zSeed = 0 }) => `${2 + Math.round($zSeed * 5)}s`};
+    ${({ $zSeed = 0 }) => `${2 + Math.round($zSeed * 5)}s`},
+    ${({ $zSeed = 0 }) => `${1 + Math.round($zSeed * 7)}s`};
 
   /* BlobBase에서 정의한 before/after를 오빗 블롭 전용 값으로 살짝 재조정:
      - 바깥 halo는 44px 정도의 블러 느낌

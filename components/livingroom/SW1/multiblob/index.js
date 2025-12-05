@@ -256,14 +256,15 @@ export default function SW1Controls() {
   }, [centerGlow, animHue, midPulseAlpha, bloomActive, timelineState]);
 
   const rootBackgroundStyle = useMemo(() => {
-    const wrap = (h, s, l) => `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+    const wrap = (h, s, l, a = 0.78) => `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, ${a})`;
     // 요청: S/L은 고정값(Leva baseS/baseL)을 사용하고, H만 변화(=animHue 기반)하도록 설정
     const H = Math.round(animHue);
     // 너무 진한 문제 방지를 위해 채도 상한 62로 캡
     const S = Math.min(62, background.baseS);
     // baseL은 고정 80
     const L = 80;
-    const solid = wrap(H, S, L);
+    // 알파로 전체 배경을 더 연하게
+    const solid = wrap(H, S, L, 0.76);
     return {
       backgroundColor: solid,
       backgroundImage: 'none',
@@ -318,9 +319,12 @@ export default function SW1Controls() {
                   '--size-boost': b.sizeBoost ?? 1,
                   // 각 블롭마다 호흡 강도를 미세하게 다르게
                   '--orbit-radius-amp': (() => {
-                    if (b.depthLayer === 0) return '0.22';
-                    if (b.depthLayer === 1) return '0.18';
-                    return '0.16';
+                    const base =
+                      b.depthLayer === 0 ? 0.24 :
+                      b.depthLayer === 1 ? 0.19 : 0.16;
+                    const noise = ((b.zSeed ?? 0) - 0.5) * 0.06; // ±0.03
+                    const v = Math.max(0.12, Math.min(0.30, base + noise));
+                    return String(v);
                   })(),
                 }}
               >

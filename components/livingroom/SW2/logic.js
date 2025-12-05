@@ -77,9 +77,12 @@ export function useSW2Logic() {
   const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
   // 최근 사용자 키워드 (음성 텍스트 / emotionKeyword) 최대 3개까지 유지
   // 초기에는 감정 관련 더미 키워드 3개를 채워둔다
-  const initialKeywords = useMemo(() => BLOB_CONFIGS.map((b) => b.labelBottom || ''), []);
+  const initialKeywords = useMemo(
+    () => BLOB_CONFIGS.map((b) => ({ text: b.labelBottom || '', isNew: false, id: Date.now() + Math.random() })),
+    []
+  );
   const [keywords, setKeywords] = useState(() => initialKeywords);
-  const prevTailRef = useRef(initialKeywords[initialKeywords.length - 1] || '');
+  const prevTailRef = useRef(initialKeywords[initialKeywords.length - 1]?.text || '');
   const [dotCount, setDotCount] = useState(0);
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
@@ -91,15 +94,43 @@ export function useSW2Logic() {
   const blobRefs = useRef({});
   const searchYouTubeMusic = useCallback(async () => {}, []); // no-op
 
+  const sanitizeKeyword = (raw) => {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    const low = s.toLowerCase();
+    // profanity/abusive → '불쾌함'
+    const bad = /(fuck|shit|bitch|asshole|nigger|fag|cunt|좆|씨발|좇|병신|새끼|꺼져|욕)/i;
+    if (bad.test(low)) return '불쾌해';
+    // neutral → drop
+    const neutral = /(중립|보통|무난|쏘쏘|그냥|괜|괜찮|보통임|평범)/;
+    if (neutral.test(s)) return '';
+    // mapping to 3-char colloquial
+    const map = [
+      [/기쁨|행복|좋음|좋다|신남|설렘|설레|즐거|해피|흥겨|신나|좋아/i, '즐거워'],
+      [/우울|슬픔|슬퍼|침잠|허무|공허/i, '우울해'],
+      [/분노|화남|화나|짜증|혐오|역겨|싫다|불쾌|짜증나/i, '불쾌해'],
+      [/긴장|불안|초조|걱정/i, '긴장돼'],
+      [/차분|평온|고요|잔잔|안정|편안/i, '차분해'],
+      [/설레|기대|두근/i, '기대돼'],
+      [/상쾌|시원|청량/i, '상쾌해'],
+      [/집중|몰입|명료|선명/i, '집중해'],
+    ];
+    for (const [re, out] of map) {
+      if (re.test(s)) return out;
+    }
+    // fallback: 3~5자 추출
+    const three = s.replace(/\s+/g, '').slice(0, 3);
+    return three || '';
+  };
+
   const pushKeyword = useCallback((raw) => {
-    const kw = String(raw || '').trim();
+    const kw = sanitizeKeyword(raw);
     if (!kw) return;
     setKeywords((prev) => {
-      // 이미 동일 키워드가 맨 뒤에 있으면 중복 추가 방지
-      if (prev[prev.length - 1] === kw) return prev;
-      const next = [...prev, kw];
-      // 블롭 개수만큼만 유지
-      if (next.length > BLOB_CONFIGS.length) next.shift();
+      const tail = prev[prev.length - 1]?.text || '';
+      if (tail === kw) return prev;
+      const next = [...prev, { text: kw, isNew: true, id: Date.now() }];
+      while (next.length > BLOB_CONFIGS.length) next.shift();
       return next;
     });
   }, []);
@@ -154,7 +185,7 @@ export function useSW2Logic() {
   // Play sfx when a new keyword blob appears (tail changed)
   useEffect(() => {
     try {
-      const tail = keywords[keywords.length - 1] || '';
+      const tail = keywords[keywords.length - 1]?.text || '';
       if (tail && tail !== prevTailRef.current) {
         playSfx('blobsw12', { volume: 0.5 });
       }
