@@ -146,25 +146,38 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
         if (window.showKeywords !== undefined) setShowKeywords(Boolean(window.showKeywords))
         if (window.bgSettings) {
           const bg = window.bgSettings
-          setBgSettings(prev => ({
-            top: typeof bg.top === 'string' ? bg.top : prev.top,
-            mid: typeof bg.mid === 'string' ? bg.mid : prev.mid,
-            low: typeof bg.low === 'string' ? bg.low : prev.low,
-            bottom: typeof bg.bottom === 'string' ? bg.bottom : prev.bottom,
-            ...(() => {
-              const maybeMid = Number(bg.midStop)
-              const maybeLow = Number(bg.lowStop)
-              let newMid = Number.isFinite(maybeMid) ? maybeMid : prev.midStop
-              let newLow = Number.isFinite(maybeLow) ? maybeLow : prev.lowStop
-              newMid = Math.max(0, Math.min(newMid, 99))
-              newLow = Math.max(1, Math.min(newLow, 100))
-              if (newLow <= newMid) {
-                newLow = Math.min(100, newMid + 1)
-              }
-              newMid = Math.min(newMid, newLow - 1)
-              return { midStop: newMid, lowStop: newLow }
-            })(),
-          }))
+          setBgSettings(prev => {
+            const next = {
+              top: typeof bg.top === 'string' ? bg.top : prev.top,
+              mid: typeof bg.mid === 'string' ? bg.mid : prev.mid,
+              low: typeof bg.low === 'string' ? bg.low : prev.low,
+              bottom: typeof bg.bottom === 'string' ? bg.bottom : prev.bottom,
+              ...(() => {
+                const maybeMid = Number(bg.midStop)
+                const maybeLow = Number(bg.lowStop)
+                let newMid = Number.isFinite(maybeMid) ? maybeMid : prev.midStop
+                let newLow = Number.isFinite(maybeLow) ? maybeLow : prev.lowStop
+                newMid = Math.max(0, Math.min(newMid, 99))
+                newLow = Math.max(1, Math.min(newLow, 100))
+                if (newLow <= newMid) {
+                  newLow = Math.min(100, newMid + 1)
+                }
+                newMid = Math.min(newMid, newLow - 1)
+                return { midStop: newMid, lowStop: newLow }
+              })(),
+            }
+            if (
+              prev.top === next.top &&
+              prev.mid === next.mid &&
+              prev.low === next.low &&
+              prev.bottom === next.bottom &&
+              prev.midStop === next.midStop &&
+              prev.lowStop === next.lowStop
+            ) {
+              return prev
+            }
+            return next
+          })
         }
         if (window.mirrorSettings) {
           const ms = window.mirrorSettings

@@ -172,8 +172,8 @@ export default function MobileControls() {
   // Group pulse blink ~1200ms then wait additional 3000ms before showing buttons
   const keywordSequenceMs = 4800;
   const keywordPulseMs = 1200;
-  const buttonsDelayAfterPulseMs = 9000; // target: total ~15s after final keyword (4800 + 1200 + 9000)
-  const buttonsAppearDelayMs = keywordSequenceMs + keywordPulseMs + buttonsDelayAfterPulseMs; // ~15000ms
+  const buttonsDelayAfterPulseMs = 7000; // 1초 단축 (기존 9000)
+  const buttonsAppearDelayMs = keywordSequenceMs + keywordPulseMs + buttonsDelayAfterPulseMs; // ~14000ms
 
   const { isListening, startVoiceRecognition } = useSpeechRecognition({
     onStart: () => {

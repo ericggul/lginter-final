@@ -14,7 +14,6 @@ export const Root = styled.div`
   pointer-events: none;
   overflow: hidden;
   background: ${(p) => p.$bg || 'transparent'};
-  transition: background 0.7s ease;
   /* 배경 레이어에 올라가는 모든 텍스트(키워드, 무드 단어 등)를
      프리텐다드 UI 폰트로 강제 지정해서 기기별 폰트 깨짐을 방지 */
   font-family: ${fonts.ui};
@@ -117,9 +116,9 @@ export const KeywordItem = styled.div`
   opacity: ${(p) => p.$visible ? 1 : 0};
   transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
   ${(p) => p.$pos === 'top' ? `transition-delay: 0ms;` : ''}
-  ${(p) => p.$pos === 'right' ? `transition-delay: 450ms;` : ''}
-  ${(p) => p.$pos === 'bottom' ? `transition-delay: 900ms;` : ''}
-  ${(p) => p.$pos === 'left' ? `transition-delay: 1350ms;` : ''}
+  ${(p) => p.$pos === 'right' ? `transition-delay: 550ms;` : ''}
+  ${(p) => p.$pos === 'bottom' ? `transition-delay: 1100ms;` : ''}
+  ${(p) => p.$pos === 'left' ? `transition-delay: 1650ms;` : ''}
   ${(p) => p.$pos === 'top' ? `
     top: var(--kw-center-y);
     left: var(--kw-center-x);
