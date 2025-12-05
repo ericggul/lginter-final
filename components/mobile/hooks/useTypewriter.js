@@ -20,15 +20,11 @@ export default function useTypewriter(text, { charMs = 55 } = {}) {
     if (count !== lastCountRef.current) {
       lastCountRef.current = count;
       setTypedReason(activeTextRef.current.slice(0, count));
-      if (count % 12 === 0) {
-        console.log('[Typewriter] progress', { count, totalLen, elapsedMs: Math.round(elapsed) });
-      }
     }
     if (count >= totalLen) {
       if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
       setIsDone(true);
-      console.log('[Typewriter] completed', { totalLen, elapsedMs: Math.round(elapsed) });
       setTimeout(() => {
         setShowHighlights(true);
         setTimeout(() => setShowResults(true), 4000);
@@ -58,7 +54,6 @@ export default function useTypewriter(text, { charMs = 55 } = {}) {
       setTypedReason('');
       lastCountRef.current = 0;
       startAtRef.current = null;
-      console.log('[Typewriter] start', { length: incoming.length, charMs });
     }
 
     // Drive typing with a single RAF loop (avoids double work on iOS Safari)

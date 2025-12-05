@@ -51,10 +51,10 @@ export default function usePostTypingShowcase({
     timersRef.current.forEach((id) => clearTimeout(id));
     timersRef.current = [];
 
-    // Speed up finale: shorter hold and orbit solo before keywords
-    const TEXT_HOLD_MS = 600;
-    const ORBIT_SOLO_MS = 1200;
-    const LABEL_HOLD_MS = 1000;
+    // Relaxed timing (original pacing)
+    const TEXT_HOLD_MS = 2000;
+    const ORBIT_SOLO_MS = 3000;
+    const LABEL_HOLD_MS = 2000;
 
     let colorName = '조명';
     let musicLabel = '음악';

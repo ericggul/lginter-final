@@ -114,11 +114,11 @@ export const KeywordItem = styled.div`
   text-shadow: none;
   will-change: opacity;
   opacity: ${(p) => p.$visible ? 1 : 0};
-  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
   ${(p) => p.$pos === 'top' ? `transition-delay: 0ms;` : ''}
-  ${(p) => p.$pos === 'right' ? `transition-delay: 550ms;` : ''}
-  ${(p) => p.$pos === 'bottom' ? `transition-delay: 1100ms;` : ''}
-  ${(p) => p.$pos === 'left' ? `transition-delay: 1650ms;` : ''}
+  ${(p) => p.$pos === 'right' ? `transition-delay: 1300ms;` : ''}
+  ${(p) => p.$pos === 'bottom' ? `transition-delay: 2600ms;` : ''}
+  ${(p) => p.$pos === 'left' ? `transition-delay: 3900ms;` : ''}
   ${(p) => p.$pos === 'top' ? `
     top: var(--kw-center-y);
     left: var(--kw-center-x);
