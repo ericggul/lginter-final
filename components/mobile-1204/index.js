@@ -20,7 +20,7 @@ import InputForm from './views/InputForm';
 import { fonts } from "./sections/styles/tokens";
 import { RingPulse as PressRingPulse, HitArea as PressHitArea } from './sections/PressOverlay/styles';
 
-import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
+import BackgroundCanvas from '@/components/mobile-1204/BackgroundCanvas';
 // public 자산 사용: 문자열 경로로 next/image에 전달
 
 export default function MobileControls() {

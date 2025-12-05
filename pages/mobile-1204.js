@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 
-const MobileControls = dynamic(() => import("@/components/mobile-original"), {
+const MobileControls = dynamic(() => import("@/components/mobile-1204"), {
   ssr: false,
   loading: () => (
     <div style={{
