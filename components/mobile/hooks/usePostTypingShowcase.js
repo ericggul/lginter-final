@@ -51,12 +51,19 @@ export default function usePostTypingShowcase({
     timersRef.current.forEach((id) => clearTimeout(id));
     timersRef.current = [];
 
-    const TEXT_HOLD_MS = 2000;
-    const ORBIT_SOLO_MS = 3000;
-    const LABEL_HOLD_MS = 2000;
+    // Speed up finale: shorter hold and orbit solo before keywords
+    const TEXT_HOLD_MS = 600;
+    const ORBIT_SOLO_MS = 1200;
+    const LABEL_HOLD_MS = 1000;
 
     let colorName = '조명';
     let musicLabel = '음악';
+    console.log('[Showcase] rec inputs', {
+      temp: recommendations?.temperature,
+      humidity: recommendations?.humidity,
+      lightColor: recommendations?.lightColor,
+      song: recommendations?.song,
+    });
     if (recommendations) {
       const hex = (recommendations.lightColor || '').replace('#', '');
       if (hex.length === 6) {
@@ -96,6 +103,11 @@ export default function usePostTypingShowcase({
         window.clusterSpin = true;
         window.showOrbits = true;
         window.showKeywords = false;
+        console.log('[Showcase] finale start', {
+          showFinalOrb: window.showFinalOrb,
+          showOrbits: window.showOrbits,
+          showKeywords: window.showKeywords,
+        });
       }
 
       const t2 = setTimeout(() => {
@@ -109,6 +121,14 @@ export default function usePostTypingShowcase({
             musicLabel || '음악',
           ];
           window.showKeywords = true;
+          console.log('[Showcase] keywords set', {
+            labels: window.keywordLabels,
+            showKeywords: window.showKeywords,
+            tempLabel,
+            humidLabel,
+            colorName,
+            musicLabel,
+          });
         }
 
         const t3 = setTimeout(() => {

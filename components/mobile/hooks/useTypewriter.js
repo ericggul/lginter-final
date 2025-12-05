@@ -9,7 +9,6 @@ export default function useTypewriter(text, { charMs = 55 } = {}) {
 
   const startAtRef = useRef(null);
   const rafIdRef = useRef(null);
-  const ivIdRef = useRef(null);
   const lastCountRef = useRef(0);
   const activeTextRef = useRef('');
 
@@ -21,13 +20,15 @@ export default function useTypewriter(text, { charMs = 55 } = {}) {
     if (count !== lastCountRef.current) {
       lastCountRef.current = count;
       setTypedReason(activeTextRef.current.slice(0, count));
+      if (count % 12 === 0) {
+        console.log('[Typewriter] progress', { count, totalLen, elapsedMs: Math.round(elapsed) });
+      }
     }
     if (count >= totalLen) {
       if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
-      if (ivIdRef.current != null) clearInterval(ivIdRef.current);
       rafIdRef.current = null;
-      ivIdRef.current = null;
       setIsDone(true);
+      console.log('[Typewriter] completed', { totalLen, elapsedMs: Math.round(elapsed) });
       setTimeout(() => {
         setShowHighlights(true);
         setTimeout(() => setShowResults(true), 4000);
@@ -43,9 +44,7 @@ export default function useTypewriter(text, { charMs = 55 } = {}) {
     if (!text) {
       // pause without losing progress
       if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
-      if (ivIdRef.current != null) clearInterval(ivIdRef.current);
       rafIdRef.current = null;
-      ivIdRef.current = null;
       return;
     }
 
@@ -59,23 +58,18 @@ export default function useTypewriter(text, { charMs = 55 } = {}) {
       setTypedReason('');
       lastCountRef.current = 0;
       startAtRef.current = null;
+      console.log('[Typewriter] start', { length: incoming.length, charMs });
     }
 
-    // start both RAF and a lightweight interval as a safety net
+    // Drive typing with a single RAF loop (avoids double work on iOS Safari)
     const rafStep = (t) => {
       if (!drive(t)) rafIdRef.current = requestAnimationFrame(rafStep);
     };
     rafIdRef.current = requestAnimationFrame(rafStep);
 
-    ivIdRef.current = setInterval(() => {
-      drive();
-    }, Math.max(16, Math.floor(charMs / 2)));
-
     return () => {
       if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
-      if (ivIdRef.current != null) clearInterval(ivIdRef.current);
       rafIdRef.current = null;
-      ivIdRef.current = null;
     };
   }, [text, charMs]);
 
