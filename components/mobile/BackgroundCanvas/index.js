@@ -4,18 +4,6 @@ import useIsIOS from '../hooks/useIsIOS'
 
 const MOOD_WORDS = ['즐거워', '상쾌해', '지루해', '찝찝해', '불쾌해']
 
-const shallowEqual = (a, b) => {
-  if (a === b) return true
-  if (!a || !b) return false
-  const aKeys = Object.keys(a)
-  const bKeys = Object.keys(b)
-  if (aKeys.length !== bKeys.length) return false
-  for (const k of aKeys) {
-    if (a[k] !== b[k]) return false
-  }
-  return true
-}
-
 export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords = true }) {
   const isIOS = useIsIOS()
   const [mounted, setMounted] = useState(false)
@@ -102,140 +90,115 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
     const loop = () => {
       if (typeof window !== 'undefined') {
         if (window.pressProgress !== undefined) {
-          setPressProgress((prev) => (prev !== window.pressProgress ? window.pressProgress : prev))
+          setPressProgress(window.pressProgress)
         }
         if (window.blobSettings) {
           const bs = window.blobSettings
-          setBlobSettings(prev => {
-            const next = {
-              centerX: bs.centerX ?? prev.centerX,
-              centerY: bs.centerY ?? prev.centerY,
-              start: bs.start ?? prev.start,
-              end: bs.end ?? prev.end,
-              blurPx: bs.blurPx ?? prev.blurPx,
-              rimTilt: bs.rimTilt ?? prev.rimTilt,
-              feather: bs.feather ?? prev.feather,
-              innerBlur: bs.innerBlur ?? prev.innerBlur,
-              color0: bs.color0 ?? prev.color0,
-              color1: bs.color1 ?? prev.color1,
-              color2: bs.color2 ?? prev.color2,
-              color3: bs.color3 ?? prev.color3,
-              color4: bs.color4 ?? prev.color4,
-              tintAlpha: bs.tintAlpha ?? prev.tintAlpha,
-              boost: bs.boost ?? prev.boost,
-            }
-            return shallowEqual(prev, next) ? prev : next
-          })
+          setBlobSettings(prev => ({
+            centerX: bs.centerX ?? prev.centerX,
+            centerY: bs.centerY ?? prev.centerY,
+            start: bs.start ?? prev.start,
+            end: bs.end ?? prev.end,
+            blurPx: bs.blurPx ?? prev.blurPx,
+            rimTilt: bs.rimTilt ?? prev.rimTilt,
+            feather: bs.feather ?? prev.feather,
+            innerBlur: bs.innerBlur ?? prev.innerBlur,
+            color0: bs.color0 ?? prev.color0,
+            color1: bs.color1 ?? prev.color1,
+            color2: bs.color2 ?? prev.color2,
+            color3: bs.color3 ?? prev.color3,
+            color4: bs.color4 ?? prev.color4,
+            tintAlpha: bs.tintAlpha ?? prev.tintAlpha,
+            boost: bs.boost ?? prev.boost,
+          }))
         }
         if (window.isListening !== undefined) {
-          const val = Boolean(window.isListening)
-          setIsListeningFlag((p) => (p !== val ? val : p))
-          setIsVoiceActive((p) => (p !== val ? val : p))
+          setIsListeningFlag(Boolean(window.isListening))
+          setIsVoiceActive(Boolean(window.isListening))
         }
         if (window.blobOpacity !== undefined) {
           const a = Number(window.blobOpacity)
-          if (!Number.isNaN(a)) setBlobAlpha((prev) => {
-            const next = Math.max(0, Math.min(1, a))
-            return prev === next ? prev : next
-          })
+          if (!Number.isNaN(a)) setBlobAlpha(Math.max(0, Math.min(1, a)))
         }
         if (window.blobOpacityMs !== undefined) {
           const ms = Number(window.blobOpacityMs)
-          if (!Number.isNaN(ms)) setBlobOpacityMs((prev) => (prev === ms ? prev : ms))
+          if (!Number.isNaN(ms)) setBlobOpacityMs(ms)
         }
         if (window.blobScale !== undefined) {
           const s = Number(window.blobScale)
-          if (!Number.isNaN(s)) setBlobScale((prev) => {
-            const next = Math.max(0.1, Math.min(2, s))
-            return prev === next ? prev : next
-          })
+          if (!Number.isNaN(s)) setBlobScale(Math.max(0.1, Math.min(2, s)))
         }
         if (window.blobScaleMs !== undefined) {
           const ms2 = Number(window.blobScaleMs)
-          if (!Number.isNaN(ms2)) setBlobScaleMs((prev) => (prev === ms2 ? prev : ms2))
+          if (!Number.isNaN(ms2)) setBlobScaleMs(ms2)
         }
-        if (window.showOrbits !== undefined) setShowOrbits((p) => (p !== Boolean(window.showOrbits) ? Boolean(window.showOrbits) : p))
-        if (window.clusterSpin !== undefined) setClusterSpin((p) => (p !== Boolean(window.clusterSpin) ? Boolean(window.clusterSpin) : p))
+        if (window.showOrbits !== undefined) setShowOrbits(Boolean(window.showOrbits))
+        if (window.clusterSpin !== undefined) setClusterSpin(Boolean(window.clusterSpin))
         if (window.orbitRadiusScale !== undefined) {
           const rs = Number(window.orbitRadiusScale)
-          if (!Number.isNaN(rs)) setOrbitRadiusScale((prev) => {
-            const next = Math.max(0.5, Math.min(1.4, rs))
-            return prev === next ? prev : next
-          })
+          if (!Number.isNaN(rs)) setOrbitRadiusScale(Math.max(0.5, Math.min(1.4, rs)))
         }
-        if (window.mainBlobFade !== undefined) setMainBlobFade((p) => (p !== Boolean(window.mainBlobFade) ? Boolean(window.mainBlobFade) : p))
-        if (window.newOrbEnter !== undefined) setNewOrbEnter((p) => (p !== Boolean(window.newOrbEnter) ? Boolean(window.newOrbEnter) : p))
-        if (window.showFinalOrb !== undefined) setShowFinalOrb((p) => (p !== Boolean(window.showFinalOrb) ? Boolean(window.showFinalOrb) : p))
-        if (window.showCenterGlow !== undefined) setShowCenterGlow((p) => (p !== Boolean(window.showCenterGlow) ? Boolean(window.showCenterGlow) : p))
-        if (window.keywordLabels !== undefined) {
-          const next = Array.isArray(window.keywordLabels) ? window.keywordLabels : []
-          setKeywordLabels((prev) => (shallowEqual(prev, next) ? prev : next))
-        }
-        if (window.showKeywords !== undefined) setShowKeywords((p) => (p !== Boolean(window.showKeywords) ? Boolean(window.showKeywords) : p))
+        if (window.mainBlobFade !== undefined) setMainBlobFade(Boolean(window.mainBlobFade))
+        if (window.newOrbEnter !== undefined) setNewOrbEnter(Boolean(window.newOrbEnter))
+        if (window.showFinalOrb !== undefined) setShowFinalOrb(Boolean(window.showFinalOrb))
+        if (window.showCenterGlow !== undefined) setShowCenterGlow(Boolean(window.showCenterGlow))
+        if (window.keywordLabels !== undefined) setKeywordLabels(Array.isArray(window.keywordLabels) ? window.keywordLabels : [])
+        if (window.showKeywords !== undefined) setShowKeywords(Boolean(window.showKeywords))
         if (window.bgSettings) {
           const bg = window.bgSettings
-          setBgSettings(prev => {
-            const next = {
-              top: typeof bg.top === 'string' ? bg.top : prev.top,
-              mid: typeof bg.mid === 'string' ? bg.mid : prev.mid,
-              low: typeof bg.low === 'string' ? bg.low : prev.low,
-              bottom: typeof bg.bottom === 'string' ? bg.bottom : prev.bottom,
-              ...(() => {
-                const maybeMid = Number(bg.midStop)
-                const maybeLow = Number(bg.lowStop)
-                let newMid = Number.isFinite(maybeMid) ? maybeMid : prev.midStop
-                let newLow = Number.isFinite(maybeLow) ? maybeLow : prev.lowStop
-                newMid = Math.max(0, Math.min(newMid, 99))
-                newLow = Math.max(1, Math.min(newLow, 100))
-                if (newLow <= newMid) {
-                  newLow = Math.min(100, newMid + 1)
-                }
-                newMid = Math.min(newMid, newLow - 1)
-                return { midStop: newMid, lowStop: newLow }
-              })(),
-            }
-            return shallowEqual(prev, next) ? prev : next
-          })
+          setBgSettings(prev => ({
+            top: typeof bg.top === 'string' ? bg.top : prev.top,
+            mid: typeof bg.mid === 'string' ? bg.mid : prev.mid,
+            low: typeof bg.low === 'string' ? bg.low : prev.low,
+            bottom: typeof bg.bottom === 'string' ? bg.bottom : prev.bottom,
+            ...(() => {
+              const maybeMid = Number(bg.midStop)
+              const maybeLow = Number(bg.lowStop)
+              let newMid = Number.isFinite(maybeMid) ? maybeMid : prev.midStop
+              let newLow = Number.isFinite(maybeLow) ? maybeLow : prev.lowStop
+              newMid = Math.max(0, Math.min(newMid, 99))
+              newLow = Math.max(1, Math.min(newLow, 100))
+              if (newLow <= newMid) {
+                newLow = Math.min(100, newMid + 1)
+              }
+              newMid = Math.min(newMid, newLow - 1)
+              return { midStop: newMid, lowStop: newLow }
+            })(),
+          }))
         }
         if (window.mirrorSettings) {
           const ms = window.mirrorSettings
-          setMirrorSettings(prev => {
-            const next = {
-              centerX: ms.centerX ?? prev.centerX,
-              centerY: ms.centerY ?? prev.centerY,
-              start: ms.start ?? prev.start,
-              end: ms.end ?? prev.end,
-              blurPx: ms.blurPx ?? prev.blurPx,
-              rimTilt: ms.rimTilt ?? prev.rimTilt,
-              feather: ms.feather ?? prev.feather,
-              innerBlur: ms.innerBlur ?? prev.innerBlur,
-              color0: ms.color0 ?? prev.color0,
-              color1: ms.color1 ?? prev.color1,
-              color2: ms.color2 ?? prev.color2,
-              color3: ms.color3 ?? prev.color3,
-              color4: ms.color4 ?? prev.color4,
-              tintAlpha: ms.tintAlpha ?? prev.tintAlpha,
-              boost: ms.boost ?? prev.boost,
-            }
-            return shallowEqual(prev, next) ? prev : next
-          })
+          setMirrorSettings(prev => ({
+            centerX: ms.centerX ?? prev.centerX,
+            centerY: ms.centerY ?? prev.centerY,
+            start: ms.start ?? prev.start,
+            end: ms.end ?? prev.end,
+            blurPx: ms.blurPx ?? prev.blurPx,
+            rimTilt: ms.rimTilt ?? prev.rimTilt,
+            feather: ms.feather ?? prev.feather,
+            innerBlur: ms.innerBlur ?? prev.innerBlur,
+            color0: ms.color0 ?? prev.color0,
+            color1: ms.color1 ?? prev.color1,
+            color2: ms.color2 ?? prev.color2,
+            color3: ms.color3 ?? prev.color3,
+            color4: ms.color4 ?? prev.color4,
+            tintAlpha: ms.tintAlpha ?? prev.tintAlpha,
+            boost: ms.boost ?? prev.boost,
+          }))
         }
         if (window.maskSettings) {
           const ms = window.maskSettings
-          setMaskSettings(prev => {
-            const next = {
-              enabled: ms.enabled ?? prev.enabled,
-              color: typeof ms.color === 'string' ? ms.color : prev.color,
-              opacity: Number.isFinite(Number(ms.opacity)) ? Math.max(0, Math.min(1, Number(ms.opacity))) : prev.opacity,
-              blurPx: Number.isFinite(Number(ms.blurPx)) ? Math.max(0, Math.min(200, Number(ms.blurPx))) : prev.blurPx,
-              radius: Number.isFinite(Number(ms.radius)) ? Math.max(10, Math.min(600, Number(ms.radius))) : prev.radius,
-              centerX: Number.isFinite(Number(ms.centerX)) ? Math.max(0, Math.min(100, Number(ms.centerX))) : prev.centerX,
-              centerY: Number.isFinite(Number(ms.centerY)) ? Math.max(0, Math.min(100, Number(ms.centerY))) : prev.centerY,
-              blend: typeof ms.blend === 'string' ? ms.blend : prev.blend,
-              showPanel: Boolean(ms.showPanel ?? prev.showPanel),
-            }
-            return shallowEqual(prev, next) ? prev : next
-          })
+          setMaskSettings(prev => ({
+            enabled: ms.enabled ?? prev.enabled,
+            color: typeof ms.color === 'string' ? ms.color : prev.color,
+            opacity: Number.isFinite(Number(ms.opacity)) ? Math.max(0, Math.min(1, Number(ms.opacity))) : prev.opacity,
+            blurPx: Number.isFinite(Number(ms.blurPx)) ? Math.max(0, Math.min(200, Number(ms.blurPx))) : prev.blurPx,
+            radius: Number.isFinite(Number(ms.radius)) ? Math.max(10, Math.min(600, Number(ms.radius))) : prev.radius,
+            centerX: Number.isFinite(Number(ms.centerX)) ? Math.max(0, Math.min(100, Number(ms.centerX))) : prev.centerX,
+            centerY: Number.isFinite(Number(ms.centerY)) ? Math.max(0, Math.min(100, Number(ms.centerY))) : prev.centerY,
+            blend: typeof ms.blend === 'string' ? ms.blend : prev.blend,
+            showPanel: Boolean(ms.showPanel ?? prev.showPanel),
+          }))
         }
         // Smoothly approach wobble target (default 1)
         {
