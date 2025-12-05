@@ -150,6 +150,9 @@ export default function MobileControls() {
         window.showOrbits = true;
         window.orbitRadiusScale = 0.92;
         window.wobbleTarget = 0; // coast to stop
+        // Ensure blob is visible again for the result showcase
+        window.blobOpacity = 1;
+        window.blobOpacityMs = 600;
       } catch {}
       setLoading(false);
     }

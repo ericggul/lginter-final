@@ -96,6 +96,9 @@ export default function usePostTypingShowcase({
         window.clusterSpin = true;
         window.showOrbits = true;
         window.showKeywords = false;
+        // Safety: ensure blob wrapper is visible
+        window.blobOpacity = 1;
+        window.blobOpacityMs = 600;
       }
 
       const t2 = setTimeout(() => {
