@@ -14,6 +14,7 @@ export const Root = styled.div`
   pointer-events: none;
   overflow: hidden;
   background: ${(p) => p.$bg || 'transparent'};
+  transition: background 0.7s ease;
   /* 배경 레이어에 올라가는 모든 텍스트(키워드, 무드 단어 등)를
      프리텐다드 UI 폰트로 강제 지정해서 기기별 폰트 깨짐을 방지 */
   font-family: ${fonts.ui};

@@ -56,7 +56,7 @@ export default function usePostTypingShowcase({
     const LABEL_HOLD_MS = 2000;
 
     let colorName = '조명';
-    let musicLabel = '';
+    let musicLabel = '음악';
     if (recommendations) {
       const hex = (recommendations.lightColor || '').replace('#', '');
       if (hex.length === 6) {
@@ -85,7 +85,7 @@ export default function usePostTypingShowcase({
       else if (s.includes('hip') || s.includes('rap')) musicLabel = '힙합';
       else if (s.includes('ballad')) musicLabel = '발라드';
       else if (s.includes('pop')) musicLabel = '팝';
-      else musicLabel = (recommendations.song || '').split('-')[0].trim();
+      else musicLabel = ((recommendations.song || '').split('-')[0].trim()) || '음악';
     }
 
     const t1 = setTimeout(() => {
@@ -96,18 +96,17 @@ export default function usePostTypingShowcase({
         window.clusterSpin = true;
         window.showOrbits = true;
         window.showKeywords = false;
-        // Safety: ensure blob wrapper is visible
-        window.blobOpacity = 1;
-        window.blobOpacityMs = 600;
       }
 
       const t2 = setTimeout(() => {
         if (typeof window !== 'undefined' && recommendations) {
+          const tempLabel = (recommendations.temperature != null && recommendations.temperature !== '') ? `${recommendations.temperature}°C` : '온도';
+          const humidLabel = (recommendations.humidity != null && recommendations.humidity !== '') ? `${recommendations.humidity}%` : '습도';
           window.keywordLabels = [
-            `${recommendations.temperature}°C`,
-            `${recommendations.humidity}%`,
-            colorName,
-            musicLabel,
+            tempLabel,
+            humidLabel,
+            colorName || '조명',
+            musicLabel || '음악',
           ];
           window.showKeywords = true;
         }
