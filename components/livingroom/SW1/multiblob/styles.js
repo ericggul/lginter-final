@@ -9,6 +9,18 @@ export const MotionProps = createGlobalStyle`
   @property --holeInner { syntax: '<length>'; inherits: false; initial-value: 14vmin; }
   @property --outerFeather { syntax: '<length>'; inherits: false; initial-value: 8vmin; }
   @property --blobScale { syntax: '<number>'; inherits: false; initial-value: 1; }
+  /* 중심 공전 반경 호흡용 커스텀 프로퍼티 */
+  @property --orbit-radius-mod { syntax: '<number>'; inherits: false; initial-value: 1; }
+  @property --orbit-radius-amp { syntax: '<number>'; inherits: false; initial-value: 0.14; }
+  /* 신규 블롭 등장용 스케일 */
+  @property --new-scale { syntax: '<number>'; inherits: false; initial-value: 1; }
+  /* 그룹 공전 각도(모든 자식에게 상속되어 역회전 고정에 사용) */
+  @property --sw1-rot-angle { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+  /* 자유 회전 블롭 반경 */
+  @property --free-r { syntax: '<number>'; inherits: false; initial-value: 1.0; }
+  /* 미니 블롭의 화면 좌표계 기준 부유 모션 */
+  @property --float-x { syntax: '<number>'; inherits: false; initial-value: 0; }
+  @property --float-y { syntax: '<number>'; inherits: false; initial-value: 0; }
 `;
 
 /* BackgroundCanvas blob center swirl for D (matches SmallBlobD path/speed) */
@@ -59,10 +71,12 @@ export const BlobRotator = SharedBlobRotator;
 export const ContentRotator = SharedContentRotator;
 
 export const Root = styled.div`
-  position: relative;
+  /* TV용 풀 화면 캔버스: 스크롤이 생기지 않도록 화면에 고정 */
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100vw;
   height: 56.25vw; /* 2160 / 3840 * 100 */
-  min-height: 56.25vw;
   background-color: #FAEFFA;
   background-image: ${({ $backgroundUrl }) => ($backgroundUrl ? `url(${$backgroundUrl})` : 'none')};
   background-position: center center;
@@ -95,8 +109,8 @@ export const Stage = styled.div`
   width: 100vw;
   height: 56.25vw;
   pointer-events: none;
-  /* reference size for the largest small blob (D) */
-  --largestBlobSize: clamp(11.588542vw, 52.65vmin, 31.640625vw);
+  /* reference size for the 중심 블롭과 오빗 블롭 크기 (한 단계 더 축소) */
+  --largestBlobSize: clamp(7.5vw, 36vmin, 20vw);
 `;
 
 /* 화면 가장자리에 글라스모피즘(유리) 느낌을 주는 레이어
@@ -189,10 +203,11 @@ export const GradientEllipse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  /* Match Figma: 2293px circle on 3840px-wide canvas → ~59.7vw */
-  width: calc(100vw * 2293 / 3840);
-  height: calc(100vw * 2293 / 3840);
+  /* 중앙 화이트 코어 영역을 살짝 더 작게 */
+  width: calc(100vw * 2100 / 3840);
+  height: calc(100vw * 2100 / 3840);
   transform: translate(-50%, -50%) rotate(-90deg);
+  transition: transform 1200ms cubic-bezier(0.22, 1, 0.36, 1), filter 600ms ease;
   background: radial-gradient(
     47.13% 47.13% at 50% 50%,
     #FFFFFF 37.5%,
@@ -243,6 +258,81 @@ export const CenterSaturationPulse = styled.div`
   animation: ${centerSaturationPulse} 6.2s ease-in-out infinite;
 `;
 
+/* T2 진행 중 표시: 중앙에서 작게 퍼지는 인디케이터 */
+const indicatorPulse = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.0;
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.0);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0.0;
+    box-shadow: 0 0 0.35vw 0.10vw rgba(255,255,255,0.75);
+  }
+`;
+
+export const CenterIndicator = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(var(--largestBlobSize) * 0.10);
+  height: calc(var(--largestBlobSize) * 0.10);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255,255,255,1.0) 0%,
+    rgba(255,255,255,0.85) 45%,
+    rgba(255,255,255,0.0) 80%
+  );
+  mix-blend-mode: screen;
+  filter: blur(0.08vw);
+  pointer-events: none;
+  z-index: 8;
+  animation: ${indicatorPulse} 1400ms ease-out infinite;
+`;
+
+/* 중앙 이너 블롭(작은 코어)의 호흡 애니메이션 */
+const innerCoreBreath = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.98);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.04);
+    opacity: 1.0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.98);
+    opacity: 0.95;
+  }
+`;
+
+export const CenterInnerCore = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* 중앙 작은 코어는 가장 큰 블롭 기준의 약 22% */
+  width: calc(var(--largestBlobSize) * 0.22);
+  height: calc(var(--largestBlobSize) * 0.22);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 8; /* GradientEllipse(6)/SaturationPulse(7) 위, CenterMark(9) 아래 */
+  background: radial-gradient(
+    circle at 50% 48%,
+    rgba(255,255,255,1.0) 0%,
+    rgba(255,255,255,0.85) 42%,
+    rgba(255,255,255,0.0) 86%
+  );
+  filter: blur(0.18vw);
+  animation: ${innerCoreBreath} 9s ease-in-out infinite;
+`;
+
 /* Center wave: 중앙에서 물결처럼 천천히 번져 나가는 부드러운 파장 */
 const centerPulseWave = keyframes`
   0% {
@@ -263,9 +353,9 @@ export const CenterPulse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  /* 기본 크기를 키워서 스케일이 커질 때 더 멀리까지 파동이 닿도록 설정 */
-  width: calc(var(--largestBlobSize) * 1.25);
-  height: calc(var(--largestBlobSize) * 1.25);
+  /* 파동 기본 크기도 줄여서 화이트 링 영역이 과하게 커지지 않도록 조정 */
+  width: calc(var(--largestBlobSize) * 1.05);
+  height: calc(var(--largestBlobSize) * 1.05);
   transform: translate(-50%, -50%);
   border-radius: 50%;
   pointer-events: none;
@@ -306,6 +396,35 @@ export const CenterPulse = styled.div`
   }
 `;
 
+/* 결정 순간 한 번만 강하게 퍼지는 링 (T3/T4 트리거용) */
+export const CenterPulseOnce = styled(CenterPulse)`
+  animation: ${centerPulseWave} 1.4s ease-out 1;
+  &::before, &::after { display: none; }
+`;
+
+/* 완전한 화이트 코어가 분리되어 나오는 버스트 (opacity 1로 시작) */
+const whiteBurst = keyframes`
+  0%   { transform: translate(-50%, -50%) scale(0.95); opacity: 1; }
+  40%  { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.48); opacity: 0; }
+`;
+
+export const CenterWhiteBurst = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(var(--largestBlobSize) * 0.86);
+  height: calc(var(--largestBlobSize) * 0.86);
+  border-radius: 50%;
+  background: #FFFFFF;
+  filter: blur(0.10vw);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 8; /* 코어 위, 회전 PNG 아래/위는 필요시 조정 */
+  animation: ${whiteBurst} 1200ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+`;
+
 export const EllipseLayer = styled.div`
   display: none;
 `;
@@ -329,8 +448,9 @@ export const CircleContainer = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: calc(56.25vw * 5 / 7);
-  height: calc(56.25vw * 5 / 7);
+  /* 중앙 원 그룹 크기 추가 축소 */
+  width: calc(56.25vw * 4.1 / 7);
+  height: calc(56.25vw * 4.1 / 7);
   border-radius: 50%;
   z-index: 0;
 `;
@@ -342,16 +462,38 @@ export const BaseWhite = styled.div`
   background: #FFFFFF;
 `;
 
+/* 중앙 화이트+핑크 블롭의 글로우 레이어 */
+const centerBreath = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.94);
+    filter: blur(1.00vw);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: blur(1.60vw);
+    opacity: 1.00;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.94);
+    filter: blur(1.00vw);
+    opacity: 0.85;
+  }
+`;
+
 export const GradientBlur = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: calc(100% * 3012 / 3104);
-  height: calc(100% * 3012 / 3104);
+  /* 중앙 핑크 블롭(글로우)도 한 단계 더 작게 */
+  width: calc(100% * 2600 / 3104);
+  height: calc(100% * 2600 / 3104);
   border-radius: 50%;
   background: radial-gradient(50.02% 50.02% at 50.02% 50.02%, #FFFFFF 34.13%, #FCCCC1 44.23%, #DDDBDD 79.81%, #FFC9E3 87.98%, #FFFFFF 100%);
-  filter: blur(1.302083vw);
+  filter: blur(1.20vw);
+  /* 숨쉬듯이 아주 천천히 커졌다 작아지는 루프 */
+  animation: ${centerBreath} 12s ease-in-out infinite;
 `;
 
 export const CenterTextWrap = styled.div`
@@ -360,8 +502,8 @@ export const CenterTextWrap = styled.div`
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  /* text is above glow, but below rotating white line */
-  z-index: 8;
+  /* 텍스트를 회전 PNG 위에 두어도 잘 보이도록 한 단계 위로 올림 */
+  z-index: 10;
 `;
 
 /* spin for the center mark image */
@@ -375,15 +517,15 @@ export const CenterMark = styled.img`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  /* 50% of the largest small blob diameter */
-  width: calc(var(--largestBlobSize) * 1.2);
-  height: calc(var(--largestBlobSize) * 1.2);
+  /* 회전 라인 PNG를 더 강조해서 키움 */
+  width: calc(var(--largestBlobSize) * 1.6);
+  height: calc(var(--largestBlobSize) * 1.6);
   will-change: transform;
   animation: ${centerMarkSpin} 4s linear infinite;
   pointer-events: none;
   /* 그림자 없이 선 자체의 밝기/대비만 살려서 또렷하게 */
-  filter: brightness(1.25) contrast(1.4);
-  /* top-most: above text and glow */
+  filter: brightness(1.2) contrast(1.3);
+  /* glow 위, 텍스트 바로 아래 레이어에 위치 */
   z-index: 9;
 `;
 
@@ -456,6 +598,14 @@ const blobMoistureDrift = keyframes`
   100% { transform: translate(-50%, -50%); }
 `;
 
+/* 공전 반경이 안팎으로 호흡하듯 부드럽게 변화 */
+const orbitRadiusPulse = keyframes`
+  0%   { --orbit-radius-mod: 1; }
+  35%  { --orbit-radius-mod: calc(1 - var(--orbit-radius-amp, 0.14)); }
+  70%  { --orbit-radius-mod: calc(1 + (var(--orbit-radius-amp, 0.14) * 0.55)); }
+  100% { --orbit-radius-mod: 1; }
+`;
+
 /* 내부 그라데이션이 살짝 흐르듯이 움직이면서 입체감이 느껴지도록 하는 패럴럭스 모션 */
 const blobInnerParallax = keyframes`
   0% {
@@ -467,6 +617,40 @@ const blobInnerParallax = keyframes`
   100% {
     background-position: 100% 52%;
   }
+`;
+
+/* 항상 흐릿하게 돌아다니는 자유 블롭용 반경 펄스 */
+const freeRadiusPulse = keyframes`
+  0%   { --free-r: 0.9; }
+  40%  { --free-r: 1.3; }
+  70%  { --free-r: 1.0; }
+  100% { --free-r: 0.9; }
+`;
+
+/* 자유 회전(각속도만 다른 4종) */
+const freeRotateFast = keyframes`
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+`;
+const freeRotateMed = keyframes`
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(-360deg); }
+`;
+
+/* 신규 블롭 팝-인 스케일 (transform 직접 애니메이션 대신 커스텀 프로퍼티 사용) */
+const newBlobScale = keyframes`
+  0%   { --new-scale: 0.90; }
+  100% { --new-scale: 1.00; }
+`;
+
+/* 미니 블롭이 화면 좌표계에서 둥둥 떠다니는 자연스러운 부유 모션 */
+const floatDrift = keyframes`
+  0%   { --float-x:  0.00; --float-y:  0.00; }
+  20%  { --float-x:  0.35; --float-y: -0.25; }
+  40%  { --float-x: -0.30; --float-y:  0.42; }
+  60%  { --float-x:  0.28; --float-y:  0.18; }
+  80%  { --float-x: -0.24; --float-y: -0.32; }
+  100% { --float-x:  0.00; --float-y:  0.00; }
 `;
 
 /* z축으로 살짝 앞으로/뒤로 튀어나오는 느낌의 스케일/투명도 펄스 */
@@ -483,11 +667,29 @@ const zPulse = keyframes`
   }
   70% {
     transform: translate(-50%, -50%) var(--orbit-transform)
-               scale(calc(var(--z-scale-base) * 0.85));
+               scale(calc(var(--z-scale-base) * 0.9));
     opacity: calc(var(--z-opacity-base) - 0.16);
   }
 `;
 
+/* 신규 블롭 전용: 동일한 스케일 펄스지만 opacity는 고정 → 알파 튐 방지 */
+const zPulseNew = keyframes`
+  0%, 100% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(var(--z-scale-base));
+    opacity: var(--z-opacity-base);
+  }
+  40% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(calc(var(--z-scale-base) * 1.2));
+    opacity: var(--z-opacity-base);
+  }
+  70% {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               scale(calc(var(--z-scale-base) * 0.9));
+    opacity: var(--z-opacity-base);
+  }
+`;
 const blobInterestSize = keyframes`
   0%   { width: 20vw; height: 20vw; }
   40%  { width: 26vw; height: 26vw; }
@@ -512,9 +714,9 @@ const blobHappySize = keyframes`
 const BlobBase = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
-  /* 주변 원 크기 - 중앙보다 한 단계 작게, 살짝 여유 있게 조정 */
-  width: 28vw;
-  height: 28vw;
+  /* 주변 원 크기 - 전체적으로 한 단계 더 작게 축소 */
+  width: 22vw;
+  height: 22vw;
   border-radius: 50%;
   /* 테두리를 제거해서 외곽 블러가 더 자연스럽게 보이도록 처리 */
   border: none;
@@ -549,8 +751,12 @@ const BlobBase = styled.div`
     font-weight: 400;
     letter-spacing: 0.01em;
     color: #FFFFFF;
-    mix-blend-mode: normal;
-    text-shadow: none;
+    mix-blend-mode: screen;
+    /* 약하게 번지는 글로우 느낌 (bloom) */
+    text-shadow:
+      0 0.10vw 0.25vw rgba(255, 255, 255, 0.9),
+      0 0.35vw 0.75vw rgba(255, 193, 218, 0.85),
+      0 0.70vw 1.40vw rgba(255, 193, 218, 0.55);
   }
   /* 원보다 살짝 큰 레이어에 blur를 적용해서 외곽이 부드럽게 퍼지도록 처리 (halo) */
   &::before {
@@ -621,8 +827,10 @@ export const Sw1OrbitBlob = styled(BlobBase)`
 
   /* 각 슬롯마다 궤도 각도 정의 */
   --orbit-angle: ${({ $angleDeg = 0 }) => `${$angleDeg}deg`};
+  /* 각 슬롯별 중심에서의 거리 배율 (radiusFactor) */
+  --orbit-radius-factor: ${({ $radiusFactor = 1.55 }) => $radiusFactor};
   --orbit-transform: rotate(var(--orbit-angle))
-                     translateX(calc(var(--R) * 1.55))
+                     translateX(calc(var(--R) * var(--orbit-radius-factor) * var(--orbit-radius-mod)))
                      rotate(calc(-1 * var(--orbit-angle)));
 
   /* 깊이 레이어별 기본 scale/blur/opacity 세팅 */
@@ -630,7 +838,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     if ($depthLayer === 0) {
       // 가장 앞 (사용자 가까이) → 크고 선명
       return `
-        --z-scale-base: 1.35;
+        --z-scale-base: 1.15;
         --z-blur-base: 0.35vw;
         --z-opacity-base: 1;
         z-index: 5;
@@ -639,7 +847,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     if ($depthLayer === 2) {
       // 가장 뒤 → 작고 흐림
       return `
-        --z-scale-base: 0.8;
+        --z-scale-base: 0.7;
         --z-blur-base: 1.5vw;
         --z-opacity-base: 0.45;
         z-index: 1;
@@ -647,7 +855,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     }
     // 중간 레이어
     return `
-      --z-scale-base: 1.05;
+      --z-scale-base: 0.9;
       --z-blur-base: 1.1vw;
       --z-opacity-base: 0.8;
       z-index: 3;
@@ -655,28 +863,39 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   }}
 
   transform: translate(-50%, -50%) var(--orbit-transform)
-             scale(var(--z-scale-base));
+             translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
+             scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
   opacity: var(--z-opacity-base);
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
 
   /* 제공된 디자인 스펙을 반영한 컬러 그라데이션 */
   --blob-bg: radial-gradient(
     84.47% 61.21% at 66.09% 54.37%,
-    #FF4D8B 0%,
-    #FF8EA6 34.9%,
-    #FDFFE1 80.29%,
-    #DFE4EA 100%
+    hsla(var(--blob-h, 340), var(--blob-s, 100%), var(--blob-l, 70%), 1.0) 0%,
+    hsla(var(--blob-h, 340), var(--blob-s, 90%),  calc( min( var(--blob-l, 70%), 90% ) ), 0.95) 34.9%,
+    /* 외곽 쪽은 은은한 웜톤(노란 빛)으로 투톤 느낌 복원 */
+    hsla(var(--blob-warm-h, 45), var(--blob-warm-s1, 92%), var(--blob-warm-l1, 94%), 0.80) var(--blob-warm-start, 72%),
+    hsla(var(--blob-warm-h, 45), var(--blob-warm-s2, 96%), var(--blob-warm-l2, 90%), 1.00) 100%
   );
 
   background-size: 320% 320%;
 
-  /* 내부 컬러 패럴럭스 + z축 펄스를 동시에 적용
+  /* 내부 컬러 패럴럭스 + z축 펄스 + 공전 반경 호흡을 동시에 적용
      - zSeed에 따라 duration/딜레이를 달리 줘서 랜덤하게 보이게 함 */
   animation:
-    ${blobInnerParallax} 30s ease-in-out infinite,
-    ${zPulse} ${({ $zSeed = 0 }) => 10 + Math.round($zSeed * 6)}s ease-in-out infinite;
+    /* 내부 컬러 패럴럭스는 아주 느리게 */
+    ${blobInnerParallax} 48s ease-in-out infinite,
+    /* z축 펄스도 전체적으로 더 느리게 (기존보다 약 1.5배) */
+    ${zPulse} ${({ $zSeed = 0 }) => 16 + Math.round($zSeed * 9)}s ease-in-out infinite,
+    /* 공전 반경 호흡: 천천히 안팎으로 미세하게 이동 */
+    ${orbitRadiusPulse} ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s ease-in-out infinite,
+    /* 화면 좌표계 기준 부유 모션 */
+    ${floatDrift} ${({ $zSeed = 0 }) => 38 + Math.round($zSeed * 18)}s ease-in-out infinite;
   animation-delay:
     0s,
-    ${({ $zSeed = 0 }) => `${Math.round($zSeed * 4)}s`};
+    ${({ $zSeed = 0 }) => `${Math.round($zSeed * 4)}s`},
+    ${({ $zSeed = 0 }) => `${2 + Math.round($zSeed * 5)}s`},
+    ${({ $zSeed = 0 }) => `${1 + Math.round($zSeed * 7)}s`};
 
   /* BlobBase에서 정의한 before/after를 오빗 블롭 전용 값으로 살짝 재조정:
      - 바깥 halo는 44px 정도의 블러 느낌
@@ -688,28 +907,94 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     opacity: 0.45;
   }
 
+  /* 신규 블롭은 첫 0.9 -> 1.0로 부드럽게 스케일 인 */
+  &[data-new='true'] {
+    animation-name: ${blobInnerParallax}, ${zPulseNew}, ${orbitRadiusPulse}, ${newBlobScale};
+    animation-duration:
+      48s,
+      ${({ $zSeed = 0 }) => 16 + Math.round($zSeed * 9)}s,
+      ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s,
+      900ms;
+    animation-timing-function:
+      ease-in-out,
+      ease-in-out,
+      ease-in-out,
+      cubic-bezier(0.16, 1, 0.3, 1);
+    animation-iteration-count:
+      infinite,
+      infinite,
+      infinite,
+      1;
+    animation-fill-mode:
+      none,
+      none,
+      none,
+      forwards;
+  }
+
   &::after {
     inset: 0.35vw;
     filter: blur(calc(var(--z-blur-base) * 1.4));
-    background:
-      radial-gradient(
-        84.47% 61.21% at 66.09% 54.37%,
-        #FF4D8B 0%,
-        #FF8EA6 34.9%,
-        #FDFFE1 80.29%,
-        #DFE4EA 100%
-      );
+    /* 내부 코어 그라데이션도 HSL 변수 기반으로 */
+    background: var(--blob-bg, transparent);
   }
 `;
 
+/* T4: 새 미니 블롭이 처음 등장할 때의 흰색 본체 + 핑크 스트로크 오버레이 */
+const sw1NewFade = keyframes`
+  0%   { opacity: 0.0; }
+  35%  { opacity: 0.75; }
+  100% { opacity: 0.0; }
+`;
+
+export const NewBlobOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,0.98) 0%,
+    rgba(255,255,255,0.96) 52%,
+    rgba(255,255,255,0.90) 66%,
+    rgba(255,255,255,0.0) 86%
+  );
+  box-shadow: 0 0 0 0.08vw rgba(245, 106, 148, 0.70), inset 0 0 0 0.08vw rgba(245, 106, 148, 0.62);
+  filter: blur(0.10vw);
+  mix-blend-mode: screen;
+  opacity: 0;
+  will-change: opacity;
+  animation: ${sw1NewFade} 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+`;
+
+/* T3~T4 동안 유지되는 순백 상태 (페이드 없음, 컬러 위에 얹힘) */
+export const NewBlobWhite = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,1.0) 0%,
+    rgba(255,255,255,0.98) 50%,
+    rgba(255,255,255,0.92) 66%,
+    rgba(255,255,255,0.0) 86%
+  );
+  box-shadow: 0 0 0 0.10vw rgba(245, 106, 148, 0.92), inset 0 0 0 0.10vw rgba(245, 106, 148, 0.85);
+  filter: blur(0.10vw);
+  mix-blend-mode: screen;
+  opacity: 1;
+`;
 /* 가운데를 함께 도는 작은 원 3개 (데이터와 무관한 장식용) */
 const SmallOrbitDotBase = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  /* 작은 장식 원은 주변 블롭보다 작지만, 충분히 눈에 띄도록 사이즈 상향 */
-  width: 12vw;
-  height: 12vw;
+  /* 작은 장식 원은 주변 블롭보다 한 단계 더 작게 조정 */
+  width: 8vw;
+  height: 8vw;
   border-radius: 50%;
   pointer-events: none;
   /* 주변 블롭(z-index:2)과 중앙 그라데이션(6) 사이에서 또렷하게 보이도록 4로 설정 */
@@ -740,3 +1025,81 @@ export const Sw1SmallOrbitDot3 = styled(SmallOrbitDotBase)`
   transform: translate(-50%, -50%) rotate(180deg)
              translateX(calc(var(--R) * 1.18));
 `;
+/* Read-only display for center glow colors in RGB */
+export const ColorDebug = styled.div`
+  position: absolute;
+  left: 2vw;
+  bottom: 2vw;
+  padding: 0.35vw 0.6vw;
+  border-radius: 0.3vw;
+  background: rgba(255, 255, 255, 0.72);
+  color: #0F172A;
+  font-size: 0.52vw;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  box-shadow: 0 0.25vw 0.8vw rgba(0,0,0,0.08);
+  pointer-events: none;
+  z-index: 11;
+`;
+
+
+/* ===========================
+   항상 흐릿하게 돌아다니는 자유 블롭 4개
+   =========================== */
+const FreeBlurBase = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16vw;
+  height: 16vw;
+  border-radius: 50%;
+  pointer-events: none;
+  /* 매우 흐릿하고 은은한 존재감 */
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 187, 216, 0.45) 40%,
+    rgba(255, 187, 216, 0.00) 82%
+  );
+  filter: blur(2.4vw);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  z-index: 2;
+`;
+
+/* transform-chain: 중심 기준 회전 → 반경 이동(펄스) */
+const freeTransform = `
+  translate(-50%, -50%)
+  rotate(var(--free-angle, 0deg))
+  translateX(calc(var(--R) * var(--free-r)))
+`;
+
+export const FreeBlur1 = styled(FreeBlurBase)`
+  --free-angle: -30deg;
+  animation:
+    ${freeRotateFast} 36s linear infinite,
+    ${freeRadiusPulse} 9s ease-in-out infinite;
+  transform: ${freeTransform};
+`;
+export const FreeBlur2 = styled(FreeBlurBase)`
+  --free-angle: 60deg;
+  animation:
+    ${freeRotateMed} 44s linear infinite,
+    ${freeRadiusPulse} 12s ease-in-out infinite;
+  transform: ${freeTransform};
+`;
+export const FreeBlur3 = styled(FreeBlurBase)`
+  --free-angle: 150deg;
+  animation:
+    ${freeRotateFast} 52s linear infinite,
+    ${freeRadiusPulse} 10s ease-in-out infinite;
+  transform: ${freeTransform};
+`;
+export const FreeBlur4 = styled(FreeBlurBase)`
+  --free-angle: -140deg;
+  animation:
+    ${freeRotateMed} 40s linear infinite,
+    ${freeRadiusPulse} 11s ease-in-out infinite;
+  transform: ${freeTransform};
+`;
+

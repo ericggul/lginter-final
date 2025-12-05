@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import * as S from './styles';
-import { useSW2Logic } from './logic';
+import { useSW2Logic } from './logic/mainlogic';
+import { getEmotionEntry } from './logic/emotionDB';
+import { buildMiniVars, backgroundFromEmotion } from './logic/color';
+import { getDominantColorFromImage } from '@/utils/color/albumColor';
 import { useControls } from 'leva';
 
 export default function SW2Controls() {
@@ -61,6 +64,17 @@ export default function SW2Controls() {
   const tunedBlobConfigs = useMemo(
     () =>
       blobConfigs.map((blob) => {
+        const pick = (i) => {
+          const k = keywords?.[i];
+          if (!k) return null;
+          return typeof k === 'string' ? { text: k, isNew: false } : k;
+        };
+        const kwObj =
+          blob.id === 'interest' ? (pick(0) || { text: '', isNew: false }) :
+          blob.id === 'happy'    ? (pick(1) || pick(0) || { text: '', isNew: false }) :
+          blob.id === 'wonder'   ? (pick(2) || pick(0) || { text: '', isNew: false }) :
+          { text: '', isNew: false };
+        const entry = kwObj.text ? getEmotionEntry(kwObj.text) : null; // no input → keep default colors
         if (blob.id === 'interest') {
           return {
             ...blob,
@@ -74,6 +88,8 @@ export default function SW2Controls() {
               base: blobTuning.interestSize,
             },
             depthLayer: blobTuning.interestDepth,
+            emotionEntry: entry,
+            isNew: !!kwObj.isNew,
           };
         }
         if (blob.id === 'happy') {
@@ -89,6 +105,8 @@ export default function SW2Controls() {
               base: blobTuning.happySize,
             },
             depthLayer: blobTuning.happyDepth,
+            emotionEntry: entry,
+            isNew: !!kwObj.isNew,
           };
         }
         if (blob.id === 'wonder') {
@@ -104,14 +122,40 @@ export default function SW2Controls() {
               base: blobTuning.wonderSize,
             },
             depthLayer: blobTuning.wonderDepth,
+            emotionEntry: entry,
+            isNew: !!kwObj.isNew,
           };
         }
         return blob;
       }),
-    [blobConfigs, blobTuning]
+    [blobConfigs, blobTuning, keywords]
   );
 
-  const centerRingBackground = `radial-gradient(${centerRing.radius}% ${centerRing.radius}% at ${centerRing.focusX}% ${centerRing.focusY}%, ${centerRing.color1} ${centerRing.stop1}%, ${centerRing.color2} ${centerRing.stop2}%, ${centerRing.color3} ${centerRing.stop3}%)`;
+  // Leva 스펙(기본 핑크)과 앨범 컬러 기반 내부 채움 중 선택
+  const levaPinkBackground = `radial-gradient(${centerRing.radius}% ${centerRing.radius}% at ${centerRing.focusX}% ${centerRing.focusY}%, ${centerRing.color1} ${centerRing.stop1}%, ${centerRing.color2} ${centerRing.stop2}%, ${centerRing.color3} ${centerRing.stop3}%)`;
+  // 앨범 기반: 안쪽은 앨범 컬러, 바깥은 기존 핑크 계열을 유지
+  const albumInnerBackground =
+    'radial-gradient(65% 65% at 50% 50%,' +
+    ' hsla(var(--album-h, 340), var(--album-s, 60%), var(--album-l, 60%), 0.96) 0%,' +
+    ' hsla(340, 86%, 86%, 0.55) 58%,' +
+    ' hsla(340, 90%, 88%, 1.0) 100%' +
+    ')';
+  const centerGlowBackground = coverSrc ? albumInnerBackground : levaPinkBackground;
+
+  // Album dominant color → root-level CSS vars (non-blocking)
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    (async () => {
+      try {
+        if (coverSrc) {
+          const c = await getDominantColorFromImage(coverSrc);
+          const root = document.documentElement;
+          root.style.setProperty('--album-h', String(Math.round(c.h)));
+          root.style.setProperty('--album-s', `${Math.round(c.s)}%`);
+          root.style.setProperty('--album-l', `${Math.round(c.l)}%`);
+        }
+      } catch {}
+    })();
+  }
 
   // SW2 백엔드에서 아직 곡 정보가 안 온 초기 상태에서도
   // 기본 데모 이미지를 보기 좋게 보여주기 위한 fallback 텍스트
@@ -119,7 +163,7 @@ export default function SW2Controls() {
   const displayArtist = artist || 'Kevin MacLeod';
 
   return (
-    <S.Root>
+    <S.Root style={{ backgroundColor: `hsla(var(--album-h, ${getEmotionEntry(keywords?.[0] || '설렘').center.h}), 35%, 90%, 0.22)` }}>
       {/* 상단에서부터 번져 나가는 핑크 파동 레이어 (백엔드와 무관한 순수 프론트 효과) */}
       <S.TopWaveLayer aria-hidden="true">
         {/* 서로 다른 딜레이를 줘서 연속적인 리플 느낌 생성 */}
@@ -134,28 +178,27 @@ export default function SW2Controls() {
         $opacity={centerRing.opacity}
         $blur={centerRing.blur}
         $scale={centerRing.sizeScale}
-        $background={centerRingBackground}
+        $background={centerGlowBackground}
       />
 
       <S.BlobRotator $duration={animation.rotationDuration}>
         {tunedBlobConfigs.map((blob, idx) => {
           const Component = S[blob.componentKey];
-          const keyword = keywords[idx] || blob.labelBottom;
+          const kwItem = keywords[idx];
+          const keyword = (typeof kwItem === 'string' ? kwItem : kwItem?.text) || blob.labelBottom;
           return (
             <Component
               key={blob.id}
               $depthLayer={blob.depthLayer}
-              ref={(node) => {
-                if (node) {
-                  blobRefs.current[blob.id] = node;
-                  node.style.setProperty('--blob-top', `${blob.anchor.y}vw`);
-                  node.style.setProperty('--blob-left', `${blob.anchor.x}vw`);
-                  node.style.setProperty('--blob-size', `${blob.size.base}vw`);
-                } else {
-                  delete blobRefs.current[blob.id];
-                }
+              ref={(node) => { if (node) blobRefs.current[blob.id] = node; else delete blobRefs.current[blob.id]; }}
+              style={{
+                '--blob-top': `${blob.anchor.y}vw`,
+                '--blob-left': `${blob.anchor.x}vw`,
+                '--blob-size': `${blob.size.base}vw`,
+                ...(blob.emotionEntry ? buildMiniVars(blob.emotionEntry) : {}),
               }}
             >
+              {blob.isNew ? <S.NewKeywordOverlay /> : null}
               <S.ContentRotator $duration={animation.rotationDuration}>
                 {/* SW2 로직과 연결된 사용자 키워드만 중앙에 표시 (백엔드와 로직은 그대로) */}
                 <span>{keyword}</span>

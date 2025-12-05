@@ -41,6 +41,10 @@ const topRipple = keyframes`
 `;
 
 export const Root = styled.div`
+  /* TV용 풀 화면 캔버스: 스크롤이 생기지 않도록 화면에 고정 */
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100vw;
   height: 56.25vw; /* 2160 / 3840 * 100 */
   aspect-ratio: 3840 / 2160;
@@ -49,7 +53,6 @@ export const Root = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   overflow: hidden;
 `;
 
@@ -413,6 +416,31 @@ const backHaloPulse = keyframes`
   100% { opacity: 0.45; filter: blur(1.8vw) saturate(0.9); }
 `;
 
+/* 새 키워드 등장: 흰 스트로크만 잠시 보였다가 사라지는 오버레이 */
+const newKeywordIntro = keyframes`
+  0%   { opacity: 0.95; transform: scale(0.96); }
+  60%  { opacity: 0.55; transform: scale(1.02); }
+  100% { opacity: 0.0;  transform: scale(1.06); }
+`;
+
+export const NewKeywordOverlay = styled.div`
+  position: absolute;
+  inset: -0.1vw;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: inset 0 0 0 0.14vw rgba(255,255,255,0.95);
+  background: radial-gradient(
+    circle,
+    rgba(255,255,255,0.0) 60%,
+    rgba(255,255,255,0.25) 78%,
+    rgba(255,255,255,0.0) 92%
+  );
+  mix-blend-mode: screen;
+  filter: blur(0.18vw);
+  animation: ${newKeywordIntro} 900ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+`;
+
 export const LoadingBlock = styled.div`
   text-align: center;
   padding: 0.833333vw;
@@ -548,6 +576,22 @@ export const AlbumPlaceholder = styled.div`
 `;
 
 /* 공통 SW2 블롭 베이스: SW2 회전 원을 Figma 스펙 느낌으로 단순화한 버전 */
+/* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (미니 블롭 전용) */
+const miniRingPulse = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.18);
+    opacity: 0.36;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0.22;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.8);
+    opacity: 0.0;
+  }
+`;
+
 const Sw2BlobBase = styled.div`
   position: absolute;
   /* 중앙 기준 위치만 맞추고, 회전 각도는 halo(::before)에만 적용.
@@ -556,23 +600,27 @@ const Sw2BlobBase = styled.div`
 
   /**
    * 크기: 백엔드에서 내려오는 blob.size.base 를 그대로 활용하되,
-   *      너무 크지 않도록 0.7배 정도로만 사용
+   *      SW1 대비 한 단계 더 작은 미니 블롭 느낌으로 축소
    */
-  width: calc(var(--blob-size, 16vw) * 0.7);
-  height: calc(var(--blob-size, 16vw) * 0.7);
+  width: calc(var(--blob-size, 16vw) * 0.45);
+  height: calc(var(--blob-size, 16vw) * 0.45);
   border-radius: 50%;
   border: none;
   box-shadow: none;
   overflow: visible;
   background: transparent;
-  /* 기본 radial-gradient (Figma 스펙) */
+  /* Emotion 3-tone gradient by CSS vars:
+     center = emotion color; mid = warm yellow; outer = pink.
+     Defaults keep previous look if no vars provided. */
   --blob-bg: radial-gradient(
     84.47% 61.21% at 66.09% 54.37%,
-    #FF4D8B 0%,
-    #FF8EA6 34.9%,
-    #FDFFE1 80.29%,
-    #DFE4EA 100%
+    hsla(var(--mini-h, 340), var(--mini-s, 80%), var(--mini-l, 70%), 1.0) 0%,
+    hsla(var(--mini-mid-h, 45), var(--mini-mid-s, 95%), var(--mini-mid-l, 85%), 0.95) 65%,
+    hsla(var(--mini-outer-h, 340), var(--mini-outer-s, 90%), var(--mini-outer-l, 88%), 1.0) 100%
   );
+  /* Small pink sector overlay defaults (one side keeps pink glow) */
+  --pink-sector-start: 300deg;
+  --pink-sector-size: 42deg;
   opacity: ${({ $depthLayer = 1 }) =>
     $depthLayer === 0 ? 0.98 : $depthLayer === 1 ? 0.9 : 0.78};
   display: flex;
@@ -589,6 +637,8 @@ const Sw2BlobBase = styled.div`
     $depthLayer === 0 ? 5 : $depthLayer === 1 ? 4 : 3};
   will-change: background-position, transform, opacity;
   isolation: isolate;
+  /* remove stroke to avoid gray edges on compositing */
+  border: none;
 
   /* z축이 살아 움직이는 것처럼 보이는 크기/깊이 펄스 */
   animation: ${({ $depthLayer = 1 }) => {
@@ -605,20 +655,33 @@ const Sw2BlobBase = styled.div`
   & span {
     position: relative;
     z-index: 1;
-    font-size: 2vw;
+    font-size: 1.6vw;
     font-weight: 400;
     letter-spacing: 0.02em;
     color: #ffffff;
-    text-shadow: none;
+    /* SW1과 톤을 맞춘 은은한 bloom 효과 */
+    mix-blend-mode: screen;
+    text-shadow:
+      0 0.10vw 0.25vw rgba(255, 255, 255, 0.95),
+      0 0.32vw 0.70vw rgba(255, 192, 220, 0.85),
+      0 0.68vw 1.35vw rgba(255, 192, 220, 0.5);
   }
 
   /* 바깥 halo: 실제 색과 blur는 ::before 에서만 처리해서 텍스트는 선명하게 유지 */
   &::before {
     content: '';
-    position: absolute;
+  position: absolute;
     inset: -3.2vw;
     border-radius: inherit;
-    background: var(--blob-bg, transparent);
+    /* Keep a small pink sector on one side by layering a conic-gradient over the emotion bg */
+    background:
+      conic-gradient(
+        from var(--pink-sector-start),
+        rgba(255, 105, 180, 0.36) 0deg,
+        rgba(255, 105, 180, 0.36) var(--pink-sector-size),
+        rgba(255, 105, 180, 0.0) var(--pink-sector-size)
+      ),
+      var(--blob-bg, transparent);
     /* 제공받은 Figma 회전 각도는 halo에만 적용 (내용 텍스트는 회전하지 않도록 분리) */
     transform: rotate(-66.216deg);
     transform-origin: center;
@@ -626,19 +689,51 @@ const Sw2BlobBase = styled.div`
     pointer-events: none;
     will-change: filter, opacity;
 
-    /* depthLayer 에 따라 서로 다른 강도로 채도/블러 펄스 */
+    /* depthLayer 에 따라 서로 다른 강도로 채도/블러 펄스 (메인보다 살짝 더 부드럽게) */
     animation: ${({ $depthLayer = 1 }) => {
       if ($depthLayer === 0) {
-        return css`${frontHaloPulse} 7s ease-in-out infinite`;
+        return css`${frontHaloPulse} 9s ease-in-out infinite`;
       }
       if ($depthLayer === 1) {
-        return css`${midHaloPulse} 9s ease-in-out infinite`;
+        return css`${midHaloPulse} 11s ease-in-out infinite`;
       }
-      return css`${backHaloPulse} 11s ease-in-out infinite`;
+      return css`${backHaloPulse} 13s ease-in-out infinite`;
     }};
   }
 
-  /* ::after 에서 주던 추가 입체감은 제거 – 제공받은 Figma 디자인을 최대한 그대로 사용 */
+  /* ::after: 중앙에서 밖으로 퍼지는 얇은 링 파동 (메인보다 연하고 부드럽게) */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    /* center dot → thin ring expanding outward, fading to 0 */
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.0) 0%,
+      rgba(255, 255, 255, 0.0) 60%,
+      rgba(255, 255, 255, 0.50) 72%,
+      rgba(255, 255, 255, 0.0) 88%
+    );
+    transform-origin: center;
+    filter: blur(2.6vw);
+    mix-blend-mode: screen;
+    /* 링이 중앙에서 바깥으로 퍼져 나가는 느낌 (조금 더 명확하게 보이도록 속도/강도 조정) */
+    animation: ${({ $depthLayer = 1 }) => {
+      if ($depthLayer === 0) {
+        return css`${miniRingPulse} 7s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
+      }
+      if ($depthLayer === 1) {
+        return css`${miniRingPulse} 9s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
+      }
+      return css`${miniRingPulse} 11s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
+    }};
+  }
 `;
 
 export const Sw2InterestBox = styled(Sw2BlobBase)`

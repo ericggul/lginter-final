@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
+import useSocketSW1 from "@/utils/hooks/useSocketSW1";
 
 const DEFAULT_USERS = [
   { userId: "M1", name: "사용자1" },
   { userId: "M2", name: "사용자2" },
   { userId: "M3", name: "사용자3" },
+  { userId: "M4", name: "사용자4" },
+  { userId: "M5", name: "사용자5" },
+  { userId: "M6", name: "사용자6" },
 ];
 
 export default function FakeMobile() {
@@ -34,6 +38,12 @@ export default function FakeMobile() {
       );
     },
   });
+
+  // SW1 테스트 송출 훅 (타임라인/디시전)
+  const {
+    emitTimelineStage,
+    emitDecisionWithIndividuals,
+  } = useSocketSW1();
 
   const ensureInitForUser = (userId) => {
     setUsers((prev) =>
@@ -81,6 +91,25 @@ export default function FakeMobile() {
     users.forEach((u) => {
       if (u.mood?.trim()) handleSend(u);
     });
+  };
+
+  // ===== SW1 테스트 패널 상태 =====
+  const [sw1Temp, setSw1Temp] = useState(23);
+  const [sw1Hum, setSw1Hum] = useState(50);
+  const [sw1UserCount, setSw1UserCount] = useState(3);
+  const sendSw1Decision = () => {
+    const clamp = (t) => Math.max(18, Math.min(30, Math.round(t)));
+    const cnt = Math.max(0, Math.min(10, Number(sw1UserCount) || 0));
+    const baseTemp = clamp(Number(sw1Temp) || 23);
+    const baseHum = Number(sw1Hum) || 50;
+    const individuals = Array.from({ length: cnt }).map((_, i) => ({
+      userId: `U${i + 1}`,
+      temp: clamp(baseTemp + (i - Math.floor(cnt / 2)) * 2),
+      humidity: baseHum,
+    }));
+    const mergedFrom = individuals.map((x) => x.userId);
+    const env = { temp: baseTemp, humidity: baseHum };
+    emitDecisionWithIndividuals({ env, mergedFrom, individuals, target: 'sw1' });
   };
 
   return (
@@ -145,6 +174,39 @@ export default function FakeMobile() {
         <ButtonPrimary onClick={handleBroadcast}>모두 전송</ButtonPrimary>
         <Small>엔터키로 개별 전송 가능</Small>
       </FooterRow>
+
+      {/* ===== SW1 무빙/컬러 테스트 패널 ===== */}
+      <Section>
+        <SectionTitle>SW1 테스트 패널</SectionTitle>
+        <Row>
+          <TinyButton onClick={() => emitTimelineStage('t1')}>T1</TinyButton>
+          <TinyButton onClick={() => emitTimelineStage('t2')}>T2</TinyButton>
+          <TinyButton onClick={() => emitTimelineStage('t3')}>T3</TinyButton>
+          <TinyButton onClick={() => emitTimelineStage('t4')}>T4</TinyButton>
+          <TinyButton onClick={() => emitTimelineStage('t5')}>T5</TinyButton>
+        </Row>
+        <Row>
+          <SmallInput
+            type="number"
+            value={sw1Temp}
+            onChange={(e) => setSw1Temp(e.target.value)}
+            placeholder="중앙 temp"
+          />
+          <SmallInput
+            type="number"
+            value={sw1Hum}
+            onChange={(e) => setSw1Hum(e.target.value)}
+            placeholder="중앙 humidity"
+          />
+          <SmallInput
+            type="number"
+            value={sw1UserCount}
+            onChange={(e) => setSw1UserCount(e.target.value)}
+            placeholder="개수(3~10)"
+          />
+          <Button onClick={sendSw1Decision}>SW1 디시전 보내기</Button>
+        </Row>
+      </Section>
     </Wrap>
   );
 }
@@ -314,6 +376,45 @@ const FooterRow = styled.div`
 const Small = styled.span`
   color: #9aa3b2;
   font-size: 12px;
+`;
+
+/* ===== SW1 테스트 패널 스타일 ===== */
+const Section = styled.div`
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #2a2a3a;
+  border-radius: 12px;
+  background: #151525;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const SectionTitle = styled.div`
+  font-weight: 700;
+  color: #c6c8ff;
+`;
+
+const TinyButton = styled.button`
+  background: #1f1f2e;
+  border: 1px solid #2a2a3a;
+  color: #dfe3f0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  &:hover { background: #26263a; }
+`;
+
+const SmallInput = styled.input`
+  width: 110px;
+  background: #0e0e18;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  color: #f3f3f7;
+  padding: 8px 10px;
+  outline: none;
+  font-size: 14px;
+  &:focus { border-color: #7c3aed; }
 `;
 
 
