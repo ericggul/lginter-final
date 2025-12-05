@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import * as S from './styles'
 import useIsIOS from '../hooks/useIsIOS'
 
@@ -18,7 +18,6 @@ const shallowEqual = (a, b) => {
 
 export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords = true }) {
   const isIOS = useIsIOS()
-  const lastUpdateRef = useRef(0)
   const [mounted, setMounted] = useState(false)
   const [pressProgress, setPressProgress] = useState(0)
   const [isListeningFlag, setIsListeningFlag] = useState(false)
@@ -102,11 +101,8 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
 
     const loop = () => {
       if (typeof window !== 'undefined') {
-        const now = Date.now()
-        const shouldUpdate = !isIOS || (now - lastUpdateRef.current >= 80)
-
         if (window.pressProgress !== undefined) {
-          if (shouldUpdate) setPressProgress((prev) => (prev !== window.pressProgress ? window.pressProgress : prev))
+          setPressProgress((prev) => (prev !== window.pressProgress ? window.pressProgress : prev))
         }
         if (window.blobSettings) {
           const bs = window.blobSettings
@@ -128,56 +124,54 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
               tintAlpha: bs.tintAlpha ?? prev.tintAlpha,
               boost: bs.boost ?? prev.boost,
             }
-            return shouldUpdate && !shallowEqual(prev, next) ? next : prev
+            return shallowEqual(prev, next) ? prev : next
           })
         }
         if (window.isListening !== undefined) {
           const val = Boolean(window.isListening)
-          if (shouldUpdate) {
-            setIsListeningFlag((p) => (p !== val ? val : p))
-            setIsVoiceActive((p) => (p !== val ? val : p))
-          }
+          setIsListeningFlag((p) => (p !== val ? val : p))
+          setIsVoiceActive((p) => (p !== val ? val : p))
         }
         if (window.blobOpacity !== undefined) {
           const a = Number(window.blobOpacity)
-          if (!Number.isNaN(a) && shouldUpdate) setBlobAlpha((prev) => {
+          if (!Number.isNaN(a)) setBlobAlpha((prev) => {
             const next = Math.max(0, Math.min(1, a))
             return prev === next ? prev : next
           })
         }
         if (window.blobOpacityMs !== undefined) {
           const ms = Number(window.blobOpacityMs)
-          if (!Number.isNaN(ms) && shouldUpdate) setBlobOpacityMs((prev) => (prev === ms ? prev : ms))
+          if (!Number.isNaN(ms)) setBlobOpacityMs((prev) => (prev === ms ? prev : ms))
         }
         if (window.blobScale !== undefined) {
           const s = Number(window.blobScale)
-          if (!Number.isNaN(s) && shouldUpdate) setBlobScale((prev) => {
+          if (!Number.isNaN(s)) setBlobScale((prev) => {
             const next = Math.max(0.1, Math.min(2, s))
             return prev === next ? prev : next
           })
         }
         if (window.blobScaleMs !== undefined) {
           const ms2 = Number(window.blobScaleMs)
-          if (!Number.isNaN(ms2) && shouldUpdate) setBlobScaleMs((prev) => (prev === ms2 ? prev : ms2))
+          if (!Number.isNaN(ms2)) setBlobScaleMs((prev) => (prev === ms2 ? prev : ms2))
         }
-        if (window.showOrbits !== undefined && shouldUpdate) setShowOrbits((p) => (p !== Boolean(window.showOrbits) ? Boolean(window.showOrbits) : p))
-        if (window.clusterSpin !== undefined && shouldUpdate) setClusterSpin((p) => (p !== Boolean(window.clusterSpin) ? Boolean(window.clusterSpin) : p))
+        if (window.showOrbits !== undefined) setShowOrbits((p) => (p !== Boolean(window.showOrbits) ? Boolean(window.showOrbits) : p))
+        if (window.clusterSpin !== undefined) setClusterSpin((p) => (p !== Boolean(window.clusterSpin) ? Boolean(window.clusterSpin) : p))
         if (window.orbitRadiusScale !== undefined) {
           const rs = Number(window.orbitRadiusScale)
-          if (!Number.isNaN(rs) && shouldUpdate) setOrbitRadiusScale((prev) => {
+          if (!Number.isNaN(rs)) setOrbitRadiusScale((prev) => {
             const next = Math.max(0.5, Math.min(1.4, rs))
             return prev === next ? prev : next
           })
         }
-        if (window.mainBlobFade !== undefined && shouldUpdate) setMainBlobFade((p) => (p !== Boolean(window.mainBlobFade) ? Boolean(window.mainBlobFade) : p))
-        if (window.newOrbEnter !== undefined && shouldUpdate) setNewOrbEnter((p) => (p !== Boolean(window.newOrbEnter) ? Boolean(window.newOrbEnter) : p))
-        if (window.showFinalOrb !== undefined && shouldUpdate) setShowFinalOrb((p) => (p !== Boolean(window.showFinalOrb) ? Boolean(window.showFinalOrb) : p))
-        if (window.showCenterGlow !== undefined && shouldUpdate) setShowCenterGlow((p) => (p !== Boolean(window.showCenterGlow) ? Boolean(window.showCenterGlow) : p))
+        if (window.mainBlobFade !== undefined) setMainBlobFade((p) => (p !== Boolean(window.mainBlobFade) ? Boolean(window.mainBlobFade) : p))
+        if (window.newOrbEnter !== undefined) setNewOrbEnter((p) => (p !== Boolean(window.newOrbEnter) ? Boolean(window.newOrbEnter) : p))
+        if (window.showFinalOrb !== undefined) setShowFinalOrb((p) => (p !== Boolean(window.showFinalOrb) ? Boolean(window.showFinalOrb) : p))
+        if (window.showCenterGlow !== undefined) setShowCenterGlow((p) => (p !== Boolean(window.showCenterGlow) ? Boolean(window.showCenterGlow) : p))
         if (window.keywordLabels !== undefined) {
           const next = Array.isArray(window.keywordLabels) ? window.keywordLabels : []
-          if (shouldUpdate) setKeywordLabels((prev) => (shallowEqual(prev, next) ? prev : next))
+          setKeywordLabels((prev) => (shallowEqual(prev, next) ? prev : next))
         }
-        if (window.showKeywords !== undefined && shouldUpdate) setShowKeywords((p) => (p !== Boolean(window.showKeywords) ? Boolean(window.showKeywords) : p))
+        if (window.showKeywords !== undefined) setShowKeywords((p) => (p !== Boolean(window.showKeywords) ? Boolean(window.showKeywords) : p))
         if (window.bgSettings) {
           const bg = window.bgSettings
           setBgSettings(prev => {
@@ -200,7 +194,6 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
                 return { midStop: newMid, lowStop: newLow }
               })(),
             }
-            if (!shouldUpdate) return prev
             return shallowEqual(prev, next) ? prev : next
           })
         }
@@ -224,7 +217,6 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
               tintAlpha: ms.tintAlpha ?? prev.tintAlpha,
               boost: ms.boost ?? prev.boost,
             }
-            if (!shouldUpdate) return prev
             return shallowEqual(prev, next) ? prev : next
           })
         }
@@ -242,21 +234,17 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
               blend: typeof ms.blend === 'string' ? ms.blend : prev.blend,
               showPanel: Boolean(ms.showPanel ?? prev.showPanel),
             }
-            if (!shouldUpdate) return prev
             return shallowEqual(prev, next) ? prev : next
           })
         }
         // Smoothly approach wobble target (default 1)
         {
           const target = (window.wobbleTarget != null) ? Math.max(0, Math.min(1, Number(window.wobbleTarget))) : 1
-          if (shouldUpdate) {
-            setWobbleStrength(prev => {
-              const next = prev + (target - prev) * 0.1
-              return Math.abs(next - prev) > 0.001 ? next : prev
-            })
-          }
+          setWobbleStrength(prev => {
+            const next = prev + (target - prev) * 0.1
+            return Math.abs(next - prev) > 0.001 ? next : prev
+          })
         }
-        if (shouldUpdate) lastUpdateRef.current = now
       }
 
       if (isIOS) {
