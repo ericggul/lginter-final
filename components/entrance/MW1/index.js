@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import useSocketMW1 from "@/utils/hooks/useSocketMW1";
+import useTTS from "@/utils/hooks/useTTS";
 import * as S from './styles';
 
 export default function MW1Controls() {
@@ -7,6 +8,7 @@ export default function MW1Controls() {
   const activeRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [showTip, setShowTip] = useState(false);
+  const { play } = useTTS({ voice: 'alloy', model: 'gpt-4o-mini-tts', format: 'mp3' });
 
   // Keep idle video playing continuously
   useEffect(() => {
@@ -29,6 +31,7 @@ export default function MW1Controls() {
     onEntranceNewUser: () => {
       setIsActive(true);
       setTimeout(() => setShowTip(true), 2000);
+      try { play('안녕하세요! 반갑습니다!'); } catch {}
       const a = activeRef.current;
       if (a) {
         try { a.currentTime = 0; a.play(); } catch {}
