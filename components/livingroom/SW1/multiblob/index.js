@@ -304,6 +304,7 @@ export default function SW1Controls() {
                 $depthLayer={b.depthLayer}
                 $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
                 $zSeed={b.zSeed}
+                data-stage={timelineState}
                 data-new={b.isNew ? 'true' : 'false'}
                 style={{
                   // HSL variables for gradient in styles
@@ -328,12 +329,7 @@ export default function SW1Controls() {
                   })(),
                 }}
               >
-                {/* T3~T4 동안 새 블롭은 흰색 상태로 유지, T5에서 컬러로 전환 */}
-                {b.isNew && (timelineState === 't3' || timelineState === 't4')
-                  ? <S.NewBlobWhite />
-                  : null}
-                {/* 최초 등장 시 짧은 페이드 효과 (겹쳐도 문제 없음) */}
-                {b.isNew && <S.NewBlobOverlay />}
+                {/* 신규 블롭도 T4에서 별도 화이트 오버레이 없이 동일 룩 유지 */}
                 <S.ContentRotator $duration={animation.rotationDuration}>
                   <strong>{b.top}</strong>
                   <span>{b.bottom}</span>
@@ -351,6 +347,9 @@ export default function SW1Controls() {
         <S.FreeBlur2 />
         <S.FreeBlur3 />
         <S.FreeBlur4 />
+        {/* Debug markers: center and intended entry (bottom center). Remove after verification. */}
+        <S.DebugCenter />
+        <S.DebugBottomStart />
         {/* 유기적으로 일렁이는 중앙 화이트 코어 (기존 GradientEllipse 아래에 베이스로 깔림) */}
         <svg
           width="0"

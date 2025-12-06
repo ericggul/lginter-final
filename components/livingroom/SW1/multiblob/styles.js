@@ -76,7 +76,10 @@ export const Root = styled.div`
   top: 0;
   left: 0;
   width: 100vw;
-  height: 56.25vw; /* 2160 / 3840 * 100 */
+  height: 100vh;
+  min-height: 100vh;
+  /* 16:9 기준 비율을 유지하되, 세로가 더 넉넉한 화면에서는 높이를 우선 사용 */
+  --view-base: min(100vw, 177.7778vh); /* 16 / 9 * 100 */
   background-color: #FAEFFA;
   background-image: ${({ $backgroundUrl }) => ($backgroundUrl ? `url(${$backgroundUrl})` : 'none')};
   background-position: center center;
@@ -107,7 +110,7 @@ export const Stage = styled.div`
   position: absolute;
   inset: 0;
   width: 100vw;
-  height: 56.25vw;
+  height: 100vh;
   pointer-events: none;
   /* reference size for the 중심 블롭과 오빗 블롭 크기 (한 단계 더 축소) */
   --largestBlobSize: clamp(7.5vw, 36vmin, 20vw);
@@ -204,8 +207,8 @@ export const GradientEllipse = styled.div`
   top: 50%;
   left: 50%;
   /* 중앙 화이트 코어 영역을 살짝 더 작게 */
-  width: calc(100vw * 2100 / 3840);
-  height: calc(100vw * 2100 / 3840);
+  width: calc(var(--view-base) * 2100 / 3840);
+  height: calc(var(--view-base) * 2100 / 3840);
   transform: translate(-50%, -50%) rotate(-90deg);
   transition: transform 1200ms cubic-bezier(0.22, 1, 0.36, 1), filter 600ms ease;
   background: radial-gradient(
@@ -239,8 +242,8 @@ export const CenterSaturationPulse = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  width: calc(100vw * 2293 / 3840);
-  height: calc(100vw * 2293 / 3840);
+  width: calc(var(--view-base) * 2293 / 3840);
+  height: calc(var(--view-base) * 2293 / 3840);
   transform: translate(-50%, -50%) rotate(-90deg);
   border-radius: 50%;
   pointer-events: none;
@@ -431,12 +434,12 @@ export const EllipseLayer = styled.div`
 
 export const Ellipse = styled.div`
   /* Fallback for narrow screens */
-  width: 100vw;
+  width: min(var(--view-base), 100vw);
   @media (min-width: 39.583333vw) {
-    width: calc(100vw - 39.583333vw); /* leave 19.791667vw on left and right */
+    width: min(var(--view-base), calc(100vw - 39.583333vw)); /* leave 19.791667vw on left and right */
     max-width: calc(100vw - 39.583333vw);
   }
-  height: 56.25vw; /* allow vertical crop */
+  height: calc(var(--view-base) * 9 / 16); /* keep content framed without letterboxing */
   background-image: ${({ $ellipseUrl }) => ($ellipseUrl ? `url(${$ellipseUrl})` : 'none')};
   background-position: center center;
   background-repeat: no-repeat;
@@ -449,8 +452,8 @@ export const CircleContainer = styled.div`
   left: 50%;
   transform: translate(-50%, -50%);
   /* 중앙 원 그룹 크기 추가 축소 */
-  width: calc(56.25vw * 4.1 / 7);
-  height: calc(56.25vw * 4.1 / 7);
+  width: calc(var(--view-base) * 0.329);
+  height: calc(var(--view-base) * 0.329);
   border-radius: 50%;
   z-index: 0;
 `;
@@ -641,6 +644,36 @@ const freeRotateMed = keyframes`
 const newBlobScale = keyframes`
   0%   { --new-scale: 0.90; }
   100% { --new-scale: 1.00; }
+`;
+
+/* T3: 새 블롭이 화면 밖 하단 중앙에서 화면 중앙으로 들어온 후 오빗 위치로 이동 */
+const newBlobRiseToOrbit = keyframes`
+  0%   { 
+    opacity: 0 !important; 
+    transform: translate(-50%, -50%) scale(0.85) !important;
+  }
+  30%  { opacity: 0.9; }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
+               scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
+  }
+`;
+
+/* T4: 중앙으로 합류하며 사라지는 모션 */
+const mergeToCenter = keyframes`
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
+               scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
+  }
+  60% { opacity: 0.65; }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.82);
+  }
 `;
 
 /* 미니 블롭이 화면 좌표계에서 둥둥 떠다니는 자연스러운 부유 모션 */
@@ -897,6 +930,19 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     ${({ $zSeed = 0 }) => `${2 + Math.round($zSeed * 5)}s`},
     ${({ $zSeed = 0 }) => `${1 + Math.round($zSeed * 7)}s`};
 
+  /* T3~T4 동안 기존 오빗 블롭은 살짝 투명화 */
+  &[data-stage='t3']:not([data-new='true']) {
+    opacity: 0;
+  }
+  &[data-stage='t4']:not([data-new='true']) {
+    opacity: calc(var(--z-opacity-base) * 0.45);
+  }
+
+  /* T5에서 투명도 복구 */
+  &[data-stage='t5'] {
+    opacity: var(--z-opacity-base);
+  }
+
   /* BlobBase에서 정의한 before/after를 오빗 블롭 전용 값으로 살짝 재조정:
      - 바깥 halo는 44px 정도의 블러 느낌
      - 안쪽은 코어 그라데이션을 또렷하게 유지 */
@@ -930,6 +976,41 @@ export const Sw1OrbitBlob = styled(BlobBase)`
       none,
       none,
       forwards;
+  }
+
+  /* T3: 새 블롭 입장 (화면 밖 하단 중앙 → 화면 중앙 → 오빗 위치) */
+  &[data-stage='t3'][data-new='true'] {
+    position: absolute !important;
+    left: 50% !important;
+    top: calc(100vh + 11vw) !important; /* 블롭 중심이 화면 하단 중앙에 오도록 (블롭 높이 22vw의 절반) */
+    transform-origin: center center !important;
+    z-index: 6;
+    /* 기본 transform 완전히 오버라이드 - 오빗 적용 안 함 */
+    transform: translate(-50%, -50%) scale(0.85) !important;
+    opacity: 0 !important;
+    /* 오빗 변환을 초기에는 무효화 */
+    --orbit-transform: translate3d(0, 0, 0) !important;
+    /* 기본 transition도 무효화 */
+    transition: none !important;
+    /* 기본 animation도 무효화 후 새 애니메이션 적용 */
+    animation: none !important;
+    /* 화면 밖 하단 중앙에서 시작 → 화면 중앙으로 들어온 후 오빗 위치로 */
+    animation:
+      ${newBlobScale} 900ms cubic-bezier(0.16, 1, 0.3, 1) 1 forwards,
+      ${newBlobRiseToOrbit} 4s cubic-bezier(0.19, 1, 0.22, 1) 1 forwards !important;
+    animation-fill-mode: forwards;
+    will-change: transform, opacity;
+  }
+
+  /* T4: 중앙 합류 */
+  &[data-stage='t4'][data-new='true'] {
+    animation:
+      ${blobInnerParallax} 48s ease-in-out infinite,
+      ${zPulseNew} ${({ $zSeed = 0 }) => 16 + Math.round($zSeed * 9)}s ease-in-out infinite,
+      ${orbitRadiusPulse} ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s ease-in-out infinite,
+      ${floatDrift} ${({ $zSeed = 0 }) => 38 + Math.round($zSeed * 18)}s ease-in-out infinite,
+      ${newBlobScale} 900ms cubic-bezier(0.16, 1, 0.3, 1) 1 forwards,
+      ${mergeToCenter} 2s cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
   }
 
   &::after {
@@ -1101,5 +1182,45 @@ export const FreeBlur4 = styled(FreeBlurBase)`
     ${freeRotateMed} 40s linear infinite,
     ${freeRadiusPulse} 11s ease-in-out infinite;
   transform: ${freeTransform};
+`;
+
+/* Debug markers: center and intended entry line */
+export const DebugCenter = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 0, 0, 0.75);
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.35);
+  z-index: 20;
+  pointer-events: none;
+`;
+
+export const DebugBottomStart = styled.div`
+  position: absolute;
+  left: 50%;
+  bottom: 6vh;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(0, 100, 255, 0.75);
+  box-shadow: 0 0 12px rgba(0, 100, 255, 0.35);
+  z-index: 20;
+  pointer-events: none;
+  &::after {
+    content: 'entry target';
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: rgba(0, 60, 150, 0.8);
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.5);
+  }
 `;
 
