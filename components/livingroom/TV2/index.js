@@ -3,6 +3,11 @@ import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { useTV2Logic } from './logic';
+import { getDominantColorFromImage, getAlbumGradientForTrack } from '@/utils/color/albumColor';
+
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+const hsla = (h, s, l, a = 1) => `hsla(${Math.round(h)}, ${clamp(Math.round(s), 0, 100)}%, ${clamp(Math.round(l), 0, 100)}%, ${a})`;
+const toHsla = (h, s, l, a = 1) => hsla(h, s, l, a);
 
 // Convert hex to HSL and produce a compact natural-language description
 function hexToRgb(hex) {
@@ -38,6 +43,11 @@ function describeHexColor(hex){
   else if(h<330) name='마젠타';
   else name='핑크';
   return `${tone}${name}`.trim();
+}
+function hexToHsl(hex){
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  return rgbToHsl(rgb.r, rgb.g, rgb.b);
 }
 // Build a best-effort static fallback cover path from the title
 function fallbackCoverForTitle(title){
@@ -187,19 +197,173 @@ export default function TV2Controls() {
     iconShadowOffsetY: { value: 0, min: -10, max: 10, step: 1, label: '아이콘 그림자 Y 오프셋' },
   });
 
-  // 3s toggle for header label (hex ↔ natural-language name)
-  const [showAltLabel, setShowAltLabel] = useState(false);
-  useEffect(() => {
-    const id = setInterval(() => setShowAltLabel((v) => !v), 3000);
-    return () => clearInterval(id);
-  }, []);
   const hexColor = (env?.lightColor || '').toUpperCase();
   const friendlyName = useMemo(() => describeHexColor(hexColor), [hexColor]);
-  const headerText = showAltLabel ? (friendlyName || env.lightLabel || 'Blue Light') : (hexColor || env.lightLabel || 'Blue Light');
+  const headerText = friendlyName || env.lightLabel || hexColor || '조명 색상';
+
+  const headerPalette = useMemo(() => {
+    const hsl = hexToHsl(hexColor);
+    if (!hsl) {
+      return {
+        start: null,
+        mid: null,
+        end: null,
+      };
+    }
+    const { h, s, l } = hsl;
+    const sSoft = clamp(s - 8, 0, 100);
+    const sRich = clamp(s + 6, 0, 100);
+    return {
+      start: toHsla(h, sRich, clamp(l + 6, 0, 100), headerGradientOpacity),
+      mid: toHsla(h, sSoft, clamp(l + 10, 0, 100), headerGradientOpacity),
+      end: toHsla(h, sSoft, clamp(l + 18, 0, 100), headerGradientOpacity),
+    };
+  }, [hexColor, headerGradientOpacity]);
 
   // Consider idle until we have any track meta
   const isIdle = !title && !artist && !coverSrc && (!env || env.music === 'ambient');
   const fallbackCover = useMemo(() => fallbackCoverForTitle(title), [title]);
+  const albumVisualKey = coverSrc || fallbackCover || 'placeholder';
+  const isTitleLoading = !title;
+  const isArtistLoading = !artist;
+  const isMusicLoading = !env?.music;
+
+  const [albumTone, setAlbumTone] = useState(null);
+  const [blurAnim, setBlurAnim] = useState(leftPanelBlur);
+  const blurDirRef = useRef(1);
+  const rafRef = useRef(null);
+  const hasCover = !!(coverSrc || fallbackCover);
+
+  useEffect(() => {
+    setBlurAnim(leftPanelBlur);
+    blurDirRef.current = 1;
+  }, [leftPanelBlur]);
+
+  useEffect(() => {
+    let lastTs = null;
+    const blurMin = 1;
+    const blurMax = 28;
+    const blurSpeed = 6; // unit per second
+    const step = (ts) => {
+      if (lastTs == null) lastTs = ts;
+      const dt = (ts - lastTs) / 1000;
+      lastTs = ts;
+      setBlurAnim((prev) => {
+        const next = prev + blurDirRef.current * blurSpeed * dt;
+        if (next >= blurMax) {
+          blurDirRef.current = -1;
+          return blurMax;
+        }
+        if (next <= blurMin) {
+          blurDirRef.current = 1;
+          return blurMin;
+        }
+        return next;
+      });
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const src = coverSrc || fallbackCover;
+    if (!src) {
+      setAlbumTone(null);
+      return;
+    }
+    (async () => {
+      try {
+        const c = await getDominantColorFromImage(src);
+        if (!cancelled) setAlbumTone(c?.isFallback ? null : c);
+      } catch {
+        if (!cancelled) setAlbumTone(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [coverSrc, fallbackCover]);
+
+  const albumCardBackground = useMemo(() => {
+    if (!albumTone) {
+      // 완전 무입력 상태에서는 흰색으로 시작, 커버는 올라오며 톤 입힘
+      return hasCover ? 'radial-gradient(120% 120% at 50% 45%, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.82) 40%, rgba(255,255,255,0.36) 100%)' : 'rgba(255,255,255,0.96)';
+    }
+    const h = albumTone.h;
+    const s = albumTone.s;
+    const l = albumTone.l;
+    const innerL = Math.min(100, l + 12);
+    const midL = Math.max(0, l - 4);
+    const edgeL = Math.max(0, l - 12);
+    const s1 = Math.min(100, s + 8);
+    return `radial-gradient(120% 120% at 35% 25%,
+      hsla(${h}, ${s1}%, ${innerL}%, 0.95) 0%,
+      hsla(${h}, ${s}%, ${midL}%, 0.85) 45%,
+      hsla(${h}, ${s}%, ${edgeL}%, 1) 100%)`;
+  }, [albumTone]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    const h = albumTone?.h ?? 340;
+    const s = albumTone?.s ?? 70;
+    const l = albumTone?.l ?? 70;
+    root.style.setProperty('--album-h', String(Math.round(h)));
+    root.style.setProperty('--album-s', `${Math.round(s)}%`);
+    root.style.setProperty('--album-l', `${Math.round(l)}%`);
+  }, [albumTone]);
+
+  // 곡명으로 지정된 그라데이션 확인
+  const trackGradient = useMemo(() => {
+    // title이 있으면 title 우선, 없으면 env.music의 첫 부분 (아티스트 제거 전)
+    let trackName = title;
+    if (!trackName && env.music) {
+      // env.music에서 "Title - Artist" 또는 "Title by Artist" 형식일 경우 title만 추출
+      const parts = env.music.split(/\s*-\s*|\s+by\s+/i);
+      trackName = parts[0]?.trim() || env.music;
+    }
+    if (!trackName) return null;
+    
+    // 디버깅
+    console.log('[TV2] Looking for gradient - title:', title, 'env.music:', env.music, 'using trackName:', trackName);
+    
+    return getAlbumGradientForTrack(trackName);
+  }, [title, env.music]);
+
+  const albumPalette = useMemo(() => {
+    // 매핑된 곡이 있으면 해당 그라데이션 사용
+    if (trackGradient) {
+      return {
+        left1: trackGradient.colors[0],
+        left2: trackGradient.colors[1],
+        left3: trackGradient.colors[2],
+        left4: trackGradient.colors[3],
+        left5: trackGradient.colors[4],
+        pos1: trackGradient.stops[0],
+        pos2: trackGradient.stops[1],
+        pos3: trackGradient.stops[2],
+        pos4: trackGradient.stops[3],
+      };
+    }
+    // 없으면 기존 동적 추출 방식 사용
+    if (!albumTone) return null;
+    const h = albumTone.h;
+    const s = albumTone.s;
+    const l = albumTone.l;
+    return {
+      left1: hsla(h, s + 10, l - 22, 0.9),
+      left2: hsla(h + 8, s - 6, l - 6, 0.9),
+      left3: hsla(h + 12, s - 10, l + 10, 0.85),
+      left4: hsla(h - 18, s - 18, l + 4, 0.9),
+      left5: hsla(h - 8, s - 22, l + 18, 0.95),
+      pos1: 0,
+      pos2: 0,
+      pos3: 150,
+      pos4: 283,
+    };
+  }, [trackGradient, albumTone]);
 
   // Zoom-invariant cover scale for a fixed 3840x2160 canvas (match TV1 behavior)
   const computeCoverScale = () => {
@@ -319,9 +483,9 @@ export default function TV2Controls() {
     return `rgba(${r},${g},${b},${opacity})`;
   };
 
-  const headerGradientStartRgba = hexToRgba(headerGradientStart, headerGradientOpacity);
-  const headerGradientMidRgba = hexToRgba(headerGradientMid, headerGradientOpacity);
-  const headerGradientEndRgba = hexToRgba(headerGradientEnd, headerGradientOpacity);
+  const headerGradientStartRgba = headerPalette.start || hexToRgba(headerGradientStart, headerGradientOpacity);
+  const headerGradientMidRgba = headerPalette.mid || hexToRgba(headerGradientMid, headerGradientOpacity);
+  const headerGradientEndRgba = headerPalette.end || hexToRgba(headerGradientEnd, headerGradientOpacity);
 
   // 우측 원 색상을 rgba로 변환 (각 색상의 투명도 적용)
   const rightCircleColor1Rgba = hexToRgba(rightCircleColor1, rightCircleColor1Opacity);
@@ -371,25 +535,25 @@ export default function TV2Controls() {
           </S.Header>
           <S.Content>
             <S.LeftPanel
-              $color1={leftPanelColor1}
-              $color2={leftPanelColor2}
-              $color3={leftPanelColor3}
-              $color4={leftPanelColor4}
-              $color5={leftPanelColor5}
-              $pos1={leftPanelGradientPos1}
-              $pos2={leftPanelGradientPos2}
-              $pos3={leftPanelGradientPos3}
-              $pos4={leftPanelGradientPos4}
-              $blur={leftPanelBlur}
+              $color1={albumPalette?.left1 || leftPanelColor1}
+              $color2={albumPalette?.left2 || leftPanelColor2}
+              $color3={albumPalette?.left3 || leftPanelColor3}
+              $color4={albumPalette?.left4 || leftPanelColor4}
+              $color5={albumPalette?.left5 || leftPanelColor5}
+              $pos1={albumPalette?.pos1 ?? leftPanelGradientPos1}
+              $pos2={albumPalette?.pos2 ?? leftPanelGradientPos2}
+              $pos3={albumPalette?.pos3 ?? leftPanelGradientPos3}
+              $pos4={albumPalette?.pos4 ?? leftPanelGradientPos4}
+              $blur={blurAnim}
               $edgeBlurAmount={edgeBlurAmount}
               $edgeBlurWidth={edgeBlurWidth}
             >
               <S.LeftPanelRightEdge
                 $blurAmount={edgeBlurAmount}
                 $blurWidth={edgeBlurWidth}
-                $color1={leftPanelColor1}
-                $color2={leftPanelColor2}
-                $color4={leftPanelColor4}
+                $color1={albumPalette?.left1 || leftPanelColor1}
+                $color2={albumPalette?.left2 || leftPanelColor2}
+                $color4={albumPalette?.left4 || leftPanelColor4}
               />
               <S.AngularSweep />
               <S.AngularSharp />
@@ -409,9 +573,15 @@ export default function TV2Controls() {
                 >
                   <img src="/figma/tv2-song.png" alt="" />
                 </S.MusicIcon>
-                <div>{env.music}</div>
+              <S.FadeSlideText key={env.music || 'music-loading'}>
+                {env.music ? env.music : (
+                  <S.LoadingDots><span /><span /><span /></S.LoadingDots>
+                )}
+              </S.FadeSlideText>
               </S.MusicRow>
-              <S.AlbumCard>
+            <S.AlbumCard>
+              <S.AlbumBg $bg={albumCardBackground || 'rgba(255,255,255,0.96)'} />
+            <S.AlbumVisual key={albumVisualKey}>
                 {(coverSrc || fallbackCover) ? (
                   <S.AlbumImage
                     src={coverSrc || fallbackCover}
@@ -429,22 +599,33 @@ export default function TV2Controls() {
                     }}
                     loading="eager"
                   />
-                ) : null}
-              </S.AlbumCard>
+                ) : (
+                  <S.AlbumPlaceholder />
+                )}
+              </S.AlbumVisual>
+            </S.AlbumCard>
               <S.TrackTitle
                 $glowColor={textGlowColorRgba}
                 $shadowColor={textShadowColorRgba}
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-              >{title || env.music || ''}</S.TrackTitle>
+            >
+              <S.FadeSlideText key={title || env.music || 'title-loading'}>
+                {title || env.music || <S.LoadingDots><span /><span /><span /></S.LoadingDots>}
+              </S.FadeSlideText>
+            </S.TrackTitle>
               <S.Artist
                 $glowColor={textGlowColorRgba}
                 $shadowColor={textShadowColorRgba}
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-              >{artist || ''}</S.Artist>
+            >
+              <S.FadeSlideText key={artist || 'artist-loading'}>
+                {artist || <S.LoadingDots><span /><span /><span /></S.LoadingDots>}
+              </S.FadeSlideText>
+            </S.Artist>
             </S.LeftPanel>
             <S.RightPanel
               style={cssVars}

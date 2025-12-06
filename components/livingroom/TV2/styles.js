@@ -129,7 +129,7 @@ export const LeftPanel = styled.div`
     content:''; position:absolute;
     /* Fill whole panel including padding area */
     top: -480.4px; bottom: -480.4px; left: -480.6px; right: -480.6px;
-    background: conic-gradient(from 0deg at 50% 50%, 
+    background: conic-gradient(from 90deg at 50.34% 56.64%, 
       ${props => props.$color1 || '#A15C2E'} ${props => props.$pos1 || 0}deg, 
       ${props => props.$color2 || '#F5813F'} ${props => props.$pos2 || 74.42}deg, 
       ${props => props.$color3 || '#F5813F'} ${props => props.$pos3 || 114.23}deg, 
@@ -377,6 +377,79 @@ export const AlbumImage = styled.img`
   height: 100%;
   object-fit: cover;
   display: block;
+`;
+
+export const AlbumPlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(120% 120% at 50% 45%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.72) 38%, rgba(255,255,255,0.36) 100%);
+  box-shadow:
+    inset 0 0 60px rgba(255,255,255,0.75),
+    0 0 80px rgba(255,255,255,0.35);
+  filter: drop-shadow(0 14px 32px rgba(0,0,0,0.12));
+`;
+
+const fadeSlideUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+`;
+
+export const AlbumVisual = styled.div`
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  animation: ${fadeSlideUp} 0.8s ease;
+  will-change: opacity, transform;
+  position: relative;
+  z-index: 1;
+`;
+
+const albumBgFade = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+export const AlbumBg = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: ${props => props.$bg};
+  animation: ${albumBgFade} 0.8s ease;
+  will-change: opacity;
+  pointer-events: none;
+  z-index: 0;
+`;
+
+export const FadeSlideText = styled.div`
+  animation: ${fadeSlideUp} 0.6s ease;
+  will-change: opacity, transform;
+`;
+
+const dots = keyframes`
+  0%, 20% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
+`;
+
+export const LoadingDots = styled.div`
+  display: inline-flex;
+  gap: 6px;
+  span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.8);
+    animation: ${dots} 1.2s infinite;
+  }
+  span:nth-child(2) { animation-delay: 0.2s; }
+  span:nth-child(3) { animation-delay: 0.4s; }
 `;
 
 export const TrackTitle = styled.div`

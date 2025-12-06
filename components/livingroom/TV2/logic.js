@@ -17,7 +17,9 @@ export function useTV2Logic() {
 
   useSocketTV2({
     onDeviceNewDecision: (msg) => {
-      if (!msg || msg.target !== 'tv2') return;
+      if (!msg) return;
+      const target = msg.target || msg.device;
+      if (target && target !== 'tv2') return;
       const e = msg.env || {};
       setEnv((prev) => {
         const next = {
