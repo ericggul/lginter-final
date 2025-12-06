@@ -59,7 +59,7 @@ export default function SW1Controls() {
   const BACKGROUND_URL = null; // remove background PNG (big pink blobs)
   const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
 
-  const { blobConfigs, centerTemp, centerHumidity, participantCount, dotCount, decisionTick, timelineState, bloomTick, typeTick } = useSW1Logic();
+  const { blobConfigs, entryBlob, centerTemp, centerHumidity, participantCount, dotCount, decisionTick, timelineState, bloomTick, typeTick } = useSW1Logic();
   const organicCenterPath = useOrganicCenterPath();
   const [midPulseAlpha, setMidPulseAlpha] = useState(1);
   const [bloomActive, setBloomActive] = useState(false);
@@ -295,30 +295,28 @@ export default function SW1Controls() {
           $opacity={edgeBlur.opacity}
         />
         {/* 신입 블롭을 BlobRotator 밖에 렌더링 (회전 영향 없음, 고정된 하단→중앙 경로) */}
-        {blobConfigs
-          .filter((b) => b.isNew && (timelineState === 't3' || timelineState === 't4'))
-          .map((b) => (
-            <S.NewEntryBlob
-              key={`new-${b.id}`}
-              data-stage={timelineState}
-              style={{
-                '--blob-h': miniColor.h,
-                '--blob-s': `${miniColor.s}%`,
-                '--blob-l': `${miniColor.l}%`,
-                '--blob-warm-h': computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp),
-                '--blob-warm-s1': `${miniColor.warmS1}%`,
-                '--blob-warm-l1': '85%',
-                '--blob-warm-s2': `${miniColor.warmS2}%`,
-                '--blob-warm-l2': '88%',
-                '--blob-warm-start': '60%',
-              }}
-            >
-              <S.ContentRotator $duration={animation.rotationDuration}>
-                <strong>{b.top}</strong>
-                <span>{b.bottom}</span>
-              </S.ContentRotator>
-            </S.NewEntryBlob>
-          ))}
+        {entryBlob && (timelineState === 't3' || timelineState === 't4') && (
+          <S.NewEntryBlob
+            key={`entry-${entryBlob.id}`}
+            data-stage={timelineState}
+            style={{
+              '--blob-h': miniColor.h,
+              '--blob-s': `${miniColor.s}%`,
+              '--blob-l': `${miniColor.l}%`,
+              '--blob-warm-h': computeMiniWarmHue(typeof entryBlob.temp === 'number' ? entryBlob.temp : centerTemp),
+              '--blob-warm-s1': `${miniColor.warmS1}%`,
+              '--blob-warm-l1': '85%',
+              '--blob-warm-s2': `${miniColor.warmS2}%`,
+              '--blob-warm-l2': '88%',
+              '--blob-warm-start': '60%',
+            }}
+          >
+            <S.ContentRotator $duration={animation.rotationDuration}>
+              <strong>{entryBlob.temp != null ? `${entryBlob.temp}℃` : ''}</strong>
+              <span>{entryBlob.humidity != null ? `${Math.round(entryBlob.humidity)}%` : ''}</span>
+            </S.ContentRotator>
+          </S.NewEntryBlob>
+        )}
         <S.BlobRotator $duration={animation.rotationDuration}>
           {blobConfigs
             .map((b) => {
@@ -331,7 +329,6 @@ export default function SW1Controls() {
                 $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
                 $zSeed={b.zSeed}
                 data-stage={timelineState}
-                data-new={b.isNew ? 'true' : 'false'}
                 style={{
                   // HSL variables for gradient in styles
                   '--blob-h': miniColor.h,

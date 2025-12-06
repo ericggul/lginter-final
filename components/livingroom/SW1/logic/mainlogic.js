@@ -97,6 +97,8 @@ export function useSW1Logic() {
 
   // Mini blobs: per-user results (up to MAX_BLOBS). Start with dummy values.
   const [miniResults, setMiniResults] = useState(() => []);
+  // 단독 진입 애니메이션용 엔트리 블롭 (오빗과 독립)
+  const [entryBlob, setEntryBlob] = useState(null);
   // Track previously seen real userIds to detect new blob creations
   const prevRealUsersRef = useRef(new Set());
 
@@ -308,26 +310,19 @@ export function useSW1Logic() {
 
     if (timelineState === 't3') {
       setBloomTick((x) => x + 1); // enter bloom once
-      // 기존 isNew 모두 해제 후 T3에서 미니 블롭 하나만 방출 (한 번에 처리)
-      setMiniResults((prevList) => {
-        const nextArr = prevList.map((r) => (r ? { ...r, isNew: false } : r));
-        // 빈 슬롯이나 더미 슬롯을 찾되, 없으면 첫 번째 슬롯 사용
-        const idx = nextArr.findIndex((r) => !r || DUMMY_ID_REGEX.test(String(r.userId || '')));
-        const i = idx >= 0 ? idx : 0;
-        // 정확히 하나만 isNew: true로 설정 (재시작 후 재진입 대응)
-        nextArr[i] = {
-          userId: `emit:${Date.now()}`,
-          temp: nextClimate.temp,
-          humidity: nextClimate.humidity,
-          addedAt: Date.now(),
-          isNew: true,
-        };
-        return nextArr;
+      // 기존 오빗 블롭은 그대로 두고, 진입용 블롭만 별도 상태에 생성
+      setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));
+      setEntryBlob({
+        id: `entry-${Date.now()}`,
+        temp: nextClimate.temp,
+        humidity: nextClimate.humidity,
+        addedAt: Date.now(),
       });
       stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), 4000);
     } else if (timelineState === 't4') {
       stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), 2000);
     } else if (timelineState === 't5') {
+      setEntryBlob(null);
       setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));
       setDisplayClimate(nextClimate);
     }
@@ -412,6 +407,7 @@ export function useSW1Logic() {
 
   return {
     blobConfigs: miniBlobDisplay,
+    entryBlob,
     centerTemp: displayClimate?.temp ?? 23,
     centerHumidity: displayClimate?.humidity ?? 50,
     participantCount,

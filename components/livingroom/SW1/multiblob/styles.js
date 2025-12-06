@@ -1219,18 +1219,18 @@ export const FreeBlur4 = styled(FreeBlurBase)`
 
 /* 회전/오빗과 독립적으로 등장하는 신규 엔트리 블롭 */
 export const NewEntryBlob = styled.div`
-  position: fixed !important;
-  left: 50% !important;
-  top: 100vh !important; /* 화면 하단 기준 */
+  position: fixed;
+  left: 50%;
+  top: 100vh; /* 화면 하단 기준 */
   width: 22vw;
   height: 22vw;
-  transform-origin: center center !important;
+  transform-origin: center center;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 8 !important;
+  z-index: 8;
   /* 초기 상태: 화면 밖 하단 중앙 (키프레임 0%와 동일) */
   opacity: 0;
-  transform: translate(-50%, 12vh) scale(0.9) !important;
+  transform: translate(-50%, 12vh) scale(0.9);
   background: radial-gradient(
     84.47% 61.21% at 66.09% 54.37%,
     hsla(var(--blob-h, 340), var(--blob-s, 100%), var(--blob-l, 70%), 1.0) 0%,
