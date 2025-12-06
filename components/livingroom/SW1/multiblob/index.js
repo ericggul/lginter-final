@@ -294,9 +294,35 @@ export default function SW1Controls() {
           $strength={edgeBlur.strength}
           $opacity={edgeBlur.opacity}
         />
+        {/* 신입 블롭을 BlobRotator 밖에 렌더링 (회전 영향 없음, 고정된 하단→중앙 경로) */}
+        {blobConfigs
+          .filter((b) => b.isNew && (timelineState === 't3' || timelineState === 't4'))
+          .map((b) => (
+            <S.NewEntryBlob
+              key={`new-${b.id}`}
+              data-stage={timelineState}
+              style={{
+                '--blob-h': miniColor.h,
+                '--blob-s': `${miniColor.s}%`,
+                '--blob-l': `${miniColor.l}%`,
+                '--blob-warm-h': computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp),
+                '--blob-warm-s1': `${miniColor.warmS1}%`,
+                '--blob-warm-l1': '85%',
+                '--blob-warm-s2': `${miniColor.warmS2}%`,
+                '--blob-warm-l2': '88%',
+                '--blob-warm-start': '60%',
+              }}
+            >
+              <S.ContentRotator $duration={animation.rotationDuration}>
+                <strong>{b.top}</strong>
+                <span>{b.bottom}</span>
+              </S.ContentRotator>
+            </S.NewEntryBlob>
+          ))}
         <S.BlobRotator $duration={animation.rotationDuration}>
-          {blobConfigs.map((b) => {
-            const Component = S[b.componentKey];
+          {blobConfigs
+            .map((b) => {
+              const Component = S[b.componentKey];
             return (
               <Component
                 key={b.id}

@@ -646,36 +646,22 @@ const newBlobScale = keyframes`
   100% { --new-scale: 1.00; }
 `;
 
-/* T3: 새 블롭이 화면 밖 하단 중앙에서 화면 중앙으로 들어온 후 오빗 위치로 이동 (4초 동안 부드럽게) */
+/* T3: 새 블롭이 화면 밖 하단 중앙에서 화면 중앙으로 부드럽게 이동 (4초), 블러 유지 */
 const newBlobRiseToOrbit = keyframes`
   0%   { 
-    opacity: 0 !important; 
-    /* 화면 하단 중앙 위치 - 오빗 변환 없이 */
-    transform: translate(-50%, -50%) scale(0.85) !important;
-    --orbit-transform: translate3d(0, 0, 0) !important;
-    --float-x: 0 !important;
-    --float-y: 0 !important;
-  }
-  20%  { 
-    opacity: 0.7 !important;
-    transform: translate(-50%, -50%) scale(0.9) !important;
-    --orbit-transform: translate3d(0, 0, 0) !important;
-    --float-x: 0 !important;
-    --float-y: 0 !important;
+    opacity: 0.3 !important;
+    filter: blur(1.6vw) !important;
+    transform: translate(-50%, calc(100vh + 20vh)) scale(0.9) !important;
   }
   50%  { 
-    opacity: 0.95 !important;
-    transform: translate(-50%, -50%) scale(0.95) !important;
-    --orbit-transform: translate3d(0, 0, 0) !important;
-    --float-x: 0 !important;
-    --float-y: 0 !important;
+    opacity: 0.72 !important;
+    filter: blur(1.0vw) !important;
+    transform: translate(-50%, 20vh) scale(0.96) !important;
   }
   100% {
-    opacity: 1 !important;
-    /* 오빗 위치로 이동 */
-    transform: translate(-50%, -50%) var(--orbit-transform)
-               translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
-               scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1))) !important;
+    opacity: 0.9 !important;
+    filter: blur(0.8vw) !important;
+    transform: translate(-50%, -50%) scale(1) !important;
   }
 `;
 
@@ -760,6 +746,25 @@ const blobHappySize = keyframes`
   35%  { width: 26vw; height: 26vw; }
   65%  { width: 18vw; height: 18vw; }
   100% { width: 22.5vw; height: 22.5vw; }
+`;
+
+/* 신규 엔트리 블롭: 회전/오빗과 무관하게 화면 기준으로 등장 */
+const newEntryRise = keyframes`
+  0% {
+    opacity: 0;
+    top: 100vh;
+    transform: translate(-50%, 12vh) scale(0.9);
+  }
+  30% {
+    opacity: 0.85;
+    top: 75vh;
+    transform: translate(-50%, -50%) scale(0.93);
+  }
+  100% {
+    opacity: 1;
+    top: 50vh;
+    transform: translate(-50%, -50%) scale(1);
+  }
 `;
 
 const BlobBase = styled.div`
@@ -954,12 +959,12 @@ export const Sw1OrbitBlob = styled(BlobBase)`
       ${({ $zSeed = 0 }) => `${1 + Math.round($zSeed * 7)}s`};
   }
 
-  /* T3~T4 동안 기존 오빗 블롭은 살짝 투명화 */
+  /* T3~T4 동안 기존 오빗 블롭은 살짝 투명화 (완전 사라지지 않도록) */
   &[data-stage='t3']:not([data-new='true']) {
-    opacity: 0;
+    opacity: calc(var(--z-opacity-base) * 0.6);
   }
   &[data-stage='t4']:not([data-new='true']) {
-    opacity: calc(var(--z-opacity-base) * 0.45);
+    opacity: calc(var(--z-opacity-base) * 0.68);
   }
 
   /* T5에서 투명도 복구 */
@@ -1010,7 +1015,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     transform-origin: center center !important;
     z-index: 6 !important;
     /* 기본 transform 완전히 오버라이드 - 오빗 적용 안 함 */
-    transform: translate(-50%, -50%) scale(0.85) !important;
+    transform: rotate(calc(-1 * var(--sw1-rot-angle, 0deg))) translate(-50%, -50%) scale(0.85) !important;
     opacity: 0 !important;
     /* 오빗 변환을 초기에는 무효화 */
     --orbit-transform: translate3d(0, 0, 0) !important;
@@ -1210,6 +1215,42 @@ export const FreeBlur4 = styled(FreeBlurBase)`
     ${freeRotateMed} 40s linear infinite,
     ${freeRadiusPulse} 11s ease-in-out infinite;
   transform: ${freeTransform};
+`;
+
+/* 회전/오빗과 독립적으로 등장하는 신규 엔트리 블롭 */
+export const NewEntryBlob = styled.div`
+  position: fixed !important;
+  left: 50% !important;
+  top: 100vh !important; /* 화면 하단 기준 */
+  width: 22vw;
+  height: 22vw;
+  transform-origin: center center !important;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 8 !important;
+  /* 초기 상태: 화면 밖 하단 중앙 (키프레임 0%와 동일) */
+  opacity: 0;
+  transform: translate(-50%, 12vh) scale(0.9) !important;
+  background: radial-gradient(
+    84.47% 61.21% at 66.09% 54.37%,
+    hsla(var(--blob-h, 340), var(--blob-s, 100%), var(--blob-l, 70%), 1.0) 0%,
+    hsla(var(--blob-h, 340), var(--blob-s, 90%), calc(min(var(--blob-l, 70%), 90%)), 0.95) 34.9%,
+    hsla(var(--blob-warm-h, 45), var(--blob-warm-s1, 92%), var(--blob-warm-l1, 94%), 0.80) var(--blob-warm-start, 72%),
+    hsla(var(--blob-warm-h, 45), var(--blob-warm-s2, 96%), var(--blob-warm-l2, 90%), 1.00) 100%
+  );
+  animation: ${newEntryRise} 4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+
+  /* T4는 최종 위치(중앙) 유지, T5에서 사라짐 */
+  &[data-stage='t4'] {
+    animation: none !important;
+    top: 50vh !important;
+    opacity: 0.9 !important;
+    filter: blur(0.8vw) !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+  }
+  &[data-stage='t5'] {
+    display: none !important;
+  }
 `;
 
 /* Debug markers: center and intended entry line */
