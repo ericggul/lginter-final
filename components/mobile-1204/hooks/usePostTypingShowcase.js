@@ -51,19 +51,12 @@ export default function usePostTypingShowcase({
     timersRef.current.forEach((id) => clearTimeout(id));
     timersRef.current = [];
 
-    // Relaxed timing (original pacing)
     const TEXT_HOLD_MS = 2000;
     const ORBIT_SOLO_MS = 3000;
     const LABEL_HOLD_MS = 2000;
 
     let colorName = '조명';
-    let musicLabel = '음악';
-    console.log('[Showcase] rec inputs', {
-      temp: recommendations?.temperature,
-      humidity: recommendations?.humidity,
-      lightColor: recommendations?.lightColor,
-      song: recommendations?.song,
-    });
+    let musicLabel = '';
     if (recommendations) {
       const hex = (recommendations.lightColor || '').replace('#', '');
       if (hex.length === 6) {
@@ -92,7 +85,7 @@ export default function usePostTypingShowcase({
       else if (s.includes('hip') || s.includes('rap')) musicLabel = '힙합';
       else if (s.includes('ballad')) musicLabel = '발라드';
       else if (s.includes('pop')) musicLabel = '팝';
-      else musicLabel = ((recommendations.song || '').split('-')[0].trim()) || '음악';
+      else musicLabel = (recommendations.song || '').split('-')[0].trim();
     }
 
     const t1 = setTimeout(() => {
@@ -103,32 +96,17 @@ export default function usePostTypingShowcase({
         window.clusterSpin = true;
         window.showOrbits = true;
         window.showKeywords = false;
-        console.log('[Showcase] finale start', {
-          showFinalOrb: window.showFinalOrb,
-          showOrbits: window.showOrbits,
-          showKeywords: window.showKeywords,
-        });
       }
 
       const t2 = setTimeout(() => {
         if (typeof window !== 'undefined' && recommendations) {
-          const tempLabel = (recommendations.temperature != null && recommendations.temperature !== '') ? `${recommendations.temperature}°C` : '온도';
-          const humidLabel = (recommendations.humidity != null && recommendations.humidity !== '') ? `${recommendations.humidity}%` : '습도';
           window.keywordLabels = [
-            tempLabel,
-            humidLabel,
-            colorName || '조명',
-            musicLabel || '음악',
-          ];
-          window.showKeywords = true;
-          console.log('[Showcase] keywords set', {
-            labels: window.keywordLabels,
-            showKeywords: window.showKeywords,
-            tempLabel,
-            humidLabel,
+            `${recommendations.temperature}°C`,
+            `${recommendations.humidity}%`,
             colorName,
             musicLabel,
-          });
+          ];
+          window.showKeywords = true;
         }
 
         const t3 = setTimeout(() => {

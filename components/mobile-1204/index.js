@@ -20,7 +20,7 @@ import InputForm from './views/InputForm';
 import { fonts } from "./sections/styles/tokens";
 import { RingPulse as PressRingPulse, HitArea as PressHitArea } from './sections/PressOverlay/styles';
 
-import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
+import BackgroundCanvas from '@/components/mobile-1204/BackgroundCanvas';
 // public 자산 사용: 문자열 경로로 next/image에 전달
 
 export default function MobileControls() {
@@ -150,9 +150,6 @@ export default function MobileControls() {
         window.showOrbits = true;
         window.orbitRadiusScale = 0.92;
         window.wobbleTarget = 0; // coast to stop
-        // Ensure blob is visible again for the result showcase
-        window.blobOpacity = 1;
-        window.blobOpacityMs = 600;
       } catch {}
       setLoading(false);
     }
@@ -172,8 +169,8 @@ export default function MobileControls() {
   // Group pulse blink ~1200ms then wait additional 3000ms before showing buttons
   const keywordSequenceMs = 4800;
   const keywordPulseMs = 1200;
-  const buttonsDelayAfterPulseMs = 7000; // 1초 단축 (기존 9000)
-  const buttonsAppearDelayMs = keywordSequenceMs + keywordPulseMs + buttonsDelayAfterPulseMs; // ~14000ms
+  const buttonsDelayAfterPulseMs = 9000; // target: total ~15s after final keyword (4800 + 1200 + 9000)
+  const buttonsAppearDelayMs = keywordSequenceMs + keywordPulseMs + buttonsDelayAfterPulseMs; // ~15000ms
 
   const { isListening, startVoiceRecognition } = useSpeechRecognition({
     onStart: () => {
