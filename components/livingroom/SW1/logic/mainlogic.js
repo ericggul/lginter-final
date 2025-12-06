@@ -89,7 +89,8 @@ export function useSW1Logic() {
     setTimelineState((prev) => {
       const prevIdx = stageOrder.indexOf(prev);
       const nextIdx = stageOrder.indexOf(next);
-      if (nextIdx <= prevIdx) return prev;
+      // T3 재진입 허용 (재시작 후 재진입 대응)
+      if (nextIdx <= prevIdx && next !== 't3') return prev;
       return next;
     });
   }, []);
@@ -146,8 +147,16 @@ export function useSW1Logic() {
           t1: 't1', t2: 't2', t3: 't3', t4: 't4', t5: 't5',
         };
         const next = map[stage] || timelineState;
+        // 재시작 시 (t1로 리셋) prevTimelineRef도 리셋
+        if (next === 't1') {
+          prevTimelineRef.current = 't0'; // 존재하지 않는 값으로 리셋
+        }
         if (next !== timelineState) {
           requestStage(next);
+        } else if (next === 't3') {
+          // 같은 t3 상태지만 재시작 후 재진입인 경우 강제로 트리거
+          prevTimelineRef.current = 't2'; // 이전 상태를 t2로 설정하여 useEffect가 실행되도록
+          requestStage('t3');
         }
       } catch {}
     },
@@ -291,7 +300,8 @@ export function useSW1Logic() {
 
   useEffect(() => {
     const prev = prevTimelineRef.current;
-    if (prev === timelineState) return;
+    // T3 진입 시 항상 실행되도록 (재시작 후 재진입 대응)
+    if (prev === timelineState && timelineState !== 't3') return;
     prevTimelineRef.current = timelineState;
     setStateTick((x) => x + 1);
     clearStageTimers();
@@ -301,9 +311,10 @@ export function useSW1Logic() {
       // 기존 isNew 모두 해제 후 T3에서 미니 블롭 하나만 방출 (한 번에 처리)
       setMiniResults((prevList) => {
         const nextArr = prevList.map((r) => (r ? { ...r, isNew: false } : r));
+        // 빈 슬롯이나 더미 슬롯을 찾되, 없으면 첫 번째 슬롯 사용
         const idx = nextArr.findIndex((r) => !r || DUMMY_ID_REGEX.test(String(r.userId || '')));
         const i = idx >= 0 ? idx : 0;
-        // 정확히 하나만 isNew: true로 설정
+        // 정확히 하나만 isNew: true로 설정 (재시작 후 재진입 대응)
         nextArr[i] = {
           userId: `emit:${Date.now()}`,
           temp: nextClimate.temp,

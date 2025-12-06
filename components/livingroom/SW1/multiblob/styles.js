@@ -646,18 +646,36 @@ const newBlobScale = keyframes`
   100% { --new-scale: 1.00; }
 `;
 
-/* T3: 새 블롭이 화면 밖 하단 중앙에서 화면 중앙으로 들어온 후 오빗 위치로 이동 */
+/* T3: 새 블롭이 화면 밖 하단 중앙에서 화면 중앙으로 들어온 후 오빗 위치로 이동 (4초 동안 부드럽게) */
 const newBlobRiseToOrbit = keyframes`
   0%   { 
     opacity: 0 !important; 
+    /* 화면 하단 중앙 위치 - 오빗 변환 없이 */
     transform: translate(-50%, -50%) scale(0.85) !important;
+    --orbit-transform: translate3d(0, 0, 0) !important;
+    --float-x: 0 !important;
+    --float-y: 0 !important;
   }
-  30%  { opacity: 0.9; }
+  20%  { 
+    opacity: 0.7 !important;
+    transform: translate(-50%, -50%) scale(0.9) !important;
+    --orbit-transform: translate3d(0, 0, 0) !important;
+    --float-x: 0 !important;
+    --float-y: 0 !important;
+  }
+  50%  { 
+    opacity: 0.95 !important;
+    transform: translate(-50%, -50%) scale(0.95) !important;
+    --orbit-transform: translate3d(0, 0, 0) !important;
+    --float-x: 0 !important;
+    --float-y: 0 !important;
+  }
   100% {
-    opacity: 1;
+    opacity: 1 !important;
+    /* 오빗 위치로 이동 */
     transform: translate(-50%, -50%) var(--orbit-transform)
                translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
-               scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
+               scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1))) !important;
   }
 `;
 
@@ -895,11 +913,14 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     `;
   }}
 
-  transform: translate(-50%, -50%) var(--orbit-transform)
-             translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
-             scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
-  opacity: var(--z-opacity-base);
-  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* 기본 transform/opacity/transition (T3 신규 블롭 제외) */
+  &:not([data-stage='t3'][data-new='true']) {
+    transform: translate(-50%, -50%) var(--orbit-transform)
+               translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
+               scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
+    opacity: var(--z-opacity-base);
+    transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
 
   /* 제공된 디자인 스펙을 반영한 컬러 그라데이션 */
   --blob-bg: radial-gradient(
@@ -914,21 +935,24 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   background-size: 320% 320%;
 
   /* 내부 컬러 패럴럭스 + z축 펄스 + 공전 반경 호흡을 동시에 적용
-     - zSeed에 따라 duration/딜레이를 달리 줘서 랜덤하게 보이게 함 */
-  animation:
-    /* 내부 컬러 패럴럭스는 아주 느리게 */
-    ${blobInnerParallax} 48s ease-in-out infinite,
-    /* z축 펄스도 전체적으로 더 느리게 (기존보다 약 1.5배) */
-    ${zPulse} ${({ $zSeed = 0 }) => 16 + Math.round($zSeed * 9)}s ease-in-out infinite,
-    /* 공전 반경 호흡: 천천히 안팎으로 미세하게 이동 */
-    ${orbitRadiusPulse} ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s ease-in-out infinite,
-    /* 화면 좌표계 기준 부유 모션 */
-    ${floatDrift} ${({ $zSeed = 0 }) => 38 + Math.round($zSeed * 18)}s ease-in-out infinite;
-  animation-delay:
-    0s,
-    ${({ $zSeed = 0 }) => `${Math.round($zSeed * 4)}s`},
-    ${({ $zSeed = 0 }) => `${2 + Math.round($zSeed * 5)}s`},
-    ${({ $zSeed = 0 }) => `${1 + Math.round($zSeed * 7)}s`};
+     - zSeed에 따라 duration/딜레이를 달리 줘서 랜덤하게 보이게 함
+     - T3에서는 적용 안 함 (T3 규칙에서 오버라이드) */
+  &:not([data-stage='t3'][data-new='true']) {
+    animation:
+      /* 내부 컬러 패럴럭스는 아주 느리게 */
+      ${blobInnerParallax} 48s ease-in-out infinite,
+      /* z축 펄스도 전체적으로 더 느리게 (기존보다 약 1.5배) */
+      ${zPulse} ${({ $zSeed = 0 }) => 16 + Math.round($zSeed * 9)}s ease-in-out infinite,
+      /* 공전 반경 호흡: 천천히 안팎으로 미세하게 이동 */
+      ${orbitRadiusPulse} ${({ $zSeed = 0 }) => 26 + Math.round($zSeed * 8)}s ease-in-out infinite,
+      /* 화면 좌표계 기준 부유 모션 */
+      ${floatDrift} ${({ $zSeed = 0 }) => 38 + Math.round($zSeed * 18)}s ease-in-out infinite;
+    animation-delay:
+      0s,
+      ${({ $zSeed = 0 }) => `${Math.round($zSeed * 4)}s`},
+      ${({ $zSeed = 0 }) => `${2 + Math.round($zSeed * 5)}s`},
+      ${({ $zSeed = 0 }) => `${1 + Math.round($zSeed * 7)}s`};
+  }
 
   /* T3~T4 동안 기존 오빗 블롭은 살짝 투명화 */
   &[data-stage='t3']:not([data-new='true']) {
@@ -953,8 +977,8 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     opacity: 0.45;
   }
 
-  /* 신규 블롭은 첫 0.9 -> 1.0로 부드럽게 스케일 인 */
-  &[data-new='true'] {
+  /* 신규 블롭은 첫 0.9 -> 1.0로 부드럽게 스케일 인 (T3 제외) */
+  &[data-new='true']:not([data-stage='t3']) {
     animation-name: ${blobInnerParallax}, ${zPulseNew}, ${orbitRadiusPulse}, ${newBlobScale};
     animation-duration:
       48s,
@@ -984,22 +1008,26 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     left: 50% !important;
     top: calc(100vh + 11vw) !important; /* 블롭 중심이 화면 하단 중앙에 오도록 (블롭 높이 22vw의 절반) */
     transform-origin: center center !important;
-    z-index: 6;
+    z-index: 6 !important;
     /* 기본 transform 완전히 오버라이드 - 오빗 적용 안 함 */
     transform: translate(-50%, -50%) scale(0.85) !important;
     opacity: 0 !important;
     /* 오빗 변환을 초기에는 무효화 */
     --orbit-transform: translate3d(0, 0, 0) !important;
+    --float-x: 0 !important;
+    --float-y: 0 !important;
+    --orbit-radius-mod: 1 !important;
+    --z-scale-base: 1 !important;
+    --size-boost: 1 !important;
+    --new-scale: 0.85 !important;
     /* 기본 transition도 무효화 */
     transition: none !important;
-    /* 기본 animation도 무효화 후 새 애니메이션 적용 */
+    /* 기본 animation 완전히 무효화 */
     animation: none !important;
-    /* 화면 밖 하단 중앙에서 시작 → 화면 중앙으로 들어온 후 오빗 위치로 */
-    animation:
-      ${newBlobScale} 900ms cubic-bezier(0.16, 1, 0.3, 1) 1 forwards,
-      ${newBlobRiseToOrbit} 4s cubic-bezier(0.19, 1, 0.22, 1) 1 forwards !important;
-    animation-fill-mode: forwards;
-    will-change: transform, opacity;
+    /* 화면 밖 하단 중앙에서 시작 → 화면 중앙으로 들어온 후 오빗 위치로 (4초 동안 부드럽게) */
+    animation: ${newBlobRiseToOrbit} 4s cubic-bezier(0.19, 1, 0.22, 1) 0s 1 forwards !important;
+    animation-fill-mode: forwards !important;
+    will-change: transform, opacity !important;
   }
 
   /* T4: 중앙 합류 */
