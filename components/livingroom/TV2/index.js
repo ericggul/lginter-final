@@ -3,7 +3,10 @@ import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { useTV2Logic } from './logic';
-import { getDominantColorFromImage, getAlbumGradientForTrack } from '@/utils/color/albumColor';
+import { getDominantColorFromImage } from '@/utils/color/albumColor';
+import { getAlbumGradient, parseMusicString, normalizeTrackName } from '@/utils/data/albumData';
+import { MUSIC_CATALOG } from '@/utils/data/musicCatalog';
+import { computeMiniWarmHue, toHsla as toHslaSW1 } from '@/components/livingroom/SW1/logic/color';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const hsla = (h, s, l, a = 1) => `hsla(${Math.round(h)}, ${clamp(Math.round(s), 0, 100)}%, ${clamp(Math.round(l), 0, 100)}%, ${a})`;
@@ -49,28 +52,12 @@ function hexToHsl(hex){
   if (!rgb) return null;
   return rgbToHsl(rgb.r, rgb.g, rgb.b);
 }
-// Build a best-effort static fallback cover path from the title
-function fallbackCoverForTitle(title){
-  const base = String(title || '').trim();
-  if (!base) return '';
-
-  // 특정 플레이스홀더/무드 텍스트는 개별 파일을 만들지 않고
-  // 항상 존재하는 공통 커버 하나만 사용
-  if (base === '시원한 EDM') {
-    return '/sw2_albumcover/331music.png';
-  }
-
-  const simple = base
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-
-  return `/sw2_albumcover/${simple}.png`;
-}
 
 export default function TV2Controls() {
-  const { env, title, artist, coverSrc } = useTV2Logic();
+  const { env, title, artist, coverSrc, audioSrc } = useTV2Logic();
   const scalerRef = useRef(null);
+  const audioRef = useRef(null);
+  const [waveformData, setWaveformData] = useState(new Array(32).fill(0));
 
   const cssVars = useBlobVars(env);
 
@@ -201,38 +188,184 @@ export default function TV2Controls() {
   const friendlyName = useMemo(() => describeHexColor(hexColor), [hexColor]);
   const headerText = friendlyName || env.lightLabel || hexColor || '조명 색상';
 
-  const headerPalette = useMemo(() => {
-    const hsl = hexToHsl(hexColor);
-    if (!hsl) {
-      return {
-        start: null,
-        mid: null,
-        end: null,
-      };
-    }
-    const { h, s, l } = hsl;
-    const sSoft = clamp(s - 8, 0, 100);
-    const sRich = clamp(s + 6, 0, 100);
-    return {
-      start: toHsla(h, sRich, clamp(l + 6, 0, 100), headerGradientOpacity),
-      mid: toHsla(h, sSoft, clamp(l + 10, 0, 100), headerGradientOpacity),
-      end: toHsla(h, sSoft, clamp(l + 18, 0, 100), headerGradientOpacity),
-    };
-  }, [hexColor, headerGradientOpacity]);
+  // 헤더 컬러는 기본 Leva 값만 사용 (컬러 변경 로직 제거)
 
   // Consider idle until we have any track meta
   const isIdle = !title && !artist && !coverSrc && (!env || env.music === 'ambient');
-  const fallbackCover = useMemo(() => fallbackCoverForTitle(title), [title]);
-  const albumVisualKey = coverSrc || fallbackCover || 'placeholder';
-  const isTitleLoading = !title;
-  const isArtistLoading = !artist;
-  const isMusicLoading = !env?.music;
+  
+  // 2초간 로딩 표시를 위한 상태 (변경 직전에 2초 표시)
+  const [showTitleLoading, setShowTitleLoading] = useState(true);
+  const [showArtistLoading, setShowArtistLoading] = useState(true);
+  const [showAlbumCover, setShowAlbumCover] = useState(false);
+  const [displayTitle, setDisplayTitle] = useState('');
+  const [displayArtist, setDisplayArtist] = useState('');
+  const [showTempLoading, setShowTempLoading] = useState(false);
+  const [showHumidityLoading, setShowHumidityLoading] = useState(false);
+  const [showHeaderLoading, setShowHeaderLoading] = useState(false);
+  const [displayTemp, setDisplayTemp] = useState(typeof env?.temp === 'number' ? `${env.temp}°C` : '');
+  const [displayHumidity, setDisplayHumidity] = useState(typeof env?.humidity === 'number' ? `${env.humidity}%` : '');
+  const [displayHeaderText, setDisplayHeaderText] = useState(headerText || '');
+  const titleChangeRef = useRef('');
+  const artistChangeRef = useRef('');
+  const coverChangeRef = useRef('');
+  const tempChangeRef = useRef(typeof env?.temp === 'number' ? env.temp : null);
+  const humidityChangeRef = useRef(typeof env?.humidity === 'number' ? env.humidity : null);
+  const headerChangeRef = useRef(headerText || '');
+  
+  // 값 변경 시 하단 메시지 표시
+  const [showChangeMessage, setShowChangeMessage] = useState(false);
+  
+  const albumVisualKey = (showAlbumCover && coverSrc) ? coverSrc : 'placeholder';
+  
+  // title/artist/cover 변경 시 2초간 로딩 후 한 번에 표시
+  useEffect(() => {
+    const newTitle = title || '';
+    const newArtist = artist || '';
+    const newCover = coverSrc || '';
+    
+    // 변경 사항이 있는지 확인
+    const titleChanged = newTitle !== titleChangeRef.current;
+    const artistChanged = newArtist !== artistChangeRef.current;
+    const coverChanged = newCover !== coverChangeRef.current;
+    
+    if (titleChanged || artistChanged || coverChanged) {
+      // 변경 직전: 즉시 로딩 표시하고 모든 콘텐츠 숨김
+      setShowTitleLoading(true);
+      setShowArtistLoading(true);
+      setShowAlbumCover(false);
+      setDisplayTitle('');
+      setDisplayArtist('');
+      
+      // 값 변경 메시지 표시
+      setShowChangeMessage(true);
+      const messageTimer = setTimeout(() => {
+        setShowChangeMessage(false);
+      }, 3000);
+      
+      // 변경된 값 저장
+      titleChangeRef.current = newTitle;
+      artistChangeRef.current = newArtist;
+      coverChangeRef.current = newCover;
+      
+      // 2초 후 모든 콘텐츠 한 번에 표시
+      const timer = setTimeout(() => {
+        setShowTitleLoading(false);
+        setShowArtistLoading(false);
+        setShowAlbumCover(true);
+        setDisplayTitle(newTitle);
+        setDisplayArtist(newArtist);
+      }, 2000);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(messageTimer);
+      };
+    } else if (!newTitle && !newArtist && !newCover) {
+      // 모두 비어있으면 로딩 표시
+      setShowTitleLoading(true);
+      setShowArtistLoading(true);
+      setShowAlbumCover(false);
+      setDisplayTitle('');
+      setDisplayArtist('');
+    }
+  }, [title, artist, coverSrc]);
+
+  // 온도/습도/헤더 컬러 변경 시 2초간 로딩 후 표시
+  useEffect(() => {
+    const newTemp = typeof env?.temp === 'number' ? env.temp : null;
+    const newHumidity = typeof env?.humidity === 'number' ? env.humidity : null;
+    const newHeaderText = headerText || '';
+    
+    const tempChanged = newTemp !== null && newTemp !== tempChangeRef.current;
+    const humidityChanged = newHumidity !== null && newHumidity !== humidityChangeRef.current;
+    const headerChanged = newHeaderText !== headerChangeRef.current;
+    
+    if (tempChanged) {
+      tempChangeRef.current = newTemp;
+      setShowTempLoading(true);
+      setDisplayTemp('');
+      
+      // 값 변경 메시지 표시
+      setShowChangeMessage(true);
+      const messageTimer = setTimeout(() => {
+        setShowChangeMessage(false);
+      }, 3000);
+      
+      const timer = setTimeout(() => {
+        setShowTempLoading(false);
+        setDisplayTemp(newTemp !== null ? `${newTemp}°C` : '');
+      }, 2000);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(messageTimer);
+      };
+    }
+  }, [env?.temp]);
+  
+  useEffect(() => {
+    const newHumidity = typeof env?.humidity === 'number' ? env.humidity : null;
+    const humidityChanged = newHumidity !== null && newHumidity !== humidityChangeRef.current;
+    
+    if (humidityChanged) {
+      humidityChangeRef.current = newHumidity;
+      setShowHumidityLoading(true);
+      setDisplayHumidity('');
+      
+      // 값 변경 메시지 표시
+      setShowChangeMessage(true);
+      const messageTimer = setTimeout(() => {
+        setShowChangeMessage(false);
+      }, 3000);
+      
+      const timer = setTimeout(() => {
+        setShowHumidityLoading(false);
+        setDisplayHumidity(newHumidity !== null ? `${newHumidity}%` : '');
+      }, 2000);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(messageTimer);
+      };
+    }
+  }, [env?.humidity]);
+  
+  useEffect(() => {
+    const newHeaderText = headerText || '';
+    const headerChanged = newHeaderText !== headerChangeRef.current;
+    
+    if (headerChanged && newHeaderText) {
+      headerChangeRef.current = newHeaderText;
+      setShowHeaderLoading(true);
+      setDisplayHeaderText('');
+      
+      // 값 변경 메시지 표시
+      setShowChangeMessage(true);
+      const messageTimer = setTimeout(() => {
+        setShowChangeMessage(false);
+      }, 3000);
+      
+      const timer = setTimeout(() => {
+        setShowHeaderLoading(false);
+        setDisplayHeaderText(newHeaderText);
+      }, 2000);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(messageTimer);
+      };
+    }
+  }, [headerText]);
 
   const [albumTone, setAlbumTone] = useState(null);
   const [blurAnim, setBlurAnim] = useState(leftPanelBlur);
   const blurDirRef = useRef(1);
   const rafRef = useRef(null);
-  const hasCover = !!(coverSrc || fallbackCover);
+  const hasCover = !!coverSrc;
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const waveformRafRef = useRef(null);
+  const sourceRef = useRef(null);
 
   useEffect(() => {
     setBlurAnim(leftPanelBlur);
@@ -270,7 +403,7 @@ export default function TV2Controls() {
 
   useEffect(() => {
     let cancelled = false;
-    const src = coverSrc || fallbackCover;
+    const src = coverSrc;
     if (!src) {
       setAlbumTone(null);
       return;
@@ -284,7 +417,180 @@ export default function TV2Controls() {
       }
     })();
     return () => { cancelled = true; };
-  }, [coverSrc, fallbackCover]);
+  }, [coverSrc]);
+
+  // Web Audio API로 실제 오디오 파형 추출
+  useEffect(() => {
+    if (!audioSrc || !audioRef.current) {
+      // 오디오가 없으면 파형 데이터 초기화
+      setWaveformData(new Array(32).fill(0));
+      // 기존 연결 정리
+      if (sourceRef.current) {
+        try {
+          sourceRef.current.disconnect();
+          sourceRef.current = null;
+        } catch {}
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+      if (waveformRafRef.current) {
+        cancelAnimationFrame(waveformRafRef.current);
+        waveformRafRef.current = null;
+      }
+      return;
+    }
+
+    let audioContext = null;
+    let analyser = null;
+    let source = null;
+    let handleLoadedData = null;
+
+    const initAudio = async () => {
+      try {
+        // 이미 연결된 소스가 있으면 재연결하지 않음
+        if (sourceRef.current) {
+          // 기존 연결 재사용 - 새로운 파형 업데이트만 시작
+          analyser = analyserRef.current;
+          if (analyser) {
+            const updateWaveform = () => {
+              if (!analyser) return;
+
+              const dataArray = new Uint8Array(analyser.frequencyBinCount);
+              analyser.getByteFrequencyData(dataArray);
+
+              // 32개의 바를 위해 데이터를 다운샘플링
+              const bars = 32;
+              const step = Math.floor(dataArray.length / bars);
+              const newWaveformData = [];
+
+              for (let i = 0; i < bars; i++) {
+                let sum = 0;
+                for (let j = 0; j < step; j++) {
+                  sum += dataArray[i * step + j] || 0;
+                }
+                const avg = sum / step;
+                // 0-255 범위를 0-60px 높이로 변환 (최소 4px)
+                const height = Math.max(4, (avg / 255) * 60);
+                newWaveformData.push(height);
+              }
+
+              setWaveformData(newWaveformData);
+              waveformRafRef.current = requestAnimationFrame(updateWaveform);
+            };
+
+            updateWaveform();
+          }
+          return;
+        }
+
+        // AudioContext 생성
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        // 기존 AudioContext가 있으면 재사용
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContext = audioContextRef.current;
+        } else {
+          audioContext = new AudioContextClass();
+          audioContextRef.current = audioContext;
+        }
+
+        // AnalyserNode 생성
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 64; // 32개의 주파수 빈
+        analyser.smoothingTimeConstant = 0.8;
+        analyserRef.current = analyser;
+
+        // 오디오 소스 연결 (한 번만 연결)
+        source = audioContext.createMediaElementSource(audioRef.current);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        sourceRef.current = source;
+
+        // 오디오 재생 시도
+        try {
+          await audioRef.current.play();
+        } catch (err) {
+          // 자동 재생이 차단된 경우 사용자 인터랙션 대기
+          const resume = () => {
+            try {
+              audioRef.current?.play();
+            } catch {}
+          };
+          window.addEventListener('pointerdown', resume, { once: true });
+          window.addEventListener('keydown', resume, { once: true });
+          window.addEventListener('touchstart', resume, { once: true, passive: true });
+        }
+
+        // 파형 데이터 업데이트 루프
+        const updateWaveform = () => {
+          if (!analyser) return;
+
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(dataArray);
+
+          // 32개의 바를 위해 데이터를 다운샘플링
+          const bars = 32;
+          const step = Math.floor(dataArray.length / bars);
+          const newWaveformData = [];
+
+          for (let i = 0; i < bars; i++) {
+            let sum = 0;
+            for (let j = 0; j < step; j++) {
+              sum += dataArray[i * step + j] || 0;
+            }
+            const avg = sum / step;
+            // 0-255 범위를 0-60px 높이로 변환 (최소 4px)
+            const height = Math.max(4, (avg / 255) * 60);
+            newWaveformData.push(height);
+          }
+
+          setWaveformData(newWaveformData);
+          waveformRafRef.current = requestAnimationFrame(updateWaveform);
+        };
+
+        updateWaveform();
+      } catch (err) {
+        console.error('Audio visualization error:', err);
+        // 에러 발생 시 ref 정리
+        if (sourceRef.current) {
+          try {
+            sourceRef.current.disconnect();
+          } catch {}
+          sourceRef.current = null;
+        }
+      }
+    };
+
+    // 오디오 로드 후 초기화
+    handleLoadedData = () => {
+      initAudio();
+    };
+
+    // 이벤트 리스너 추가 (중복 방지)
+    const audioElement = audioRef.current;
+    audioElement.addEventListener('loadeddata', handleLoadedData);
+    
+    if (audioElement.readyState >= 2) {
+      // 이미 로드된 경우 즉시 초기화
+      initAudio();
+    }
+
+    return () => {
+      if (waveformRafRef.current) {
+        cancelAnimationFrame(waveformRafRef.current);
+        waveformRafRef.current = null;
+      }
+      // 이벤트 리스너 제거
+      if (audioElement && handleLoadedData) {
+        audioElement.removeEventListener('loadeddata', handleLoadedData);
+      }
+      // source는 한 번만 연결되므로 cleanup에서 제거하지 않음
+      // audioSrc가 변경될 때만 정리됨
+    };
+  }, [audioSrc]);
 
   const albumCardBackground = useMemo(() => {
     if (!albumTone) {
@@ -317,19 +623,11 @@ export default function TV2Controls() {
 
   // 곡명으로 지정된 그라데이션 확인
   const trackGradient = useMemo(() => {
-    // title이 있으면 title 우선, 없으면 env.music의 첫 부분 (아티스트 제거 전)
-    let trackName = title;
-    if (!trackName && env.music) {
-      // env.music에서 "Title - Artist" 또는 "Title by Artist" 형식일 경우 title만 추출
-      const parts = env.music.split(/\s*-\s*|\s+by\s+/i);
-      trackName = parts[0]?.trim() || env.music;
-    }
+    // env.music 또는 title 사용 (getAlbumGradient는 둘 다 지원)
+    const trackName = env.music || title;
     if (!trackName) return null;
     
-    // 디버깅
-    console.log('[TV2] Looking for gradient - title:', title, 'env.music:', env.music, 'using trackName:', trackName);
-    
-    return getAlbumGradientForTrack(trackName);
+    return getAlbumGradient(trackName);
   }, [title, env.music]);
 
   const albumPalette = useMemo(() => {
@@ -483,14 +781,20 @@ export default function TV2Controls() {
     return `rgba(${r},${g},${b},${opacity})`;
   };
 
-  const headerGradientStartRgba = headerPalette.start || hexToRgba(headerGradientStart, headerGradientOpacity);
-  const headerGradientMidRgba = headerPalette.mid || hexToRgba(headerGradientMid, headerGradientOpacity);
-  const headerGradientEndRgba = headerPalette.end || hexToRgba(headerGradientEnd, headerGradientOpacity);
+  // 상단 그라디언트 좌측 컬러는 조명 컬러 디시전에 따라 변경
+  const headerStartColor = hexColor && hexColor.match(/^#[0-9A-F]{6}$/i) ? hexColor : headerGradientStart;
+  const headerGradientStartRgba = hexToRgba(headerStartColor, headerGradientOpacity);
+  const headerGradientMidRgba = hexToRgba(headerGradientMid, headerGradientOpacity);
+  const headerGradientEndRgba = hexToRgba(headerGradientEnd, headerGradientOpacity);
 
   // 우측 원 색상을 rgba로 변환 (각 색상의 투명도 적용)
   const rightCircleColor1Rgba = hexToRgba(rightCircleColor1, rightCircleColor1Opacity);
   const rightCircleColor2Rgba = hexToRgba(rightCircleColor2, rightCircleColor2Opacity);
-  const rightCircleColor3Rgba = hexToRgba(rightCircleColor3, rightCircleColor3Opacity);
+  // 온도에 따라 rightCircleColor3 계산 (SW1 로직 사용)
+  const tempC = typeof env?.temp === 'number' ? env.temp : 24;
+  const warmHue = computeMiniWarmHue(tempC);
+  const tempBasedColor3 = toHslaSW1(warmHue, 65, 75, rightCircleColor3Opacity); // S=65, L=75로 부드러운 핑크톤
+  const rightCircleColor3Rgba = tempBasedColor3;
   const rightCircleColor4Rgba = hexToRgba(rightCircleColor4, rightCircleColor4Opacity);
 
   // 우측 패널 배경색을 rgba로 변환
@@ -531,7 +835,11 @@ export default function TV2Controls() {
               $shadowBlur={textShadowBlur}
               $shadowOffsetX={textShadowOffsetX}
               $shadowOffsetY={textShadowOffsetY}
-            >{headerText}</S.HeaderTitle>
+            >
+              <S.FadeSlideText key={displayHeaderText || headerText || 'header-loading'}>
+                {showHeaderLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHeaderText || headerText || '')}
+              </S.FadeSlideText>
+            </S.HeaderTitle>
           </S.Header>
           <S.Content>
             <S.LeftPanel
@@ -574,36 +882,45 @@ export default function TV2Controls() {
                   <img src="/figma/tv2-song.png" alt="" />
                 </S.MusicIcon>
               <S.FadeSlideText key={env.music || 'music-loading'}>
-                {env.music ? env.music : (
-                  <S.LoadingDots><span /><span /><span /></S.LoadingDots>
-                )}
+                {(() => {
+                  if (!env.music) {
+                    return <S.LoadingDots><span /><span /><span /></S.LoadingDots>;
+                  }
+                  // musicCatalog에서 tags 찾기
+                  const parsed = parseMusicString(env.music);
+                  const normalizedParsedTitle = normalizeTrackName(parsed.title);
+                  const catalogEntry = MUSIC_CATALOG.find((m) => {
+                    const normalizedCatalogTitle = normalizeTrackName(m.title);
+                    const normalizedCatalogId = normalizeTrackName(m.id);
+                    return normalizedCatalogTitle === normalizedParsedTitle || 
+                           normalizedCatalogId === normalizedParsedTitle;
+                  });
+                  const tag = catalogEntry?.tags?.[0] || env.music;
+                  return tag.charAt(0).toUpperCase() + tag.slice(1);
+                })()}
               </S.FadeSlideText>
               </S.MusicRow>
-            <S.AlbumCard>
+              <S.AlbumCard>
               <S.AlbumBg $bg={albumCardBackground || 'rgba(255,255,255,0.96)'} />
             <S.AlbumVisual key={albumVisualKey}>
-                {(coverSrc || fallbackCover) ? (
+                {showAlbumCover && coverSrc ? (
                   <S.AlbumImage
-                    src={coverSrc || fallbackCover}
-                    alt={title || 'album'}
+                    src={coverSrc}
+                    alt={displayTitle || 'album'}
                     onError={(e) => {
                       try {
-                        // One-time fallback to normalized public asset, then hide if still failing
-                        if (fallbackCover && !e.currentTarget.src.endsWith(fallbackCover)) {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = fallbackCover;
-                        } else {
                           e.currentTarget.style.visibility = 'hidden';
-                        }
                       } catch {}
                     }}
                     loading="eager"
                   />
                 ) : (
-                  <S.AlbumPlaceholder />
+                  <S.AlbumPlaceholder>
+                    {coverSrc && <S.AlbumGlow />}
+                  </S.AlbumPlaceholder>
                 )}
               </S.AlbumVisual>
-            </S.AlbumCard>
+              </S.AlbumCard>
               <S.TrackTitle
                 $glowColor={textGlowColorRgba}
                 $shadowColor={textShadowColorRgba}
@@ -611,8 +928,8 @@ export default function TV2Controls() {
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
             >
-              <S.FadeSlideText key={title || env.music || 'title-loading'}>
-                {title || env.music || <S.LoadingDots><span /><span /><span /></S.LoadingDots>}
+              <S.FadeSlideText key={displayTitle || env.music || 'title-loading'}>
+                {showTitleLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTitle || env.music || '')}
               </S.FadeSlideText>
             </S.TrackTitle>
               <S.Artist
@@ -622,10 +939,34 @@ export default function TV2Controls() {
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
             >
-              <S.FadeSlideText key={artist || 'artist-loading'}>
-                {artist || <S.LoadingDots><span /><span /><span /></S.LoadingDots>}
+              <S.FadeSlideText key={displayArtist || 'artist-loading'}>
+                {showArtistLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : displayArtist}
               </S.FadeSlideText>
             </S.Artist>
+            {/* 음악 파형 인디케이터 */}
+            <S.WaveformIndicator>
+              {waveformData.map((height, i) => (
+                <S.WaveformBar
+                  key={i}
+                  $height={height}
+                />
+              ))}
+            </S.WaveformIndicator>
+            {/* 숨김 오디오 요소 */}
+            {audioSrc ? (
+              <audio
+                ref={audioRef}
+                src={audioSrc}
+                autoPlay
+                loop
+                playsInline
+                preload="auto"
+                style={{ display: 'none' }}
+              />
+            ) : null}
+            {showChangeMessage && (
+              <S.ChangeMessage>값이 변경되는 것에 3초 소요</S.ChangeMessage>
+            )}
             </S.LeftPanel>
             <S.RightPanel
               style={cssVars}
@@ -659,7 +1000,9 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-temperature.png" alt="" />
                   </S.ClimateIcon>
-                  <div>{env.temp}°C</div>
+                  <S.FadeSlideText key={displayTemp || env.temp || 'temp-loading'}>
+                    {showTempLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : ''))}
+                  </S.FadeSlideText>
                 </S.ClimateRow>
                 <S.ClimateRow
                   $glowColor={textGlowColorRgba}
@@ -677,7 +1020,9 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-humidity.png" alt="" />
                   </S.ClimateIcon>
-                  <div>{env.humidity}%</div>
+                  <S.FadeSlideText key={displayHumidity || env.humidity || 'humidity-loading'}>
+                    {showHumidityLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : ''))}
+                  </S.FadeSlideText>
                 </S.ClimateRow>
               </S.ClimateGroup>
               <S.RightSw1Ellipse

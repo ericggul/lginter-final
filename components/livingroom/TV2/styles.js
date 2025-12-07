@@ -142,6 +142,8 @@ export const LeftPanel = styled.div`
     will-change: transform, filter;
     pointer-events: none;
     z-index: 0;
+    transition: opacity 1.5s ease-in-out;
+    opacity: 1;
   }
   @keyframes conicTurn{
     from{ transform: matrix(1, 0, 0, -1, 0, 0) rotate(0deg); }
@@ -193,6 +195,8 @@ export const LeftPanelRightEdge = styled.div`
   filter: blur(${props => props.$blurAmount || 15}px);
   pointer-events: none;
   z-index: 2;
+  transition: opacity 1.5s ease-in-out;
+  opacity: 1;
 `;
 
 export const LeftSweep = styled.div`
@@ -361,7 +365,7 @@ export const AlbumCard = styled.div`
   position: absolute; left: var(--album-x); top: var(--album-y);
   transform: translate(-50%, -50%);
   /* 더 작게 줄여서 텍스트와 균형 맞춤 */
-  width: 640px; aspect-ratio: 1 / 1; border-radius: 60px;
+  width: 640px; aspect-ratio: 1 / 1; border-radius: 90px;
   background: radial-gradient(120% 120% at 35% 25%, #c7e3ff 0%, #c9d2e8 40%, #f7efe8 100%);
   box-shadow:
     0 20px 50px rgba(0,0,0,0.25),
@@ -387,6 +391,33 @@ export const AlbumPlaceholder = styled.div`
     inset 0 0 60px rgba(255,255,255,0.75),
     0 0 80px rgba(255,255,255,0.35);
   filter: drop-shadow(0 14px 32px rgba(0,0,0,0.12));
+  position: relative;
+  overflow: hidden;
+`;
+
+// 앨범 커버 로딩 중 빛나는 효과
+const glowPulse = keyframes`
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+`;
+
+export const AlbumGlow = styled.div`
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.3) 40%,
+    transparent 70%
+  );
+  animation: ${glowPulse} 1.5s ease-in-out infinite;
+  pointer-events: none;
 `;
 
 const fadeSlideUp = keyframes`
@@ -427,9 +458,22 @@ export const AlbumBg = styled.div`
   z-index: 0;
 `;
 
+// 텍스트 글로우 펄스 애니메이션 (AlbumGlow와 구분)
+const textGlowPulse = keyframes`
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.6));
+  }
+`;
+
 export const FadeSlideText = styled.div`
   animation: ${fadeSlideUp} 0.6s ease;
   will-change: opacity, transform;
+  ${props => props.$shouldGlow ? `
+    animation: ${fadeSlideUp} 0.6s ease, ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
+  ` : ''}
 `;
 
 const dots = keyframes`
@@ -485,6 +529,32 @@ export const Artist = styled.div`
     ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
   z-index: 20;
   pointer-events: none;
+`;
+
+// 음악 파형 인디케이터 (실제 오디오 파형 반영)
+export const WaveformIndicator = styled.div`
+  position: absolute;
+  left: var(--album-x);
+  top: calc(var(--album-y) + 680px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  height: 80px;
+  z-index: 20;
+  pointer-events: none;
+`;
+
+export const WaveformBar = styled.div`
+  width: 6px;
+  height: ${props => props.$height || 4}px;
+  min-height: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  transform-origin: bottom;
+  transition: height 0.1s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 `;
 
 export const RightPanel = styled.div`
@@ -658,6 +728,43 @@ export const ThinkingOverlay = styled.div`
   position: absolute; inset: 324px 0 0 0; /* below header */
   display: flex; align-items: center; justify-content: center;
   z-index: 6; pointer-events: none;
+`;
+
+// 값 변경 메시지 (좌측 그라디언트 하단)
+const changeMessageFade = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+`;
+
+export const ChangeMessage = styled.div`
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 60px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 15;
+  animation: ${changeMessageFade} 3s ease-in-out forwards;
+  text-shadow: 
+    0 0 12px rgba(255, 255, 255, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 `;
 export const ThinkingDot = styled.span`
   width: 28px; height: 28px; border-radius: 50%;

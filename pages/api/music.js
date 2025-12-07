@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 import { MUSIC_CATALOG } from "../../utils/data/musicCatalog";
+import { getAlbumNumberByTrackName } from "../../utils/data/albumData";
 
 export const config = {
   api: { bodyParser: false },
@@ -60,31 +61,18 @@ function findCatalogIndex(queryName = "", queryId = "") {
 export default async function handler(req, res) {
   const { name = "", id = "" } = req.query || {};
 
-  // Fixed numeric mapping (1..16) regardless of catalog array order
-  const FIXED_NUM = new Map([
-    ["lifeis", 1],
-    ["glow", 2],
-    ["cleansoulcalming", 3],
-    ["borealis", 4],
-    ["happystroll", 5],
-    ["ukuleledance", 6],
-    ["happyalley", 7],
-    ["sunnysideup", 8],
-    ["newbeginnings", 9],
-    ["solstice", 10],
-    ["solace", 11],
-    ["thetravellingsymphony", 12],
-    ["amberlight", 13],
-    ["echoes", 14],
-    ["shouldersofgiants", 15],
-    ["akindofhope", 16],
-  ]);
-
   let num = 0;
-  const nName = normalize(String(name));
-  if (FIXED_NUM.has(nName)) {
-    num = FIXED_NUM.get(nName);
-  } else {
+  
+  // Try albumData first (번호 기반 매핑)
+  if (name) {
+    const albumNum = getAlbumNumberByTrackName(name);
+    if (albumNum) {
+      num = albumNum;
+    }
+  }
+  
+  // Fallback to catalog index (legacy support)
+  if (!num) {
     const idx = findCatalogIndex(String(name), String(id));
     if (idx < 0) {
       res.status(404).json({ error: "music-not-found" });

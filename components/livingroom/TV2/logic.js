@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import useSocketTV2 from '@/utils/hooks/useSocketTV2';
+import { parseMusicString, getAlbumCoverPath, getAlbumData, getAlbumSongPath } from '@/utils/data/albumData';
 
 const DEFAULT_ENV = {
   temp: 24,
@@ -14,6 +15,7 @@ export function useTV2Logic() {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [coverSrc, setCoverSrc] = useState('');
+  const [audioSrc, setAudioSrc] = useState('');
 
   useSocketTV2({
     onDeviceNewDecision: (msg) => {
@@ -21,6 +23,12 @@ export function useTV2Logic() {
       const target = msg.target || msg.device;
       if (target && target !== 'tv2') return;
       const e = msg.env || {};
+      console.log('🎯 TV2 received decision:', {
+        target,
+        env: e,
+        decisionId: msg.decisionId,
+        userId: msg.mergedFrom?.[0],
+      });
       setEnv((prev) => {
         const next = {
           ...prev,
@@ -30,6 +38,7 @@ export function useTV2Logic() {
           music: typeof e.music === 'string' && e.music ? e.music : prev.music,
         };
         next.lightLabel = next.lightColor ? `Light ${next.lightColor}` : prev.lightLabel;
+        console.log('📺 TV2 env updated:', { temp: next.temp, humidity: next.humidity, lightColor: next.lightColor, music: next.music });
         return next;
       });
     },
@@ -44,28 +53,32 @@ export function useTV2Logic() {
       setCoverSrc('');
       return;
     }
-    // Parse "Title - Artist" or "Title by Artist"
-    let t = s;
-    let a = '';
-    if (s.includes(' - ')) {
-      const parts = s.split(' - ');
-      t = parts[0].trim();
-      a = parts.slice(1).join(' - ').trim();
-    } else if (/ by /i.test(s)) {
-      const parts = s.split(/ by /i);
-      t = parts[0].trim();
-      a = parts.slice(1).join(' by ').trim();
+    
+    // Parse using albumData utility
+    const parsed = parseMusicString(s);
+    let t = parsed.title;
+    let a = parsed.artist;
+    
+    // Try to get album data for display title/artist
+    const albumData = getAlbumData(s);
+    if (albumData) {
+      t = albumData.displayTitle || t;
+      a = albumData.displayArtist || a;
     }
+    
     setTitle(t);
     setArtist(a);
-    if (t) {
-      setCoverSrc(`/api/album?name=${encodeURIComponent(t)}`);
-    } else {
-      setCoverSrc('');
-    }
+    
+    // Get cover path using albumData
+    const coverPath = getAlbumCoverPath(s);
+    setCoverSrc(coverPath || '');
+    
+    // Get audio path using albumData
+    const audioPath = getAlbumSongPath(s);
+    setAudioSrc(audioPath || '');
   }, [env?.music]);
 
-  return { env, title, artist, coverSrc };
+  return { env, title, artist, coverSrc, audioSrc };
 }
 
 

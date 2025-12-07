@@ -1,0 +1,25 @@
+warning: in the working copy of 'ai/deciders/controller.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'ai/prompts/controller.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/controller/hooks/useControllerOrchestrator.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/controller/openaiEngine.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/livingroom/SW2/logic.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/livingroom/TV2/index.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/livingroom/TV2/logic.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/livingroom/TV2/styles.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pages/api/album.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pages/api/music.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pages/api/socket.js', LF will be replaced by CRLF the next time Git touches it
+ai/deciders/controller.js
+ai/prompts/controller.js
+components/controller/hooks/useControllerOrchestrator.js
+components/controller/openaiEngine.js
+components/livingroom/SW2/logic.js
+components/livingroom/TV2/index.js
+components/livingroom/TV2/logic.js
+components/livingroom/TV2/styles.js
+pages/api/album.js
+pages/api/music.js
+pages/api/socket.js
+utils/color/albumColor.js
+utils/data/album/1.png
+utils/data/album/13.png
