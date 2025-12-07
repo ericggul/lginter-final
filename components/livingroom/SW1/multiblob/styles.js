@@ -767,6 +767,24 @@ const newEntryRise = keyframes`
   }
 `;
 
+const entryRingGlow = keyframes`
+  0% {
+    transform: scale(0.98);
+    opacity: 0.70;
+    filter: blur(1.4vw);
+  }
+  45% {
+    transform: scale(1.10);
+    opacity: 1;
+    filter: blur(2.3vw);
+  }
+  100% {
+    transform: scale(0.98);
+    opacity: 0.70;
+    filter: blur(1.4vw);
+  }
+`;
+
 const BlobBase = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1244,7 +1262,50 @@ export const NewEntryBlob = styled.div`
   box-shadow:
     0 0 7vw 2vw hsla(var(--blob-h, 340), var(--blob-s, 90%), var(--blob-l, 70%), 0.32),
     0 0 10vw 4vw hsla(var(--blob-warm-h, 45), var(--blob-warm-s1, 92%), var(--blob-warm-l1, 94%), 0.24);
-  /* 코어 하이라이트는 완전히 제거하여 선명도를 본체/텍스트에만 맡김 */
+  /* 얇은 발광 링: 중심은 비우고 외곽에만 빛을 얹는다 */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0.35vw;
+    border-radius: 50%;
+    background: radial-gradient(
+      64% 64% at 50% 50%,
+      rgba(255, 255, 255, 0.00) 54%,
+      rgba(255, 255, 255, 0.98) 72%,
+      rgba(255, 255, 255, 0.00) 100%
+    );
+    box-shadow:
+      0 0 4.8vw 2.0vw rgba(255, 255, 255, 0.62),
+      0 0 8.4vw 4.4vw rgba(255, 255, 255, 0.46),
+      0 0 12vw 6vw rgba(255, 255, 255, 0.32);
+    filter: blur(2vw);
+    opacity: 1;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    transform-origin: center;
+    animation: ${entryRingGlow} 2.2s ease-in-out infinite;
+    will-change: transform, filter, opacity, box-shadow;
+  }
+  /* 외곽에 한 겹 더 깔리는 연무형 빛 */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -2.2vw;
+    border-radius: 50%;
+    background: radial-gradient(
+      72% 72% at 50% 50%,
+      rgba(255, 255, 255, 0.00) 40%,
+      rgba(255, 255, 255, 0.55) 70%,
+      rgba(255, 255, 255, 0.00) 100%
+    );
+    box-shadow:
+      0 0 8vw 4vw rgba(255, 255, 255, 0.32);
+    filter: blur(3.6vw);
+    opacity: 0.88;
+    mix-blend-mode: screen;
+    animation: ${entryRingGlow} 2.8s ease-in-out infinite;
+    will-change: transform, filter, opacity;
+  }
   animation: ${newEntryRise} 4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 
   /* T4는 최종 위치(중앙) 유지, T5에서 사라짐 */
