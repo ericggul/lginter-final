@@ -338,8 +338,8 @@ export function useSW1Logic() {
 
   // Derive mini-blob display text set (temp on top, humidity% on bottom)
   const miniBlobDisplay = useMemo(() => {
-    // 최대 10, 최소 3개 유지: 부족하면 더미로 채움 (moving helper)
-    const filled = ensureBlobCount(miniResults, displayClimate, 3, MAX_BLOBS);
+    // 항상 MAX_BLOBS 길이를 유지해 초회 메시지가 6개만 와도 슬롯이 빠지지 않도록 고정
+    const filled = ensureBlobCount(miniResults, displayClimate, MAX_BLOBS, MAX_BLOBS);
     return SW1_BLOB_CONFIGS.slice(0, filled.length).map((cfg, idx) => {
       const r = filled[idx];
       const top = r?.temp != null ? `${r.temp}℃` : '';
