@@ -59,7 +59,7 @@ export default function SW1Controls() {
   const BACKGROUND_URL = null; // remove background PNG (big pink blobs)
   const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
 
-  const { blobConfigs, centerTemp, centerHumidity, participantCount, dotCount, decisionTick, timelineState, bloomTick, typeTick } = useSW1Logic();
+  const { blobConfigs, entryBlob, centerTemp, centerHumidity, participantCount, dotCount, decisionTick, timelineState, bloomTick, typeTick } = useSW1Logic();
   const organicCenterPath = useOrganicCenterPath();
   const [midPulseAlpha, setMidPulseAlpha] = useState(1);
   const [bloomActive, setBloomActive] = useState(false);
@@ -112,42 +112,42 @@ export default function SW1Controls() {
     innerL:          { value: 100, min: 0, max: 100, step: 1 },
     innerAlpha:      { value: 1.0, min: 0, max: 1,   step: 0.01 },
     // inner ring (#b0f6ff ≈ h:189 s:100 l:84)
-    innerRingH:      { value: 189, min: 0, max: 360, step: 1 },
+    innerRingH:      { value: 158, min: 0, max: 360, step: 1 },
     innerRingS:      { value: 100, min: 0, max: 100, step: 1 },
-    innerRingL:      { value: 84,  min: 0, max: 100, step: 1 },
+    innerRingL:      { value: 83,  min: 0, max: 100, step: 1 },
     innerRingAlpha:  { value: 1.0, min: 0, max: 1,   step: 0.01 },
     // mid1 (#ff679a ≈ h:340) - 요청에 따른 S/L 기본값 조정
     mid1H:           { value: 340, min: 0, max: 360, step: 1 },
-    mid1S:           { value: 98,  min: 0, max: 100, step: 1 },
+    mid1S:           { value: 100, min: 0, max: 100, step: 1 },
     mid1L:           { value: 66,  min: 0, max: 100, step: 1 },
-    mid1Alpha:       { value: 0.89,min: 0, max: 1,   step: 0.01 },
+    mid1Alpha:       { value: 0.81,min: 0, max: 1,   step: 0.01 },
     // mid2 (#f8cfc1 ≈ h:15 s:82 l:87)
-    mid2H:           { value: 15,  min: 0, max: 360, step: 1 },
-    mid2S:           { value: 82,  min: 0, max: 100, step: 1 },
-    mid2L:           { value: 87,  min: 0, max: 100, step: 1 },
-    mid2Alpha:       { value: 0.76,min: 0, max: 1,   step: 0.01 },
+    mid2H:           { value: 360, min: 0, max: 360, step: 1 },
+    mid2S:           { value: 6,   min: 0, max: 100, step: 1 },
+    mid2L:           { value: 88,  min: 0, max: 100, step: 1 },
+    mid2Alpha:       { value: 0.87,min: 0, max: 1,   step: 0.01 },
     // outer (#fff3ef ≈ h:15 s:100 l:96)
-    outerH:          { value: 15,  min: 0, max: 360, step: 1 },
+    outerH:          { value: 34,  min: 0, max: 360, step: 1 },
     outerS:          { value: 100, min: 0, max: 100, step: 1 },
-    outerL:          { value: 96,  min: 0, max: 100, step: 1 },
-    outerAlpha:      { value: 0.50,min: 0, max: 1,   step: 0.01 },
+    outerL:          { value: 100, min: 0, max: 100, step: 1 },
+    outerAlpha:      { value: 0.55,min: 0, max: 1,   step: 0.01 },
     // extra (#ffffff ≈ h:0 s:0 l:100)
-    extraH:          { value: 0,   min: 0, max: 360, step: 1 },
+    extraH:          { value: 67,  min: 0, max: 360, step: 1 },
     extraS:          { value: 0,   min: 0, max: 100, step: 1 },
-    extraL:          { value: 100, min: 0, max: 100, step: 1 },
-    extraAlpha:      { value: 0.51,min: 0, max: 1,   step: 0.01 },
+    extraL:          { value: 96,  min: 0, max: 100, step: 1 },
+    extraAlpha:      { value: 0.58,min: 0, max: 1,   step: 0.01 },
     // stops
-    innerStop:       { value: 29,  min: 0, max: 100 },
-    innerRingStop:   { value: 38,  min: 0, max: 100 },
-    mid1Stop:        { value: 42,  min: 0, max: 100 },
-    mid2Stop:        { value: 86,  min: 0, max: 100 },
+    innerStop:       { value: 41,  min: 0, max: 100 },
+    innerRingStop:   { value: 26,  min: 0, max: 100 },
+    mid1Stop:        { value: 0,   min: 0, max: 100 },
+    mid2Stop:        { value: 89,  min: 0, max: 100 },
     extraStop:       { value: 100, min: 0, max: 100 },
-    outerStop:       { value: 83,  min: 0, max: 100 },
+    outerStop:       { value: 91,  min: 0, max: 100 },
     // post-processing
-    blur:            { value: 32,  min: 0, max: 120 }, // px
-    centerBrightness:{ value: 1.13, min: 0.7, max: 1.8, step: 0.01 },
-    outerGlowRadius: { value: 600, min: 0, max: 600 }, // px
-    outerGlowAlpha:  { value: 0.0,  min: 0, max: 1, step: 0.01 },
+    blur:            { value: 31,  min: 0, max: 120 }, // px
+    centerBrightness:{ value: 1.12, min: 0.7, max: 1.8, step: 0.01 },
+    outerGlowRadius: { value: 378, min: 0, max: 600 }, // px
+    outerGlowAlpha:  { value: 0.82,  min: 0, max: 1, step: 0.01 },
   });
 
   const background = useControls('SW1 Background (HSL)', {
@@ -171,30 +171,30 @@ export default function SW1Controls() {
 
   const animation = useControls('SW1 Animation', {
     // 공전 속도를 좀 더 느리게: 기본값을 크게 늘려서 천천히 도는 느낌으로
-    rotationDuration: { value: 40, min: 10, max: 180, step: 1 },
+    rotationDuration: { value: 55, min: 10, max: 180, step: 1 },
   });
 
   // Mini blob color (HSL) — apply to all mini blobs for quick tuning
   const miniColor = useControls('SW1 Mini Blob Color (HSL)', {
     h: { value: 340, min: 0, max: 360, step: 1 },
-    s: { value: 62,  min: 0, max: 100, step: 1 },
+    s: { value: 72,  min: 0, max: 100, step: 1 },
     l: { value: 66,  min: 0, max: 100, step: 1 },
     // warm outer tone (two stops)
-    warmH:  { value: 45, min: 0, max: 360, step: 1 },
-    warmS1: { value: 98, min: 0, max: 100, step: 1 },
-    warmL1: { value: 85, min: 0, max: 100, step: 1 },
+    warmH:  { value: 49, min: 0, max: 360, step: 1 },
+    warmS1: { value: 100,min: 0, max: 100, step: 1 },
+    warmL1: { value: 86, min: 0, max: 100, step: 1 },
     warmS2: { value: 100, min: 0, max: 100, step: 1 },
-    warmL2: { value: 88, min: 0, max: 100, step: 1 },
+    warmL2: { value: 87, min: 0, max: 100, step: 1 },
     warmStart: { value: 60, min: 50, max: 90, step: 1 }, // 퍼지는 구간 시작 퍼센트 (더 넓게)
   });
   const edgeBlur = useControls('SW1 Edge Blur', {
-    strength: { value: 3.8, min: 0, max: 4, step: 0.05 },
-    opacity:  { value: 0.13, min: 0, max: 1, step: 0.01 },
+    strength: { value: 3.75, min: 0, max: 4, step: 0.05 },
+    opacity:  { value: 0.33, min: 0, max: 1, step: 0.01 },
   });
 
   const edgeGlass = useControls('SW1 Edge Glass', {
-    blur:    { value: 69,  min: 0, max: 80, step: 1 },
-    opacity: { value: 0.29, min: 0, max: 1,  step: 0.01 },
+    blur:    { value: 71,  min: 0, max: 80, step: 1 },
+    opacity: { value: 0.31, min: 0, max: 1,  step: 0.01 },
   });
 
   const toHsla = (h, s, l, a) => `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, ${a})`;
@@ -294,9 +294,33 @@ export default function SW1Controls() {
           $strength={edgeBlur.strength}
           $opacity={edgeBlur.opacity}
         />
+        {/* 신입 블롭을 BlobRotator 밖에 렌더링 (회전 영향 없음, 고정된 하단→중앙 경로) */}
+        {entryBlob && (timelineState === 't3' || timelineState === 't4') && (
+          <S.NewEntryBlob
+            key={`entry-${entryBlob.id}`}
+            data-stage={timelineState}
+            style={{
+              '--blob-h': miniColor.h,
+              '--blob-s': `${miniColor.s}%`,
+              '--blob-l': `${miniColor.l}%`,
+              '--blob-warm-h': computeMiniWarmHue(typeof entryBlob.temp === 'number' ? entryBlob.temp : centerTemp),
+              '--blob-warm-s1': `${miniColor.warmS1}%`,
+              '--blob-warm-l1': '85%',
+              '--blob-warm-s2': `${miniColor.warmS2}%`,
+              '--blob-warm-l2': '88%',
+              '--blob-warm-start': '60%',
+            }}
+          >
+            <S.ContentRotator $duration={animation.rotationDuration}>
+              <strong>{entryBlob.temp != null ? `${entryBlob.temp}℃` : ''}</strong>
+              <span>{entryBlob.humidity != null ? `${Math.round(entryBlob.humidity)}%` : ''}</span>
+            </S.ContentRotator>
+          </S.NewEntryBlob>
+        )}
         <S.BlobRotator $duration={animation.rotationDuration}>
-          {blobConfigs.map((b) => {
-            const Component = S[b.componentKey];
+          {blobConfigs
+            .map((b) => {
+              const Component = S[b.componentKey];
             return (
               <Component
                 key={b.id}
@@ -304,7 +328,7 @@ export default function SW1Controls() {
                 $depthLayer={b.depthLayer}
                 $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
                 $zSeed={b.zSeed}
-                data-new={b.isNew ? 'true' : 'false'}
+                data-stage={timelineState}
                 style={{
                   // HSL variables for gradient in styles
                   '--blob-h': miniColor.h,
@@ -328,12 +352,7 @@ export default function SW1Controls() {
                   })(),
                 }}
               >
-                {/* T3~T4 동안 새 블롭은 흰색 상태로 유지, T5에서 컬러로 전환 */}
-                {b.isNew && (timelineState === 't3' || timelineState === 't4')
-                  ? <S.NewBlobWhite />
-                  : null}
-                {/* 최초 등장 시 짧은 페이드 효과 (겹쳐도 문제 없음) */}
-                {b.isNew && <S.NewBlobOverlay />}
+                {/* 신규 블롭도 T4에서 별도 화이트 오버레이 없이 동일 룩 유지 */}
                 <S.ContentRotator $duration={animation.rotationDuration}>
                   <strong>{b.top}</strong>
                   <span>{b.bottom}</span>
@@ -351,6 +370,9 @@ export default function SW1Controls() {
         <S.FreeBlur2 />
         <S.FreeBlur3 />
         <S.FreeBlur4 />
+        {/* Debug markers: center and intended entry (bottom center). Remove after verification. */}
+        <S.DebugCenter />
+        <S.DebugBottomStart />
         {/* 유기적으로 일렁이는 중앙 화이트 코어 (기존 GradientEllipse 아래에 베이스로 깔림) */}
         <svg
           width="0"

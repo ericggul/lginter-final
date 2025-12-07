@@ -32,15 +32,17 @@ export function computeMode(humidity) {
 }
 
 // Lightweight handlers (legacy device-decision)
-export function createSocketHandlers({ setClimate, setParticipantCount, setActiveUsers }) {
+export function createSocketHandlers({ setDisplayClimate, setNextClimate, setParticipantCount, setActiveUsers }) {
   const onDeviceDecision = (data) => {
     const seenUsers = new Set();
     if (data?.device === 'sw1') {
       if (typeof data.temperature === 'number' || typeof data.humidity === 'number') {
-        setClimate({
+        const payload = {
           temp: typeof data.temperature === 'number' ? data.temperature : null,
           humidity: typeof data.humidity === 'number' ? data.humidity : null,
-        });
+        };
+        setDisplayClimate(payload);
+        setNextClimate(payload);
       }
       if (data.assignedUsers) {
         Object.values(data.assignedUsers).forEach((u) => {
@@ -61,17 +63,42 @@ export function createSocketHandlers({ setClimate, setParticipantCount, setActiv
 
 // Independent SW1 logic hook (no coupling to SW2)
 export function useSW1Logic() {
-  // Center climate result (aggregated)
-  const [climate, setClimate] = useState({ temp: 23, humidity: 50 });
+  // Center climate result (UI-visible)
+  const [displayClimate, setDisplayClimate] = useState({ temp: 23, humidity: 50 });
+  // Next climate from incoming decision (applied at T5)
+  const [nextClimate, setNextClimate] = useState({ temp: 23, humidity: 50 });
   const [dotCount, setDotCount] = useState(0);
   const [activeUsers, setActiveUsers] = useState(new Set());
   const [timelineState, setTimelineState] = useState('t1'); // t1..t5
   const [stateTick, setStateTick] = useState(0);
   const [bloomTick, setBloomTick] = useState(0); // T3/T4 트리거
   const [typeTick, setTypeTick] = useState(0);  // T4 타이포 라이즈 트리거
+  const stageTimersRef = useRef({ t4: null, t5: null });
+  const prevTimelineRef = useRef('t1');
+  const stageOrder = ['t1', 't2', 't3', 't4', 't5'];
+
+  const clearStageTimers = useCallback(() => {
+    Object.values(stageTimersRef.current || {}).forEach((id) => {
+      if (id) clearTimeout(id);
+    });
+    stageTimersRef.current = { t4: null, t5: null };
+  }, []);
+
+  const requestStage = useCallback((next) => {
+    if (!stageOrder.includes(next)) return;
+    setTimelineState((prev) => {
+      const prevIdx = stageOrder.indexOf(prev);
+      const nextIdx = stageOrder.indexOf(next);
+      // T3 재진입 허용 (재시작 후 재진입 대응)
+      if (nextIdx <= prevIdx && next !== 't3') return prev;
+      return next;
+    });
+  }, []);
 
   // Mini blobs: per-user results (up to MAX_BLOBS). Start with dummy values.
   const [miniResults, setMiniResults] = useState(() => []);
+  // 단독 진입 애니메이션용 엔트리 블롭 (오빗과 독립)
+  const [entryBlob, setEntryBlob] = useState(null);
   // Track previously seen real userIds to detect new blob creations
   const prevRealUsersRef = useRef(new Set());
 
@@ -122,32 +149,16 @@ export function useSW1Logic() {
           t1: 't1', t2: 't2', t3: 't3', t4: 't4', t5: 't5',
         };
         const next = map[stage] || timelineState;
+        // 재시작 시 (t1로 리셋) prevTimelineRef도 리셋
+        if (next === 't1') {
+          prevTimelineRef.current = 't0'; // 존재하지 않는 값으로 리셋
+        }
         if (next !== timelineState) {
-          setTimelineState(next);
-          setStateTick((x) => x + 1);
-          if (next === 't3') {
-            setBloomTick((x) => x + 1); // enter bloom once
-            // 기존 isNew 모두 해제 후 T3에서 미니 블롭 하나 방출
-            setMiniResults((prev) => prev.map((r) => (r ? { ...r, isNew: false } : r)));
-            // T3에서 미니 블롭 하나 방출(공간이 있으면)
-            setMiniResults((prev) => {
-              const nextArr = [...prev];
-              // find a dummy or earliest slot to replace
-          const idx = nextArr.findIndex((r) => !r || DUMMY_ID_REGEX.test(String(r.userId || '')));
-              const i = idx >= 0 ? idx : 0;
-              nextArr[i] = {
-                userId: `emit:${Date.now()}`,
-                temp: climate.temp,
-                humidity: climate.humidity,
-                addedAt: Date.now(),
-                isNew: true,
-              };
-              return nextArr;
-            });
-          } else if (next === 't5') {
-            // T5 진입 시 새 블롭의 화이트 상태 종료 → 컬러로 전환
-            setMiniResults((prev) => prev.map((r) => (r ? { ...r, isNew: false } : r)));
-          }
+          requestStage(next);
+        } else if (next === 't3') {
+          // 같은 t3 상태지만 재시작 후 재진입인 경우 강제로 트리거
+          prevTimelineRef.current = 't2'; // 이전 상태를 t2로 설정하여 useEffect가 실행되도록
+          requestStage('t3');
         }
       } catch {}
     },
@@ -165,11 +176,11 @@ export function useSW1Logic() {
         // 합성 데이터만 18~30으로 한정해 시각적 일관성 유지
         return Math.max(18, Math.min(30, Math.round(v)));
       };
-      const nextClimate = {
-        temp: typeof env.temp === 'number' ? clampTempLocal(env.temp) : climate.temp,
-        humidity: typeof env.humidity === 'number' ? env.humidity : climate.humidity,
+      const incomingClimate = {
+        temp: typeof env.temp === 'number' ? clampTempLocal(env.temp) : displayClimate.temp,
+        humidity: typeof env.humidity === 'number' ? env.humidity : displayClimate.humidity,
       };
-      setClimate(nextClimate);
+      setNextClimate(incomingClimate);
       try { window.__sw1DecisionTick = (window.__sw1DecisionTick || 0) + 1; } catch {}
       // T4: 디시전 수신 시 블룸/타입 트리거
       setBloomTick((x) => x + 1);
@@ -210,11 +221,11 @@ export function useSW1Logic() {
               const idx = pickSlotForUser(uid, next);
               next[idx] = {
                 userId: uid || next[idx]?.userId || `u${idx}`,
-                temp: typeof it.temp === 'number' ? clampTempLocal(it.temp) : nextClimate.temp,
-                humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
+                temp: typeof it.temp === 'number' ? clampTempLocal(it.temp) : incomingClimate.temp,
+                humidity: typeof it.humidity === 'number' ? it.humidity : incomingClimate.humidity,
                 addedAt: Date.now(),
-                // 외부 업데이트로 들어오는 항목은 기본적으로 isNew=false 유지
-                isNew: next[idx]?.isNew === true,
+                // 외부 업데이트는 신규 입장으로 취급하지 않음
+                isNew: false,
               };
             });
             return next;
@@ -238,10 +249,10 @@ export function useSW1Logic() {
               const off = offsets[i % offsets.length];
               next[idx] = {
                 userId: uid,
-                temp: withVariance(nextClimate.temp, off),
-                humidity: nextClimate.humidity,
+                temp: withVariance(incomingClimate.temp, off),
+                humidity: incomingClimate.humidity,
                 addedAt: Date.now() - i * 800,
-                isNew: i === 0,
+                isNew: false, // fallback 생성은 항상 기존 블롭으로 취급
               };
             });
             return next;
@@ -257,10 +268,10 @@ export function useSW1Logic() {
           const idx = pickSlotForUser(uid, next);
           next[idx] = {
             userId: uid,
-            temp: typeof it.temp === 'number' ? clampTempLocal(it.temp) : nextClimate.temp,
-            humidity: typeof it.humidity === 'number' ? it.humidity : nextClimate.humidity,
+            temp: typeof it.temp === 'number' ? clampTempLocal(it.temp) : incomingClimate.temp,
+            humidity: typeof it.humidity === 'number' ? it.humidity : incomingClimate.humidity,
             addedAt: Date.now(),
-            isNew: next[idx]?.isNew === true,
+            isNew: false, // 개별 업데이트도 신규 입장으로 취급하지 않음
           };
           return next;
         });
@@ -287,6 +298,36 @@ export function useSW1Logic() {
     },
   });
 
+  useEffect(() => () => clearStageTimers(), [clearStageTimers]);
+
+  useEffect(() => {
+    const prev = prevTimelineRef.current;
+    // T3 진입 시 항상 실행되도록 (재시작 후 재진입 대응)
+    if (prev === timelineState && timelineState !== 't3') return;
+    prevTimelineRef.current = timelineState;
+    setStateTick((x) => x + 1);
+    clearStageTimers();
+
+    if (timelineState === 't3') {
+      setBloomTick((x) => x + 1); // enter bloom once
+      // 기존 오빗 블롭은 그대로 두고, 진입용 블롭만 별도 상태에 생성
+      setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));
+      setEntryBlob({
+        id: `entry-${Date.now()}`,
+        temp: nextClimate.temp,
+        humidity: nextClimate.humidity,
+        addedAt: Date.now(),
+      });
+      stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), 4000);
+    } else if (timelineState === 't4') {
+      stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), 2000);
+    } else if (timelineState === 't5') {
+      setEntryBlob(null);
+      setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));
+      setDisplayClimate(nextClimate);
+    }
+  }, [timelineState, clearStageTimers, nextClimate, requestStage]);
+
   // Dots animation
   useEffect(() => {
     const id = setInterval(() => {
@@ -297,8 +338,8 @@ export function useSW1Logic() {
 
   // Derive mini-blob display text set (temp on top, humidity% on bottom)
   const miniBlobDisplay = useMemo(() => {
-    // 최대 10, 최소 3개 유지: 부족하면 더미로 채움 (moving helper)
-    const filled = ensureBlobCount(miniResults, climate, 3, MAX_BLOBS);
+    // 항상 MAX_BLOBS 길이를 유지해 초회 메시지가 6개만 와도 슬롯이 빠지지 않도록 고정
+    const filled = ensureBlobCount(miniResults, displayClimate, MAX_BLOBS, MAX_BLOBS);
     return SW1_BLOB_CONFIGS.slice(0, filled.length).map((cfg, idx) => {
       const r = filled[idx];
       const top = r?.temp != null ? `${r.temp}℃` : '';
@@ -309,7 +350,7 @@ export function useSW1Logic() {
       // similarity-based radius scale
       // 유사도 반경: 너무 가까워져 가려지는 문제를 방지하기 위해 near 상향, 변화 곡선 완화
       const radiusScale = computeSimilarityRadiusScale(
-        climate?.temp,
+        displayClimate?.temp,
         r?.temp,
         { near: 1.0, far: 1.8, normalizeRange: 12 }
       );
@@ -331,7 +372,7 @@ export function useSW1Logic() {
         zSeed: zSeeds[idx] ?? 0,
       };
     });
-  }, [miniResults, zSeeds, climate]);
+  }, [miniResults, zSeeds, displayClimate]);
 
   // Play sfx when a new real user appears in mini blobs
   useEffect(() => {
@@ -366,8 +407,9 @@ export function useSW1Logic() {
 
   return {
     blobConfigs: miniBlobDisplay,
-    centerTemp: climate?.temp ?? 23,
-    centerHumidity: climate?.humidity ?? 50,
+    entryBlob,
+    centerTemp: displayClimate?.temp ?? 23,
+    centerHumidity: displayClimate?.humidity ?? 50,
     participantCount,
     dotCount,
     decisionTick: (typeof window !== 'undefined' && window.__sw1DecisionTick) || 0,
