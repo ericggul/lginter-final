@@ -1228,16 +1228,23 @@ export const NewEntryBlob = styled.div`
   border-radius: 50%;
   pointer-events: none;
   z-index: 8;
+  isolation: isolate; /* 텍스트는 선명 유지 */
   /* 초기 상태: 화면 밖 하단 중앙 (키프레임 0%와 동일) */
   opacity: 0;
   transform: translate(-50%, 12vh) scale(0.9);
+  /* 본체: 중심 선명, 외곽은 알파를 낮춰 자연 감쇠 */
   background: radial-gradient(
     84.47% 61.21% at 66.09% 54.37%,
-    hsla(var(--blob-h, 340), var(--blob-s, 100%), var(--blob-l, 70%), 1.0) 0%,
-    hsla(var(--blob-h, 340), var(--blob-s, 90%), calc(min(var(--blob-l, 70%), 90%)), 0.95) 34.9%,
-    hsla(var(--blob-warm-h, 45), var(--blob-warm-s1, 92%), var(--blob-warm-l1, 94%), 0.80) var(--blob-warm-start, 72%),
-    hsla(var(--blob-warm-h, 45), var(--blob-warm-s2, 96%), var(--blob-warm-l2, 90%), 1.00) 100%
+    hsla(var(--blob-h, 340), var(--blob-s, 100%), var(--blob-l, 70%), 0.78) 0%,
+    hsla(var(--blob-h, 340), var(--blob-s, 90%), calc(min(var(--blob-l, 70%), 90%)), 0.54) 40%,
+    hsla(var(--blob-warm-h, 45), var(--blob-warm-s1, 92%), var(--blob-warm-l1, 94%), 0.38) 70%,
+    hsla(var(--blob-warm-h, 45), var(--blob-warm-s2, 96%), var(--blob-warm-l2, 90%), 0.14) 100%
   );
+  /* 단일 퍼짐 블러 레이어 (텍스트에 영향 없음) */
+  box-shadow:
+    0 0 7vw 2vw hsla(var(--blob-h, 340), var(--blob-s, 90%), var(--blob-l, 70%), 0.32),
+    0 0 10vw 4vw hsla(var(--blob-warm-h, 45), var(--blob-warm-s1, 92%), var(--blob-warm-l1, 94%), 0.24);
+  /* 코어 하이라이트는 완전히 제거하여 선명도를 본체/텍스트에만 맡김 */
   animation: ${newEntryRise} 4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 
   /* T4는 최종 위치(중앙) 유지, T5에서 사라짐 */
