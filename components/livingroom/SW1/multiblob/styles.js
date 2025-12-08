@@ -202,6 +202,34 @@ export const EdgeBlurLayer = styled.div`
   opacity: ${({ $opacity = 0.8 }) => $opacity};
 `;
 
+/* T4: 배경 채도/광량 펄스 오버레이 (stage 기반) */
+const bgPulse = keyframes`
+  0%   { opacity: 0; }
+  20%  { opacity: 0.36; }
+  48%  { opacity: 0.24; }
+  70%  { opacity: 0.32; }
+  100% { opacity: 0; }
+`;
+
+export const BackgroundPulse = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 더 위 레이어에 올려 시각적 영향 확대 (EdgeGlass 4 위, 중앙 그라데이션 6 아래) */
+  z-index: 5;
+  background: radial-gradient(
+    110% 110% at 50% 50%,
+    hsla(12, 88%, 78%, 0.58) 0%,
+    hsla(18, 86%, 74%, 0.52) 30%,
+    hsla(198, 68%, 72%, 0.36) 58%,
+    hsla(198, 68%, 72%, 0.00) 100%
+  );
+  mix-blend-mode: overlay;
+  filter: saturate(1.45) brightness(1.12);
+  opacity: 0;
+  animation: ${bgPulse} 3.6s ease-in-out infinite;
+`;
+
 export const GradientEllipse = styled.div`
   position: absolute;
   top: 50%;
@@ -906,6 +934,10 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   --orbit-transform: rotate(var(--orbit-angle))
                      translateX(calc(var(--R) * var(--orbit-radius-factor) * var(--orbit-radius-mod)))
                      rotate(calc(-1 * var(--orbit-angle)));
+  /* stage 기반 당김용 스케일/투명도/블러 보정 */
+  --pull-scale: 1;
+  --pull-opacity: 1;
+  --pull-blur: 1;
 
   /* 깊이 레이어별 기본 scale/blur/opacity 세팅 */
   ${({ $depthLayer = 1 }) => {
@@ -940,9 +972,12 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   &:not([data-stage='t3'][data-new='true']) {
     transform: translate(-50%, -50%) var(--orbit-transform)
                translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
-               scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
-    opacity: var(--z-opacity-base);
-    transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+               scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1) * var(--pull-scale)));
+    opacity: calc(var(--z-opacity-base) * var(--pull-opacity));
+    transition:
+      transform 2400ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 2200ms ease,
+      filter 2200ms ease;
   }
 
   /* 제공된 디자인 스펙을 반영한 컬러 그라데이션 */
@@ -982,12 +1017,19 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     opacity: calc(var(--z-opacity-base) * 0.6);
   }
   &[data-stage='t4']:not([data-new='true']) {
-    opacity: calc(var(--z-opacity-base) * 0.68);
+    --orbit-radius-mod: 0.26;
+    --pull-scale: 0.62;
+    --pull-opacity: 0.42;
+    --pull-blur: 1.6;
   }
 
   /* T5에서 투명도 복구 */
   &[data-stage='t5'] {
-    opacity: var(--z-opacity-base);
+    --orbit-radius-mod: 1;
+    --pull-scale: 1;
+    --pull-opacity: 1;
+    --pull-blur: 1;
+    opacity: calc(var(--z-opacity-base) * var(--pull-opacity));
   }
 
   /* BlobBase에서 정의한 before/after를 오빗 블롭 전용 값으로 살짝 재조정:
@@ -996,8 +1038,9 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   &::before {
     inset: -1.2vw;
     /* 깊이 레이어에 따라 퍼짐 정도가 달라지도록 블러 강도를 조정 */
-    filter: blur(calc(var(--z-blur-base) * 3.2)); /* ≈ 44px 기준에서 가변 */
+    filter: blur(calc(var(--z-blur-base) * 3.2 * var(--pull-blur))); /* ≈ 44px 기준에서 가변 */
     opacity: 0.45;
+    transition: filter 2200ms ease, opacity 2200ms ease;
   }
 
   /* 신규 블롭은 첫 0.9 -> 1.0로 부드럽게 스케일 인 (T3 제외) */
@@ -1066,9 +1109,10 @@ export const Sw1OrbitBlob = styled(BlobBase)`
 
   &::after {
     inset: 0.35vw;
-    filter: blur(calc(var(--z-blur-base) * 1.4));
+    filter: blur(calc(var(--z-blur-base) * 1.4 * var(--pull-blur)));
     /* 내부 코어 그라데이션도 HSL 변수 기반으로 */
     background: var(--blob-bg, transparent);
+    transition: filter 2200ms ease, opacity 2200ms ease;
   }
 `;
 
@@ -1124,6 +1168,8 @@ const SmallOrbitDotBase = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
+  --small-r: 1.2;
+  --small-scale: 1;
   /* 작은 장식 원은 주변 블롭보다 한 단계 더 작게 조정 */
   width: 8vw;
   height: 8vw;
@@ -1138,24 +1184,49 @@ const SmallOrbitDotBase = styled.div`
     rgba(255, 214, 234, 0.0) 100%
   );
   filter: blur(0.18vw);
+  transform: translate(-50%, -50%)
+             rotate(var(--small-angle, 0deg))
+             translateX(calc(var(--R) * var(--small-r)))
+             scale(var(--small-scale));
+  transition:
+    transform 2.6s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 2s ease,
+    filter 2s ease;
+
+  /* T4: 중심 뒤로 빨려들어가듯 숨김 */
+  &[data-stage='t4'] {
+    --small-r: 0.16;
+    --small-scale: 0.22;
+    opacity: 0;
+    filter: blur(1.4vw);
+    z-index: 1;
+  }
+
+  /* T5: 서서히 다시 밖으로 등장하며 회전 복귀 */
+  &[data-stage='t5'] {
+    --small-r: 1.2;
+    --small-scale: 1;
+    opacity: 0.78;
+    filter: blur(0.24vw);
+    z-index: 4;
+    transition-duration: 2.8s, 2.4s, 2.4s;
+  }
 `;
 
 export const Sw1SmallOrbitDot1 = styled(SmallOrbitDotBase)`
   /* 큰 블롭들보다 살짝 안쪽 링에서 회전 - 좌상단 */
-  transform: translate(-50%, -50%) rotate(-60deg)
-             translateX(calc(var(--R) * 1.2));
+  --small-angle: -60deg;
 `;
 
 export const Sw1SmallOrbitDot2 = styled(SmallOrbitDotBase)`
   /* 우상단 */
-  transform: translate(-50%, -50%) rotate(60deg)
-             translateX(calc(var(--R) * 1.2));
+  --small-angle: 60deg;
 `;
 
 export const Sw1SmallOrbitDot3 = styled(SmallOrbitDotBase)`
   /* 하단 중앙 */
-  transform: translate(-50%, -50%) rotate(180deg)
-             translateX(calc(var(--R) * 1.18));
+  --small-angle: 180deg;
+  --small-r: 1.18;
 `;
 /* Read-only display for center glow colors in RGB */
 export const ColorDebug = styled.div`

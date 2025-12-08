@@ -19,6 +19,9 @@ export const SW1_BLOB_CONFIGS = [
 ];
 
 const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
+// Timeline durations (ms) for staged animations
+const T3_TO_T4_MS = 5000; // allow t3 bloom/entry motion to finish
+const T4_TO_T5_MS = 3800; // allow t4 merge/background pulses to finish
 const DUMMY_ID_REGEX = /^dummy:/;
 
 // Humidity → mode label
@@ -90,7 +93,13 @@ export function useSW1Logic() {
       const prevIdx = stageOrder.indexOf(prev);
       const nextIdx = stageOrder.indexOf(next);
       // T3 재진입 허용 (재시작 후 재진입 대응)
-      if (nextIdx <= prevIdx && next !== 't3') return prev;
+      if (nextIdx <= prevIdx && next !== 't3') {
+        // T4→T4 중복 신호 시에도 타이머 재Arm을 허용하기 위해 상태는 유지하되 tick만 올림
+        if (prev === 't4' && next === 't4') {
+          setStateTick((x) => x + 1);
+        }
+        return prev;
+      }
       return next;
     });
   }, []);
@@ -303,7 +312,14 @@ export function useSW1Logic() {
   useEffect(() => {
     const prev = prevTimelineRef.current;
     // T3 진입 시 항상 실행되도록 (재시작 후 재진입 대응)
-    if (prev === timelineState && timelineState !== 't3') return;
+    if (prev === timelineState && timelineState !== 't3') {
+      // 중복 t4 신호로 들어온 경우: 타이머 재Arm만 허용
+      if (timelineState === 't4') {
+        clearStageTimers();
+        stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), T4_TO_T5_MS);
+      }
+      return;
+    }
     prevTimelineRef.current = timelineState;
     setStateTick((x) => x + 1);
     clearStageTimers();
@@ -318,9 +334,9 @@ export function useSW1Logic() {
         humidity: nextClimate.humidity,
         addedAt: Date.now(),
       });
-      stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), 4000);
+      stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), T3_TO_T4_MS);
     } else if (timelineState === 't4') {
-      stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), 2000);
+      stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), T4_TO_T5_MS);
     } else if (timelineState === 't5') {
       setEntryBlob(null);
       setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));
