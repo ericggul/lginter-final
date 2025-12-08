@@ -23,20 +23,48 @@ function pickCatalogTitle({ baseTitle, previousTitle, emotion, userId, timestamp
   // For personal decisions (forceVariety=true), ignore AI suggestion and always use userId+timestamp
   // This ensures maximum variety - different music per user and per call
   if (forceVariety && userId) {
-    // Always use userId + timestamp for variety, ignoring AI suggestion
-    // Use seconds for better variety - ensures different music each call
-    const seed = `${userId}:${emotion || 'music'}:${Math.floor(timestamp / 1000)}`;
+    // Always use userId + timestamp (milliseconds) for variety, ignoring AI suggestion
+    // Add multiple factors to ensure variety: userId, emotion, timestamp (ms), and baseTitle hash
+    const baseHash = baseN ? hashString(baseN) : 0;
+    // Add a counter-like factor based on userId hash to ensure different users get different music
+    const userHash = hashString(userId);
+    // Use microsecond precision (timestamp % 1000) for better variety in rapid requests
+    const microSecond = timestamp % 1000;
+    const seed = `${userId}:${emotion || 'music'}:${timestamp}:${microSecond}:${userHash}:${baseHash}`;
     let idx = hashString(seed) % titles.length;
     
-    // Avoid selecting the same music as previous call if possible
-    if (previousTitle) {
-      const prevNormalized = normalizeTitle(previousTitle);
-      const selectedNormalized = normalizeTitle(titles[idx]);
-      if (prevNormalized === selectedNormalized && titles.length > 1) {
-        // Try next title for variety
+    // Always try to avoid previous music if possible (even if previousTitle is empty, use userHash to vary)
+    const prevNormalized = previousTitle ? normalizeTitle(previousTitle) : '';
+    const selectedNormalized = normalizeTitle(titles[idx]);
+    
+    // If same as previous OR if no previous but we want variety, try to shift
+    if ((prevNormalized && prevNormalized === selectedNormalized) || (!prevNormalized && titles.length > 1)) {
+      // Use multiple factors to determine offset for maximum variety
+      const offsetSeed = hashString(`${userId}:${timestamp}:${microSecond}:${userHash}`);
+      const offset = (offsetSeed % (titles.length - 1)) + 1;
+      idx = (idx + offset) % titles.length;
+      
+      // Double-check: if still same, try another offset
+      const newSelected = normalizeTitle(titles[idx]);
+      if (prevNormalized && prevNormalized === newSelected && titles.length > 2) {
         idx = (idx + 1) % titles.length;
       }
     }
+    
+    console.log('🎵 [pickCatalogTitle] Personal decision:', {
+      userId,
+      emotion,
+      timestamp,
+      microSecond,
+      userHash,
+      seed: seed.substring(0, 100) + '...',
+      selectedIndex: idx,
+      selectedTitle: titles[idx],
+      previousTitle,
+      baseTitle,
+      forceVariety: true,
+      totalTitles: titles.length
+    });
     
     return titles[idx];
   }
@@ -105,6 +133,15 @@ export async function decideController({ currentProgram = {}, currentUser = {}, 
   // For personal decisions, force variety by ignoring AI suggestion
   const userId = currentUser?.id || '';
   const timestamp = Date.now();
+  console.log('🎵 [decideController] Starting music selection:', {
+    userId,
+    baseTitle,
+    previousTitle: prevTitle,
+    emotion: parsed.emotion,
+    timestamp,
+    hasUserId: !!userId
+  });
+  
   const musicTitle = pickCatalogTitle({ 
     baseTitle, 
     previousTitle: prevTitle, 
@@ -112,6 +149,13 @@ export async function decideController({ currentProgram = {}, currentUser = {}, 
     userId: userId,
     timestamp: timestamp,
     forceVariety: !!userId // Force variety for personal decisions (ignore AI suggestion)
+  });
+  
+  console.log('🎵 [decideController] Selected music:', {
+    userId,
+    musicTitle,
+    baseTitle,
+    forceVariety: !!userId
   });
   
   // 2. Append artist if found in catalog (ensure "Title - Artist" format for devices)
@@ -159,10 +203,22 @@ export async function decideController({ currentProgram = {}, currentUser = {}, 
       };
       
       const h = hashUser(userId);
-      const colorSeed = mix(h * 7331 + Math.floor(timestamp / 1000));
+      // Use milliseconds for better variety across calls
+      const colorSeed = mix(h * 7331 + timestamp);
       const rShift = (colorSeed % 41) - 20; // -20 to +20
       const gShift = (mix(colorSeed * 173) % 41) - 20;
       const bShift = (mix(colorSeed * 271) % 41) - 20;
+      
+      console.log('🎨 [decideController] Light color diversification:', {
+        userId,
+        timestamp,
+        originalColor: lightColor,
+        colorSeed,
+        rShift,
+        gShift,
+        bShift,
+        finalColor: finalLightColor
+      });
       
       const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
       finalLightColor = rgbToHex(

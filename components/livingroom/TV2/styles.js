@@ -15,6 +15,7 @@ export const Scaler = styled.div`
   height: 2160px;
   transform-origin: center center;
   will-change: transform;
+  transform: translate(-50%, -50%) scale(var(--tv2-scale, 1));
 `;
 
 export const Root = styled.div`
@@ -42,8 +43,9 @@ export const Header = styled.div`
     ${props => props.$gradientStart || 'rgba(102,157,255,1)'} 0%,
     ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos || 45}%,
     ${props => props.$gradientEnd || 'rgba(196,201,206,1)'} 100%);
-  background-size: 200% 100%;
-  animation: ${headerGradientSlide} 8s ease-in-out infinite alternate;
+  /* 끊김 느낌 줄이기 위해 모션 제거 */
+  background-size: 100% 100%;
+  animation: none;
   /* Removed will-change to prevent potential flickering */
   box-shadow: 0 10px 40px rgba(0,0,0,0.08) inset;
   z-index: 3;
@@ -77,8 +79,9 @@ export const HeaderIcon = styled.div`
     width: 70%;
     height: 70%;
     filter:
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
+      drop-shadow(0 0 12px rgba(255,255,255,0.7));
   }
   img {
     width: 70%;
@@ -86,14 +89,15 @@ export const HeaderIcon = styled.div`
     object-fit: contain;
     display: block;
     filter:
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
+      drop-shadow(0 0 12px rgba(255,255,255,0.7));
   }
 `;
 
 export const HeaderTitle = styled.div`
   /* 텍스트 크기도 중간 수준으로 조정 */
-  font-size: 85px;
+  font-size: 80px;
   font-weight: 400;
   letter-spacing: 0.02em;
   color: rgba(255,255,255,1);
@@ -118,7 +122,7 @@ export const LeftPanel = styled.div`
   /* Base gradient and sweeping band per spec */
   /* 앨범 카드 위치 (조금 더 오른쪽 & 상단으로) */
   --album-x: 52%;
-  --album-y: 46%;
+  --album-y: 52%;
   /* starting azimuth for angular sweep – 약간만 회전해서
      하얀 영역 경계가 거의 수평에 가깝게 보이도록 조정 */
   --sweep-start: 90deg;
@@ -138,7 +142,11 @@ export const LeftPanel = styled.div`
     transform-origin: 50% 50%;
     transform: matrix(1, 0, 0, -1, 0, 0) rotate(0deg);
     animation: conicTurn 28s linear infinite;
-    filter: blur(${props => props.$blur || 30}px);
+    /* 블러를 10~80 사이로 클램프 */
+    filter: blur(${props => {
+      const v = props.$blur ?? 30;
+      return Math.min(80, Math.max(10, v));
+    }}px);
     will-change: transform, filter;
     pointer-events: none;
     z-index: 0;
@@ -276,8 +284,8 @@ export const MusicRow = styled.div`
   position: absolute;
   /* 상단 조명 아이콘/텍스트의 좌측 패딩(3vw)에 맞춰 정렬 */
   left: 115.2px;
-  /* 사각형과 세로 중심을 맞추도록 살짝 위쪽으로 조정 */
-  top: calc(var(--album-y) - 760px);
+  /* 더 상단으로 올려 감정명 노출 */
+  top: calc(var(--album-y) - 900px);
   display: flex; align-items: center; gap: 60px;
   /* 장르 텍스트도 중간 수준으로 */
   font-size: 85px;
@@ -300,8 +308,9 @@ export const MusicIcon = styled.div`
     height: 90%; 
     color: #fff; 
     filter: 
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
+      drop-shadow(0 0 12px rgba(255,255,255,0.7));
   }
   img { 
     width: 90%; 
@@ -309,8 +318,9 @@ export const MusicIcon = styled.div`
     object-fit: contain; 
     display: block; 
     filter: 
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
+      drop-shadow(0 0 12px rgba(255,255,255,0.7));
   }
 `;
 
@@ -365,7 +375,7 @@ export const AlbumCard = styled.div`
   position: absolute; left: var(--album-x); top: var(--album-y);
   transform: translate(-50%, -50%);
   /* 더 작게 줄여서 텍스트와 균형 맞춤 */
-  width: 640px; aspect-ratio: 1 / 1; border-radius: 90px;
+  width: 640px; aspect-ratio: 1 / 1; border-radius: 110px;
   background: radial-gradient(120% 120% at 35% 25%, #c7e3ff 0%, #c9d2e8 40%, #f7efe8 100%);
   box-shadow:
     0 20px 50px rgba(0,0,0,0.25),
@@ -374,6 +384,18 @@ export const AlbumCard = styled.div`
   overflow: hidden;
   display: grid; place-items: center;
   z-index: 5;
+
+  /* 부드러운 글로우 추가 */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -14%;
+    border-radius: inherit;
+    background: radial-gradient(120% 120% at 50% 45%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.12) 65%, rgba(255,255,255,0) 100%);
+    filter: blur(24px);
+    z-index: 0;
+    pointer-events: none;
+  }
 `;
 
 export const AlbumImage = styled.img`
@@ -431,12 +453,36 @@ const fadeSlideUp = keyframes`
   }
 `;
 
+const albumBlurIn = keyframes`
+  0% {
+    opacity: 0;
+    filter: blur(18px);
+    transform: translateY(26px) scale(0.97);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(6px);
+    transform: translateY(6px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0) scale(1);
+  }
+`;
+
+const rouletteIn = keyframes`
+  0%   { opacity: 0; transform: translateY(30px) rotateX(35deg) scale(0.95); }
+  50%  { opacity: 1; transform: translateY(-8px) rotateX(-12deg) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) rotateX(0deg) scale(1); }
+`;
+
 export const AlbumVisual = styled.div`
   width: 100%;
   height: 100%;
   display: grid;
   place-items: center;
-  animation: ${fadeSlideUp} 0.8s ease;
+  animation: ${albumBlurIn} 0.9s ease;
   will-change: opacity, transform;
   position: relative;
   z-index: 1;
@@ -452,7 +498,8 @@ export const AlbumBg = styled.div`
   inset: 0;
   border-radius: inherit;
   background: ${props => props.$bg};
-  animation: ${albumBgFade} 0.8s ease;
+  opacity: 0;
+  animation: ${albumBgFade} 1s ease 0.6s forwards;
   will-change: opacity;
   pointer-events: none;
   z-index: 0;
@@ -469,7 +516,7 @@ const textGlowPulse = keyframes`
 `;
 
 export const FadeSlideText = styled.div`
-  animation: ${fadeSlideUp} 0.6s ease;
+  animation: ${props => props.$roulette ? rouletteIn : fadeSlideUp} 0.6s ease;
   will-change: opacity, transform;
   ${props => props.$shouldGlow ? `
     animation: ${fadeSlideUp} 0.6s ease, ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
@@ -484,10 +531,10 @@ const dots = keyframes`
 
 export const LoadingDots = styled.div`
   display: inline-flex;
-  gap: 6px;
+  gap: 10px;
   span {
-    width: 10px;
-    height: 10px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: rgba(255,255,255,0.8);
     animation: ${dots} 1.2s infinite;
@@ -499,11 +546,12 @@ export const LoadingDots = styled.div`
 export const TrackTitle = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 카드 바로 아래쪽에 오도록 조금 위로 올림 */
-  top: calc(var(--album-y) + 380px);
+  /* 앨범 위로 더 띄워 간격 확보 (추가 상향) */
+  top: calc(var(--album-y) - 600px);
   transform: translateX(-50%);
-  /* 음악 제목은 살짝 더 작게, medium 두께로 */
-  font-size: 95px;
+  /* 음악 제목 폰트 약간 더 키움 */
+  font-size: 80px;
+  text-transform: uppercase;
   font-weight: 500;
   color: rgba(255,255,255,1);
   text-shadow: 
@@ -517,11 +565,11 @@ export const TrackTitle = styled.div`
 export const Artist = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 트랙 타이틀과의 간격을 조금 줄여 더 가깝게 배치 */
-  top: calc(var(--album-y) + 520px);
+  /* 트랙 타이틀 아래, 간격 유지하며 추가 상향 */
+  top: calc(var(--album-y) - 470px);
   transform: translateX(-50%);
-  /* 하단 아티스트 텍스트는 한 단계 더 작게 */
-  font-size: 70px;
+  /* 아티스트 텍스트 폰트 키움 */
+  font-size: 64px;
   color: rgba(255,255,255,1);
   text-shadow: 
     0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
@@ -535,13 +583,15 @@ export const Artist = styled.div`
 export const WaveformIndicator = styled.div`
   position: absolute;
   left: var(--album-x);
-  top: calc(var(--album-y) + 680px);
+  /* 이름들 아래, 앨범 하단 근처 */
+  top: calc(var(--album-y) + 430px);
   transform: translateX(-50%);
   display: flex;
   align-items: flex-end;
-  justify-content: center;
-  gap: 8px;
-  height: 80px;
+  justify-content: space-between;
+  gap: 6px;
+  width: 600px;
+  height: 120px;
   z-index: 20;
   pointer-events: none;
 `;
@@ -752,10 +802,10 @@ const changeMessageFade = keyframes`
 
 export const ChangeMessage = styled.div`
   position: absolute;
-  bottom: 120px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 60px;
+  bottom: 80px;
+  left: 58%;
+  transform: translateX(-5%);
+  font-size: 44px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;

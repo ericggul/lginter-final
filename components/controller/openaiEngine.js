@@ -80,18 +80,30 @@ function diversifyEnv(env, userId = '', locks = { temp: false, humidity: false, 
   if (!locks?.lightColor && out.lightColor) {
     const rgb = hexToRgb(out.lightColor);
     if (rgb) {
-      // Use userId and timestamp to create color variation
-      const colorSeed = mix(h * 7331 + Math.floor(timestamp / 1000));
+      // Use userId and timestamp to create color variation (milliseconds for better variety)
+      const colorSeed = mix(h * 7331 + timestamp);
       // Shift RGB values by small amounts (±20-30) to create variety while keeping it pleasant
       const rShift = (colorSeed % 41) - 20; // -20 to +20
       const gShift = (mix(colorSeed * 173) % 41) - 20;
       const bShift = (mix(colorSeed * 271) % 41) - 20;
       
+      const originalColor = out.lightColor;
       out.lightColor = rgbToHex(
         clamp(rgb.r + rShift, 150, 255), // Keep in soft, pleasant range
         clamp(rgb.g + gShift, 150, 255),
         clamp(rgb.b + bShift, 150, 255)
       );
+      
+      console.log('🎨 [diversifyEnv] Light color diversification:', {
+        userId,
+        timestamp,
+        originalColor,
+        colorSeed,
+        rShift,
+        gShift,
+        bShift,
+        finalColor: out.lightColor
+      });
     }
   }
   
@@ -99,6 +111,12 @@ function diversifyEnv(env, userId = '', locks = { temp: false, humidity: false, 
 }
 
 export async function requestControllerDecision({ userId, userContext, lastDecision, systemPrompt }) {
+  // 사용자별 이전 음악 추적 (개인 디시전에서 사용)
+  const userPreviousMusic = userContext?.lastDecision?.individual?.music || 
+                            userContext?.lastPreference?.music || 
+                            lastDecision?.env?.music || 
+                            '';
+  
   const result = await decideEnv({
     // Prefer provided override; default to SW2 mapping prompt for strict pipeline
     systemPrompt: systemPrompt || SW2_MAPPING_PROMPT,
@@ -106,7 +124,10 @@ export async function requestControllerDecision({ userId, userContext, lastDecis
     currentProgram: {
       version: lastDecision?.version || 0,
       text: lastDecision?.reason || '',
-      env: lastDecision?.env || DEFAULT_ENV,
+      env: {
+        ...(lastDecision?.env || DEFAULT_ENV),
+        music: userPreviousMusic, // 사용자별 이전 음악 전달
+      },
     },
     currentUser: {
       id: userId,
@@ -123,8 +144,27 @@ export async function requestControllerDecision({ userId, userContext, lastDecis
   );
   const { env: withOverrides, locks } = applyClimateOverrides(initial, userContext?.lastVoice?.text || '');
   const timestamp = Date.now();
+  
+  console.log('🎵 [requestControllerDecision] Before diversification:', {
+    userId,
+    timestamp,
+    music: result?.params?.music,
+    lightColor: result?.params?.lightColor,
+    temp: result?.params?.temp,
+    humidity: result?.params?.humidity
+  });
+  
   const diversified = diversifyEnv(withOverrides, userId, { ...locks, lightColor: false }, timestamp);
   const finalEnv = normalizeEnv(diversified, userContext?.lastVoice?.emotion || '', { season: 'winter' });
+
+  console.log('🎵 [requestControllerDecision] After diversification:', {
+    userId,
+    timestamp,
+    music: finalEnv?.music,
+    lightColor: finalEnv?.lightColor,
+    temp: finalEnv?.temp,
+    humidity: finalEnv?.humidity
+  });
 
   return {
     env: finalEnv,
