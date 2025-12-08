@@ -57,10 +57,17 @@ export default function useSocketTV2(options = {}) {
     const s = socketRef.current;
     if (!s) return;
     const { onDeviceNewDecision, onTimelineStage } = options || {};
-    if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
+    if (onDeviceNewDecision) {
+      // Listen to both legacy and canonical event names to avoid dropped updates
+      s.on('device-new-decision', onDeviceNewDecision);
+      s.on('device-decision', onDeviceNewDecision);
+    }
     if (onTimelineStage) s.on('timeline-stage', onTimelineStage);
     return () => {
-      if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
+      if (onDeviceNewDecision) {
+        s.off('device-new-decision', onDeviceNewDecision);
+        s.off('device-decision', onDeviceNewDecision);
+      }
       if (onTimelineStage) s.off('timeline-stage', onTimelineStage);
     };
   }, [socket, options?.onDeviceNewDecision, options?.onTimelineStage]);

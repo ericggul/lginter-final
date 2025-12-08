@@ -38,7 +38,21 @@ function applyClimateOverrides(env, text = '') {
   return { env: out, locks };
 }
 
-function diversifyEnv(env, userId = '', locks = { temp: false, humidity: false }) {
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return null;
+  const v = m[1];
+  return { r: parseInt(v.slice(0,2),16), g: parseInt(v.slice(2,4),16), b: parseInt(v.slice(4,6),16) };
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => {
+    const hex = Math.round(clamp(x, 0, 255)).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('').toUpperCase();
+}
+
+function diversifyEnv(env, userId = '', locks = { temp: false, humidity: false, lightColor: false }, timestamp = Date.now()) {
   const h = stableHash(String(userId || '0'));
   // Stronger, discretized, deterministic variance to make personal results clearly different
   const mix = (n) => {
@@ -61,10 +75,48 @@ function diversifyEnv(env, userId = '', locks = { temp: false, humidity: false }
   if (typeof out.humidity === 'number') {
     out.humidity = locks?.humidity ? out.humidity : clamp(out.humidity + humDelta, 20, 80);
   }
+  
+  // Diversify lightColor based on userId and timestamp
+  if (!locks?.lightColor && out.lightColor) {
+    const rgb = hexToRgb(out.lightColor);
+    if (rgb) {
+      // Use userId and timestamp to create color variation (milliseconds for better variety)
+      const colorSeed = mix(h * 7331 + timestamp);
+      // Shift RGB values by small amounts (±20-30) to create variety while keeping it pleasant
+      const rShift = (colorSeed % 41) - 20; // -20 to +20
+      const gShift = (mix(colorSeed * 173) % 41) - 20;
+      const bShift = (mix(colorSeed * 271) % 41) - 20;
+      
+      const originalColor = out.lightColor;
+      out.lightColor = rgbToHex(
+        clamp(rgb.r + rShift, 150, 255), // Keep in soft, pleasant range
+        clamp(rgb.g + gShift, 150, 255),
+        clamp(rgb.b + bShift, 150, 255)
+      );
+      
+      console.log('🎨 [diversifyEnv] Light color diversification:', {
+        userId,
+        timestamp,
+        originalColor,
+        colorSeed,
+        rShift,
+        gShift,
+        bShift,
+        finalColor: out.lightColor
+      });
+    }
+  }
+  
   return out;
 }
 
 export async function requestControllerDecision({ userId, userContext, lastDecision, systemPrompt }) {
+  // 사용자별 이전 음악 추적 (개인 디시전에서 사용)
+  const userPreviousMusic = userContext?.lastDecision?.individual?.music || 
+                            userContext?.lastPreference?.music || 
+                            lastDecision?.env?.music || 
+                            '';
+  
   const result = await decideEnv({
     // Prefer provided override; default to SW2 mapping prompt for strict pipeline
     systemPrompt: systemPrompt || SW2_MAPPING_PROMPT,
@@ -72,7 +124,10 @@ export async function requestControllerDecision({ userId, userContext, lastDecis
     currentProgram: {
       version: lastDecision?.version || 0,
       text: lastDecision?.reason || '',
-      env: lastDecision?.env || DEFAULT_ENV,
+      env: {
+        ...(lastDecision?.env || DEFAULT_ENV),
+        music: userPreviousMusic, // 사용자별 이전 음악 전달
+      },
     },
     currentUser: {
       id: userId,
@@ -88,8 +143,28 @@ export async function requestControllerDecision({ userId, userContext, lastDecis
     { season: 'winter' }
   );
   const { env: withOverrides, locks } = applyClimateOverrides(initial, userContext?.lastVoice?.text || '');
-  const diversified = diversifyEnv(withOverrides, userId, locks);
+  const timestamp = Date.now();
+  
+  console.log('🎵 [requestControllerDecision] Before diversification:', {
+    userId,
+    timestamp,
+    music: result?.params?.music,
+    lightColor: result?.params?.lightColor,
+    temp: result?.params?.temp,
+    humidity: result?.params?.humidity
+  });
+  
+  const diversified = diversifyEnv(withOverrides, userId, { ...locks, lightColor: false }, timestamp);
   const finalEnv = normalizeEnv(diversified, userContext?.lastVoice?.emotion || '', { season: 'winter' });
+
+  console.log('🎵 [requestControllerDecision] After diversification:', {
+    userId,
+    timestamp,
+    music: finalEnv?.music,
+    lightColor: finalEnv?.lightColor,
+    temp: finalEnv?.temp,
+    humidity: finalEnv?.humidity
+  });
 
   return {
     env: finalEnv,

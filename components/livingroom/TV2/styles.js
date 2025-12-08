@@ -15,6 +15,7 @@ export const Scaler = styled.div`
   height: 2160px;
   transform-origin: center center;
   will-change: transform;
+  transform: translate(-50%, -50%) scale(var(--tv2-scale, 1));
 `;
 
 export const Root = styled.div`
@@ -26,9 +27,33 @@ export const Root = styled.div`
   font-family: 'Inter', 'Pretendard', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 `;
 
-const headerGradientSlide = keyframes`
-  0%   { background-position: 0% 0; }
-  100% { background-position: 100% 0; }
+/* 조명 컬러가 우측에서 좌측으로 밀고 들어온 뒤 멈춤 */
+const headerPush = keyframes`
+  /* 우측에서 좌측으로 부드럽게 밀려와 정지 */
+  0%   { background-position: -130% 0; opacity: 0.75; filter: blur(1px); }
+  60%  { background-position: -12% 0; opacity: 0.95; filter: blur(0.4px); }
+  100% { background-position: 0% 0; opacity: 1; filter: blur(0px); }
+`;
+
+const emotionFlow = keyframes`
+  0%   { transform: translateX(40%); opacity: 0; }
+  15%  { opacity: 0.75; }
+  50%  { opacity: 0.9; }
+  100% { transform: translateX(-120%); opacity: 0; }
+`;
+
+const climatePush = keyframes`
+  0%   { transform: translateX(60%) rotateX(20deg); opacity: 0; }
+  60%  { transform: translateX(-6%) rotateX(-8deg); opacity: 1; }
+  100% { transform: translateX(0) rotateX(0deg); opacity: 1; }
+`;
+
+const noticeTyping = keyframes`
+  0%   { width: 0; opacity: 0; }
+  8%   { width: 0; opacity: 1; }
+  55%  { width: 100%; opacity: 1; }
+  80%  { width: 100%; opacity: 0.9; }
+  100% { width: 100%; opacity: 0; }
 `;
 
 export const Header = styled.div`
@@ -40,12 +65,18 @@ export const Header = styled.div`
   /* 좌→우로 흐르는 그라데이션 모션 */
   background: linear-gradient(90deg,
     ${props => props.$gradientStart || 'rgba(102,157,255,1)'} 0%,
-    ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos || 45}%,
-    ${props => props.$gradientEnd || 'rgba(196,201,206,1)'} 100%);
-  background-size: 200% 100%;
-  animation: ${headerGradientSlide} 8s ease-in-out infinite alternate;
+    ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos ?? 10}%,
+    ${props => props.$gradientEnd || '#ffffff'} ${props => props.$gradientEndPos ?? 90}%,
+    ${props => props.$gradientEnd || '#ffffff'} 100%);
+  /* 컬러 영역을 넓혀 자연스럽게 */
+  background-size: 220% 100%;
+  background-position: 120% 0;
+  animation: ${headerPush} 1.9s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
   /* Removed will-change to prevent potential flickering */
-  box-shadow: 0 10px 40px rgba(0,0,0,0.08) inset;
+  box-shadow:
+    0 10px 40px rgba(0,0,0,0.08) inset,
+    0 14px 34px rgba(0,0,0,0.05) inset,
+    0 -12px 24px rgba(255,255,255,0.15) inset;
   z-index: 3;
   /* 하단 경계 블러 효과 */
   &::after {
@@ -63,6 +94,22 @@ export const Header = styled.div`
     pointer-events: none;
     z-index: 4;
   }
+  /* 상단 경계 블러 보조 (얇은 라인) */
+  & .header-edge-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: ${props => (props.$edgeBlurWidth || 20) * 0.5}px;
+    background: linear-gradient(90deg,
+      ${props => props.$gradientStart || 'rgba(102,157,255,1)'} 0%,
+      ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos || 45}%,
+      ${props => props.$gradientEnd || 'rgba(196,201,206,1)'} 100%);
+    filter: blur(${props => (props.$edgeBlurAmount || 15) * 0.8}px);
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 4;
+  }
 `;
 
 export const HeaderIcon = styled.div`
@@ -77,8 +124,8 @@ export const HeaderIcon = styled.div`
     width: 70%;
     height: 70%;
     filter:
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+      drop-shadow(0 0 ${props => (props.$shadowBlur || 6)}px ${props => props.$glowColor || 'rgba(255,255,255,0.7)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 3}px ${props => (props.$shadowBlur || 6)}px ${props => props.$shadowColor || 'rgba(0,0,0,0.55)'});
   }
   img {
     width: 70%;
@@ -86,21 +133,21 @@ export const HeaderIcon = styled.div`
     object-fit: contain;
     display: block;
     filter:
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+      drop-shadow(0 0 ${props => (props.$shadowBlur || 6)}px ${props => props.$glowColor || 'rgba(255,255,255,0.7)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 3}px ${props => (props.$shadowBlur || 6)}px ${props => props.$shadowColor || 'rgba(0,0,0,0.55)'});
   }
 `;
 
 export const HeaderTitle = styled.div`
   /* 텍스트 크기도 중간 수준으로 조정 */
-  font-size: 85px;
+  font-size: 80px;
   font-weight: 400;
   letter-spacing: 0.02em;
-  color: rgba(255,255,255,1);
-  text-shadow: 
-    0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+  text-align: left;
+  color: rgba(255,255,255,0.9);
+  text-shadow:
+    0 0 10px rgba(0,0,0,0.18),
+    0 0 16px rgba(255,255,255,0.32);
 `;
 
 export const Content = styled.div`
@@ -118,7 +165,7 @@ export const LeftPanel = styled.div`
   /* Base gradient and sweeping band per spec */
   /* 앨범 카드 위치 (조금 더 오른쪽 & 상단으로) */
   --album-x: 52%;
-  --album-y: 46%;
+  --album-y: 52%;
   /* starting azimuth for angular sweep – 약간만 회전해서
      하얀 영역 경계가 거의 수평에 가깝게 보이도록 조정 */
   --sweep-start: 90deg;
@@ -129,7 +176,7 @@ export const LeftPanel = styled.div`
     content:''; position:absolute;
     /* Fill whole panel including padding area */
     top: -480.4px; bottom: -480.4px; left: -480.6px; right: -480.6px;
-    background: conic-gradient(from 0deg at 50% 50%, 
+    background: conic-gradient(from 90deg at 50.34% 56.64%, 
       ${props => props.$color1 || '#A15C2E'} ${props => props.$pos1 || 0}deg, 
       ${props => props.$color2 || '#F5813F'} ${props => props.$pos2 || 74.42}deg, 
       ${props => props.$color3 || '#F5813F'} ${props => props.$pos3 || 114.23}deg, 
@@ -138,10 +185,16 @@ export const LeftPanel = styled.div`
     transform-origin: 50% 50%;
     transform: matrix(1, 0, 0, -1, 0, 0) rotate(0deg);
     animation: conicTurn 28s linear infinite;
-    filter: blur(${props => props.$blur || 30}px);
+    /* 블러를 10~200 사이로 클램프 */
+    filter: blur(${props => {
+      const v = props.$blur ?? 30;
+      return Math.min(200, Math.max(10, v));
+    }}px);
     will-change: transform, filter;
     pointer-events: none;
     z-index: 0;
+    transition: opacity 1.5s ease-in-out;
+    opacity: 1;
   }
   @keyframes conicTurn{
     from{ transform: matrix(1, 0, 0, -1, 0, 0) rotate(0deg); }
@@ -193,6 +246,8 @@ export const LeftPanelRightEdge = styled.div`
   filter: blur(${props => props.$blurAmount || 15}px);
   pointer-events: none;
   z-index: 2;
+  transition: opacity 1.5s ease-in-out;
+  opacity: 1;
 `;
 
 export const LeftSweep = styled.div`
@@ -272,12 +327,13 @@ export const MusicRow = styled.div`
   position: absolute;
   /* 상단 조명 아이콘/텍스트의 좌측 패딩(3vw)에 맞춰 정렬 */
   left: 115.2px;
-  /* 사각형과 세로 중심을 맞추도록 살짝 위쪽으로 조정 */
-  top: calc(var(--album-y) - 760px);
+  /* 더 상단으로 올려 감정명 노출 */
+  top: calc(var(--album-y) - 900px);
   display: flex; align-items: center; gap: 60px;
   /* 장르 텍스트도 중간 수준으로 */
   font-size: 85px;
   font-weight: 400;
+  text-transform: uppercase;
   color: rgba(255,255,255,1);
   text-shadow: 
     0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
@@ -296,8 +352,9 @@ export const MusicIcon = styled.div`
     height: 90%; 
     color: #fff; 
     filter: 
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
+      drop-shadow(0 0 12px rgba(255,255,255,0.7));
   }
   img { 
     width: 90%; 
@@ -305,8 +362,9 @@ export const MusicIcon = styled.div`
     object-fit: contain; 
     display: block; 
     filter: 
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
+      drop-shadow(0 0 12px rgba(255,255,255,0.7));
   }
 `;
 
@@ -361,7 +419,7 @@ export const AlbumCard = styled.div`
   position: absolute; left: var(--album-x); top: var(--album-y);
   transform: translate(-50%, -50%);
   /* 더 작게 줄여서 텍스트와 균형 맞춤 */
-  width: 640px; aspect-ratio: 1 / 1; border-radius: 60px;
+  width: 640px; aspect-ratio: 1 / 1; border-radius: 110px;
   background: radial-gradient(120% 120% at 35% 25%, #c7e3ff 0%, #c9d2e8 40%, #f7efe8 100%);
   box-shadow:
     0 20px 50px rgba(0,0,0,0.25),
@@ -370,6 +428,18 @@ export const AlbumCard = styled.div`
   overflow: hidden;
   display: grid; place-items: center;
   z-index: 5;
+
+  /* 부드러운 글로우 추가 */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -14%;
+    border-radius: inherit;
+    background: radial-gradient(120% 120% at 50% 45%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.12) 65%, rgba(255,255,255,0) 100%);
+    filter: blur(24px);
+    z-index: 0;
+    pointer-events: none;
+  }
 `;
 
 export const AlbumImage = styled.img`
@@ -379,20 +449,167 @@ export const AlbumImage = styled.img`
   display: block;
 `;
 
+export const AlbumPlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(120% 120% at 50% 45%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.72) 38%, rgba(255,255,255,0.36) 100%);
+  box-shadow:
+    inset 0 0 60px rgba(255,255,255,0.75),
+    0 0 80px rgba(255,255,255,0.35);
+  filter: drop-shadow(0 14px 32px rgba(0,0,0,0.12));
+  position: relative;
+  overflow: hidden;
+`;
+
+// 앨범 커버 로딩 중 빛나는 효과
+const glowPulse = keyframes`
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+`;
+
+export const AlbumGlow = styled.div`
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.3) 40%,
+    transparent 70%
+  );
+  animation: ${glowPulse} 1.5s ease-in-out infinite;
+  pointer-events: none;
+`;
+
+const fadeSlideUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+`;
+
+const albumBlurIn = keyframes`
+  0% {
+    opacity: 0;
+    filter: blur(18px);
+    transform: translateY(26px) scale(0.97);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(6px);
+    transform: translateY(6px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0) scale(1);
+  }
+`;
+
+const rouletteIn = keyframes`
+  0%   { opacity: 0; transform: translateY(24px) scale(0.96); }
+  55%  { opacity: 1; transform: translateY(-6px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+const slideInLR = keyframes`
+  0%   { opacity: 0; transform: translateX(-48px); }
+  60%  { opacity: 1; transform: translateX(6px); }
+  100% { opacity: 1; transform: translateX(0); }
+`;
+
+export const AlbumVisual = styled.div`
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  animation: ${albumBlurIn} 0.9s ease;
+  will-change: opacity, transform;
+  position: relative;
+  z-index: 1;
+`;
+
+const albumBgFade = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+export const AlbumBg = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: ${props => props.$bg};
+  opacity: 0;
+  animation: ${albumBgFade} 1s ease 0.6s forwards;
+  will-change: opacity;
+  pointer-events: none;
+  z-index: 0;
+`;
+
+// 텍스트 글로우 펄스 애니메이션 (AlbumGlow와 구분)
+const textGlowPulse = keyframes`
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.6));
+  }
+`;
+
+export const FadeSlideText = styled.div`
+  animation: ${props => props.$slideLR ? slideInLR : (props.$roulette ? rouletteIn : fadeSlideUp)} 0.6s ease;
+  will-change: opacity, transform;
+  ${props => props.$shouldGlow ? `
+    animation: ${fadeSlideUp} 0.6s ease, ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
+  ` : ''}
+`;
+
+const dots = keyframes`
+  0%, 20% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
+`;
+
+export const LoadingDots = styled.div`
+  display: inline-flex;
+  gap: 10px;
+  span {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.8);
+    animation: ${dots} 1.2s infinite;
+  }
+  span:nth-child(2) { animation-delay: 0.2s; }
+  span:nth-child(3) { animation-delay: 0.4s; }
+`;
+
 export const TrackTitle = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 카드 바로 아래쪽에 오도록 조금 위로 올림 */
-  top: calc(var(--album-y) + 380px);
+  /* 앨범 위로 띄워 간격 확보 */
+  top: calc(var(--album-y) - 640px);
   transform: translateX(-50%);
-  /* 음악 제목은 살짝 더 작게, medium 두께로 */
-  font-size: 95px;
+  /* 음악 제목 폰트 약간 더 키움 */
+  font-size: 80px;
+  text-transform: uppercase;
   font-weight: 500;
-  color: rgba(255,255,255,1);
-  text-shadow: 
-    0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+  color: ${props => props.$color || 'rgba(255,255,255,1)'};
+  mix-blend-mode: normal;
+  animation: ${rouletteIn} 0.6s ease;
+  will-change: transform, opacity;
+  text-shadow:
+    0 0 10px rgba(0,0,0,0.18),
+    0 0 16px rgba(255,255,255,0.32);
   z-index: 20;
   pointer-events: none;
 `;
@@ -400,18 +617,78 @@ export const TrackTitle = styled.div`
 export const Artist = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 트랙 타이틀과의 간격을 조금 줄여 더 가깝게 배치 */
-  top: calc(var(--album-y) + 520px);
+  /* 트랙 타이틀 아래, 앨범 상단 위쪽 */
+  top: calc(var(--album-y) - 510px);
   transform: translateX(-50%);
-  /* 하단 아티스트 텍스트는 한 단계 더 작게 */
-  font-size: 70px;
-  color: rgba(255,255,255,1);
-  text-shadow: 
-    0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+  /* 아티스트 텍스트 폰트 키움 */
+  font-size: 64px;
+  font-weight: 500;
+  color: ${props => props.$color || 'rgba(255,255,255,1)'};
+  mix-blend-mode: normal;
+  animation: ${rouletteIn} 0.6s ease;
+  will-change: transform, opacity;
+  text-shadow:
+    0 0 10px rgba(0,0,0,0.18),
+    0 0 16px rgba(255,255,255,0.32);
   z-index: 20;
   pointer-events: none;
+`;
+
+// 음악 파형 인디케이터 (실제 오디오 파형 반영)
+export const WaveformIndicator = styled.div`
+  position: absolute;
+  left: var(--album-x);
+  /* 이름들 아래, 앨범 하단 근처 */
+  top: calc(var(--album-y) + 430px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  width: 600px;
+  height: 120px;
+  z-index: 20;
+  pointer-events: none;
+`;
+
+export const EmotionFlow = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 48px;
+  height: 64px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 6;
+  mix-blend-mode: screen;
+  opacity: 0.75;
+  & > span {
+    position: absolute;
+    left: -40%;
+    bottom: 0;
+    font-size: 58px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.9);
+    text-shadow:
+      0 0 10px rgba(255,255,255,0.5),
+      0 0 22px rgba(255,255,255,0.35),
+      0 2px 10px rgba(0,0,0,0.35);
+    animation: ${emotionFlow} 10s linear infinite;
+    white-space: nowrap;
+  }
+`;
+
+export const WaveformBar = styled.div`
+  width: 6px;
+  height: ${props => props.$height || 4}px;
+  min-height: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  transform-origin: bottom;
+  transition: height 0.1s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 `;
 
 export const RightPanel = styled.div`
@@ -437,6 +714,23 @@ export const RightPanel = styled.div`
     filter: blur(${props => props.$edgeBlurAmount || 15}px);
     pointer-events: none;
     z-index: 2;
+  }
+  /* 좌측 경계와 유사한 부드러운 블러를 오른쪽에도 추가 */
+  &::after {
+    content: '';
+    position: absolute;
+    left: -40px;
+    top: 0;
+    bottom: 0;
+    width: ${props => (props.$edgeBlurWidth || 20) * 2}px;
+    background: linear-gradient(180deg,
+      ${props => props.$bgColor1 || 'rgba(255,235,235,0.95)'} 0%,
+      ${props => props.$bgColor2 || 'rgba(253,210,210,0.78)'} 50%,
+      ${props => props.$bgColor3 || 'rgba(250,250,250,0.90)'} 100%);
+    filter: blur(${props => (props.$edgeBlurAmount || 15) * 1.4}px);
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 1;
   }
 `;
 
@@ -539,11 +833,29 @@ export const ClimateRow = styled.div`
   display: flex; align-items: center; gap: 40px;
   /* 온도/습도 텍스트도 중간 수준으로 */
   font-size: 85px;
+  font-weight: 400;
   color: rgba(255,255,255,1);
+  animation: ${climatePush} 0.8s ease-out;
+  will-change: transform, opacity;
   text-shadow: 
     0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
     ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
     ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+`;
+
+export const NoticeTyping = styled.div`
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.9);
+  overflow: hidden;
+  white-space: nowrap;
+  animation: ${noticeTyping} 5s steps(32, end) infinite;
+  pointer-events: none;
+  text-shadow:
+    0 0 6px rgba(0,0,0,0.18),
+    0 0 12px rgba(255,255,255,0.28);
 `;
 
 export const ClimateIcon = styled.div`
@@ -585,6 +897,43 @@ export const ThinkingOverlay = styled.div`
   position: absolute; inset: 324px 0 0 0; /* below header */
   display: flex; align-items: center; justify-content: center;
   z-index: 6; pointer-events: none;
+`;
+
+// 값 변경 메시지 (좌측 그라디언트 하단)
+const changeMessageFade = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+`;
+
+export const ChangeMessage = styled.div`
+  position: absolute;
+  bottom: 80px;
+  left: 58%;
+  transform: translateX(-5%);
+  font-size: 44px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 15;
+  animation: ${changeMessageFade} 3s ease-in-out forwards;
+  text-shadow: 
+    0 0 12px rgba(255, 255, 255, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 `;
 export const ThinkingDot = styled.span`
   width: 28px; height: 28px; border-radius: 50%;

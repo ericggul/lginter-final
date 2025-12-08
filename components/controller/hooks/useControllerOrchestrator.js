@@ -79,6 +79,13 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
 
         publishSnapshot();
 
+        const individualPayload = { userId, temp: individualEnv?.temp, humidity: individualEnv?.humidity, lightColor: individualEnv?.lightColor, music: individualEnv?.music };
+        console.log('🎵 Controller emitting decision:', {
+          userId,
+          individual: individualPayload,
+          mergedEnv,
+          decisionId,
+        });
         emit?.('controller-new-decision', {
           uuid: decisionId,
           ts: now,
@@ -88,7 +95,7 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
           flags,
           emotionKeyword,
           mergedFrom,
-          individual: { userId, temp: individualEnv?.temp, humidity: individualEnv?.humidity, lightColor: individualEnv?.lightColor, music: individualEnv?.music },
+          individual: individualPayload,
         });
       } catch (error) {
         const fallbackEnv = controllerStateRef.current.lastDecision?.env || DEFAULT_ENV;

@@ -1,66 +1,15 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
+import { parseMusicString, normalizeTrackName } from '@/utils/data/albumData';
+import { MUSIC_CATALOG } from '@/utils/data/musicCatalog';
 import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
-import { useTV2Logic } from './logic';
-
-// Convert hex to HSL and produce a compact natural-language description
-function hexToRgb(hex) {
-  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
-  if (!m) return null;
-  const v = m[1];
-  return { r: parseInt(v.slice(0,2),16), g: parseInt(v.slice(2,4),16), b: parseInt(v.slice(4,6),16) };
-}
-function rgbToHsl(r,g,b){
-  const R=r/255,G=g/255,B=b/255; const max=Math.max(R,G,B),min=Math.min(R,G,B);
-  let h=0,s=0; const l=(max+min)/2; const d=max-min;
-  if(d!==0){ s=l>0.5? d/(2-max-min): d/(max-min);
-    switch(max){case R:h=(G-B)/d+(G<B?6:0);break;case G:h=(B-R)/d+2;break;default:h=(R-G)/d+4;}
-    h/=6;
-  }
-  return { h: Math.round(h*360), s: Math.round(s*100), l: Math.round(l*100) };
-}
-function describeHexColor(hex){
-  const rgb=hexToRgb(hex); if(!rgb) return '중립 톤';
-  const {h,s,l}=rgbToHsl(rgb.r,rgb.g,rgb.b);
-  const tone = l>80? '파스텔 ' : (s<25? '부드러운 ' : '');
-  let name='중립 톤';
-  if(h<15||h>=345) name='레드';
-  else if(h<35) name='코랄';
-  else if(h<50) name='오렌지';
-  else if(h<70) name='옐로';
-  else if(h<95) name='라임';
-  else if(h<150) name='민트';
-  else if(h<185) name='청록';
-  else if(h<215) name='블루';
-  else if(h<245) name='인디고';
-  else if(h<285) name='보라';
-  else if(h<330) name='마젠타';
-  else name='핑크';
-  return `${tone}${name}`.trim();
-}
-// Build a best-effort static fallback cover path from the title
-function fallbackCoverForTitle(title){
-  const base = String(title || '').trim();
-  if (!base) return '';
-
-  // 특정 플레이스홀더/무드 텍스트는 개별 파일을 만들지 않고
-  // 항상 존재하는 공통 커버 하나만 사용
-  if (base === '시원한 EDM') {
-    return '/sw2_albumcover/331music.png';
-  }
-
-  const simple = base
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-
-  return `/sw2_albumcover/${simple}.png`;
-}
+import { useTV2Logic, useTV2DisplayLogic } from './logic';
 
 export default function TV2Controls() {
-  const { env, title, artist, coverSrc } = useTV2Logic();
+  const { env, title, artist, coverSrc, audioSrc, reason } = useTV2Logic();
   const scalerRef = useRef(null);
+  const audioRef = useRef(null);
 
   const cssVars = useBlobVars(env);
 
@@ -74,6 +23,7 @@ export default function TV2Controls() {
     headerGradientMid,
     headerGradientEnd,
     headerGradientMidPos,
+    headerGradientEndPos,
     headerGradientOpacity,
     // 3. 좌측 패널 백그라운드 그라데이션
     leftPanelColor1,
@@ -119,6 +69,7 @@ export default function TV2Controls() {
     textShadowBlur,
     textShadowOffsetX,
     textShadowOffsetY,
+    textBlendMode,
     iconGlowColor,
     iconShadowColor,
     iconShadowOpacity,
@@ -133,7 +84,8 @@ export default function TV2Controls() {
     headerGradientStart: { value: '#4880e2', label: '헤더 시작 색상' },
     headerGradientMid: { value: '#ffe9f4', label: '헤더 중간 색상' },
     headerGradientEnd: { value: '#fcfcfc', label: '헤더 끝 색상' },
-    headerGradientMidPos: { value: 73, min: 0, max: 100, step: 1, label: '헤더 중간 위치(%)' },
+    headerGradientMidPos: { value: 10, min: 0, max: 100, step: 1, label: '헤더 중간 위치(%)' },
+    headerGradientEndPos: { value: 90, min: 0, max: 100, step: 1, label: '헤더 우측 위치(%)' },
     headerGradientOpacity: { value: 1, min: 0, max: 1, step: 0.01, label: '헤더 투명도' },
     // 3. 좌측 패널 백그라운드 그라데이션
     leftPanelColor1: { value: '#ff719c', label: '좌측 색상1' },
@@ -179,6 +131,7 @@ export default function TV2Controls() {
     textShadowBlur: { value: 8, min: 0, max: 20, step: 1, label: '텍스트 그림자 블러' },
     textShadowOffsetX: { value: 1, min: -10, max: 10, step: 1, label: '텍스트 그림자 X 오프셋' },
     textShadowOffsetY: { value: 0, min: -10, max: 10, step: 1, label: '텍스트 그림자 Y 오프셋' },
+    textBlendMode: { value: 'overlay', options: ['overlay', 'difference', 'screen', 'multiply'], label: '텍스트 블렌드 모드' },
     iconGlowColor: { value: '#e9ffe6', label: '아이콘 글로우 색상' },
     iconShadowColor: { value: '#1c1b76', label: '아이콘 그림자 색상' },
     iconShadowOpacity: { value: 0.19, min: 0, max: 1, step: 0.01, label: '아이콘 그림자 투명도' },
@@ -186,74 +139,116 @@ export default function TV2Controls() {
     iconShadowOffsetX: { value: 1, min: -10, max: 10, step: 1, label: '아이콘 그림자 X 오프셋' },
     iconShadowOffsetY: { value: 0, min: -10, max: 10, step: 1, label: '아이콘 그림자 Y 오프셋' },
   });
+  
+  // 모든 로직은 logic.js의 useTV2DisplayLogic에서 처리
+  const displayLogic = useTV2DisplayLogic({
+    env,
+    title,
+    artist,
+    coverSrc,
+    audioSrc,
+    reason,
+    levaControls: {
+      edgeBlurAmount,
+      edgeBlurWidth,
+      headerGradientStart,
+      headerGradientMid,
+      headerGradientEnd,
+      headerGradientMidPos,
+      headerGradientOpacity,
+      leftPanelColor1,
+      leftPanelColor2,
+      leftPanelColor3,
+      leftPanelColor4,
+      leftPanelColor5,
+      leftPanelGradientPos1,
+      leftPanelGradientPos2,
+      leftPanelGradientPos3,
+      leftPanelGradientPos4,
+      leftPanelBlur,
+      rightCircleRight,
+      rightCircleTop,
+      rightCircleScale,
+      rightCircleWidth,
+      rightCircleHeight,
+      rightCircleColor1,
+      rightCircleColor1Opacity,
+      rightCircleColor2,
+      rightCircleColor2Opacity,
+      rightCircleColor3,
+      rightCircleColor3Opacity,
+      rightCircleColor4,
+      rightCircleColor4Opacity,
+      rightCircleGradientPos1,
+      rightCircleGradientPos2,
+      rightCircleGradientPos3,
+      rightCircleOpacity,
+      rightPanelBgColor1,
+      rightPanelBgColor1Opacity,
+      rightPanelBgColor2,
+      rightPanelBgColor2Opacity,
+      rightPanelBgColor2Pos,
+      rightPanelBgColor3,
+      rightPanelBgColor3Opacity,
+      textGlowColor,
+      textShadowColor,
+      textShadowOpacity,
+      textShadowBlur,
+      textShadowOffsetX,
+      textShadowOffsetY,
+      iconGlowColor,
+      iconShadowColor,
+      iconShadowOpacity,
+      iconShadowBlur,
+      iconShadowOffsetX,
+      iconShadowOffsetY,
+    },
+    audioRef,
+  });
+  
+  // 모든 로직은 displayLogic에서 처리됨
+  const {
+    isIdle,
+    headerText: displayHeaderText,
+    displayTitle,
+    displayArtist,
+    displayTemp,
+    displayHumidity,
+    displayHeaderText: displayHeaderTextValue,
+    showTitleLoading,
+    showArtistLoading,
+    showAlbumCover,
+    showTempLoading,
+    showHumidityLoading,
+    showHeaderLoading,
+    showChangeMessage,
+    albumVisualKey,
+    albumTone,
+    blurAnim,
+    waveformData,
+    scale,
+    albumCardBackground,
+    albumPalette,
+    musicTag,
+    headerGradientStartRgba,
+    headerGradientMidRgba,
+    headerGradientEndRgba,
+    rightCircleColor1Rgba,
+    rightCircleColor2Rgba,
+    rightCircleColor3Rgba,
+    rightCircleColor4Rgba,
+    rightPanelBgColor1Rgba,
+    rightPanelBgColor2Rgba,
+    rightPanelBgColor3Rgba,
+    textShadowColorRgba,
+    iconShadowColorRgba,
+    textGlowColorRgba,
+    iconGlowColorRgba,
+  } = displayLogic;
 
-  // 3s toggle for header label (hex ↔ natural-language name)
-  const [showAltLabel, setShowAltLabel] = useState(false);
-  useEffect(() => {
-    const id = setInterval(() => setShowAltLabel((v) => !v), 3000);
-    return () => clearInterval(id);
-  }, []);
-  const hexColor = (env?.lightColor || '').toUpperCase();
-  const friendlyName = useMemo(() => describeHexColor(hexColor), [hexColor]);
-  const headerText = showAltLabel ? (friendlyName || env.lightLabel || 'Blue Light') : (hexColor || env.lightLabel || 'Blue Light');
-
-  // Consider idle until we have any track meta
-  const isIdle = !title && !artist && !coverSrc && (!env || env.music === 'ambient');
-  const fallbackCover = useMemo(() => fallbackCoverForTitle(title), [title]);
-
-  // Zoom-invariant cover scale for a fixed 3840x2160 canvas (match TV1 behavior)
-  const computeCoverScale = () => {
-    if (typeof window === 'undefined') return 1;
-    const baseWidth = 3840;
-    const baseHeight = 2160;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    return Math.max(vw / baseWidth, vh / baseHeight);
-  };
-  const [scale, setScale] = useState(() => computeCoverScale());
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const update = () => setScale(computeCoverScale());
-    update();
-    window.addEventListener('resize', update);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', update);
-      window.visualViewport.addEventListener('scroll', update);
-    }
-    return () => {
-      window.removeEventListener('resize', update);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', update);
-        window.visualViewport.removeEventListener('scroll', update);
-      }
-    };
-  }, []);
-
-  // Debug logging for layout analysis
-  useEffect(() => {
-    const check = () => {
-      if (!scalerRef.current) return;
-      const r = scalerRef.current.getBoundingClientRect();
-      console.log("TV2 Layout Debug:", {
-        vw: window.innerWidth,
-        vh: window.innerHeight,
-        scale,
-        rect: { x: r.x, y: r.y, w: r.width, h: r.height },
-        transform: scalerRef.current.style.transform
-      });
-    };
-    const timer = setInterval(check, 2000);
-    window.addEventListener('resize', check);
-    // Initial check
-    setTimeout(check, 500);
-    
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener('resize', check);
-    };
-  }, [scale]);
-
-  // Block browser zoom gestures/shortcuts to keep the view locked
+  const titleColor = albumPalette?.left4 || albumPalette?.left3 || 'rgba(255,255,255,1)';
+  
+  // 브라우저 줌 방지 및 스크롤 비활성화 (UI 관련만 유지)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onWheel = (e) => {
@@ -309,46 +304,17 @@ export default function TV2Controls() {
     };
   }, []);
 
-  // 헤더 그라데이션 색상을 rgba로 변환
-  const hexToRgba = (hex, opacity = 1) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (!result) return hex;
-    const r = parseInt(result[1], 16);
-    const g = parseInt(result[2], 16);
-    const b = parseInt(result[3], 16);
-    return `rgba(${r},${g},${b},${opacity})`;
-  };
-
-  const headerGradientStartRgba = hexToRgba(headerGradientStart, headerGradientOpacity);
-  const headerGradientMidRgba = hexToRgba(headerGradientMid, headerGradientOpacity);
-  const headerGradientEndRgba = hexToRgba(headerGradientEnd, headerGradientOpacity);
-
-  // 우측 원 색상을 rgba로 변환 (각 색상의 투명도 적용)
-  const rightCircleColor1Rgba = hexToRgba(rightCircleColor1, rightCircleColor1Opacity);
-  const rightCircleColor2Rgba = hexToRgba(rightCircleColor2, rightCircleColor2Opacity);
-  const rightCircleColor3Rgba = hexToRgba(rightCircleColor3, rightCircleColor3Opacity);
-  const rightCircleColor4Rgba = hexToRgba(rightCircleColor4, rightCircleColor4Opacity);
-
-  // 우측 패널 배경색을 rgba로 변환
-  const rightPanelBgColor1Rgba = hexToRgba(rightPanelBgColor1, rightPanelBgColor1Opacity);
-  const rightPanelBgColor2Rgba = hexToRgba(rightPanelBgColor2, rightPanelBgColor2Opacity);
-  const rightPanelBgColor3Rgba = hexToRgba(rightPanelBgColor3, rightPanelBgColor3Opacity);
-
-  // 텍스트/아이콘 그림자 색상을 rgba로 변환
-  const textShadowColorRgba = hexToRgba(textShadowColor, textShadowOpacity);
-  const iconShadowColorRgba = hexToRgba(iconShadowColor, iconShadowOpacity);
-  const textGlowColorRgba = hexToRgba(textGlowColor, 0.5);
-  const iconGlowColorRgba = hexToRgba(iconGlowColor, 0.5);
-
   return (
     <S.Viewport>
-      <S.Scaler ref={scalerRef} style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
+      <S.Scaler ref={scalerRef} style={{ '--tv2-scale': scale }}>
         <S.Root>
           <S.Header
+            key={`${headerGradientStartRgba}-${headerGradientMidRgba}-${headerGradientEndRgba}-${headerGradientEndPos}`}
             $gradientStart={headerGradientStartRgba}
             $gradientMid={headerGradientMidRgba}
             $gradientEnd={headerGradientEndRgba}
             $gradientMidPos={headerGradientMidPos}
+            $gradientEndPos={headerGradientEndPos}
             $edgeBlurAmount={edgeBlurAmount}
             $edgeBlurWidth={edgeBlurWidth}
           >
@@ -361,36 +327,43 @@ export default function TV2Controls() {
             >
               <img src="/figma/tv2-weather.png" alt="" loading="eager" />
             </S.HeaderIcon>
-            <S.HeaderTitle
-              $glowColor={textGlowColorRgba}
-              $shadowColor={textShadowColorRgba}
-              $shadowBlur={textShadowBlur}
-              $shadowOffsetX={textShadowOffsetX}
-              $shadowOffsetY={textShadowOffsetY}
-            >{headerText}</S.HeaderTitle>
+              <S.HeaderTitle
+                $glowColor={textGlowColorRgba}
+                $shadowColor={textShadowColorRgba}
+                $shadowBlur={textShadowBlur}
+                $shadowOffsetX={textShadowOffsetX}
+                $shadowOffsetY={textShadowOffsetY}
+              >
+                <S.FadeSlideText $slideLR key={displayHeaderTextValue || displayHeaderText || 'header-loading'}>
+                  {showHeaderLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHeaderTextValue || displayHeaderText || '')}
+                </S.FadeSlideText>
+              </S.HeaderTitle>
           </S.Header>
           <S.Content>
             <S.LeftPanel
-              $color1={leftPanelColor1}
-              $color2={leftPanelColor2}
-              $color3={leftPanelColor3}
-              $color4={leftPanelColor4}
-              $color5={leftPanelColor5}
-              $pos1={leftPanelGradientPos1}
-              $pos2={leftPanelGradientPos2}
-              $pos3={leftPanelGradientPos3}
-              $pos4={leftPanelGradientPos4}
-              $blur={leftPanelBlur}
+              $color1={albumPalette?.left1 || leftPanelColor1}
+              $color2={albumPalette?.left2 || leftPanelColor2}
+              $color3={albumPalette?.left3 || leftPanelColor3}
+              $color4={albumPalette?.left4 || leftPanelColor4}
+              $color5={albumPalette?.left5 || leftPanelColor5}
+              $pos1={albumPalette?.pos1 ?? leftPanelGradientPos1}
+              $pos2={albumPalette?.pos2 ?? leftPanelGradientPos2}
+              $pos3={albumPalette?.pos3 ?? leftPanelGradientPos3}
+              $pos4={albumPalette?.pos4 ?? leftPanelGradientPos4}
+              $blur={blurAnim}
               $edgeBlurAmount={edgeBlurAmount}
               $edgeBlurWidth={edgeBlurWidth}
             >
               <S.LeftPanelRightEdge
                 $blurAmount={edgeBlurAmount}
                 $blurWidth={edgeBlurWidth}
-                $color1={leftPanelColor1}
-                $color2={leftPanelColor2}
-                $color4={leftPanelColor4}
+                $color1={albumPalette?.left1 || leftPanelColor1}
+                $color2={albumPalette?.left2 || leftPanelColor2}
+                $color4={albumPalette?.left4 || leftPanelColor4}
               />
+              <S.EmotionFlow>
+                <span>{musicTag || env.music || ''}</span>
+              </S.EmotionFlow>
               <S.AngularSweep />
               <S.AngularSharp />
               <S.MusicRow
@@ -409,27 +382,45 @@ export default function TV2Controls() {
                 >
                   <img src="/figma/tv2-song.png" alt="" />
                 </S.MusicIcon>
-                <div>{env.music}</div>
+              <S.FadeSlideText $slideLR key={env.music || 'music-loading'}>
+                {(() => {
+                  if (!env.music) {
+                    return <S.LoadingDots><span /><span /><span /></S.LoadingDots>;
+                  }
+                  // musicCatalog에서 tags 찾기
+                  const parsed = parseMusicString(env.music);
+                  const normalizedParsedTitle = normalizeTrackName(parsed.title);
+                  const catalogEntry = MUSIC_CATALOG.find((m) => {
+                    const normalizedCatalogTitle = normalizeTrackName(m.title);
+                    const normalizedCatalogId = normalizeTrackName(m.id);
+                    return normalizedCatalogTitle === normalizedParsedTitle || 
+                           normalizedCatalogId === normalizedParsedTitle;
+                  });
+                  const tag = catalogEntry?.tags?.[0] || env.music;
+                  return tag.charAt(0).toUpperCase() + tag.slice(1);
+                })()}
+              </S.FadeSlideText>
               </S.MusicRow>
               <S.AlbumCard>
-                {(coverSrc || fallbackCover) ? (
+              <S.AlbumBg $bg={albumCardBackground || 'rgba(255,255,255,0.96)'} />
+            <S.AlbumVisual key={albumVisualKey}>
+                {showAlbumCover && coverSrc ? (
                   <S.AlbumImage
-                    src={coverSrc || fallbackCover}
-                    alt={title || 'album'}
+                    src={coverSrc}
+                    alt={displayTitle || 'album'}
                     onError={(e) => {
                       try {
-                        // One-time fallback to normalized public asset, then hide if still failing
-                        if (fallbackCover && !e.currentTarget.src.endsWith(fallbackCover)) {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = fallbackCover;
-                        } else {
                           e.currentTarget.style.visibility = 'hidden';
-                        }
                       } catch {}
                     }}
                     loading="eager"
                   />
-                ) : null}
+                ) : (
+                  <S.AlbumPlaceholder>
+                    {coverSrc && <S.AlbumGlow />}
+                  </S.AlbumPlaceholder>
+                )}
+              </S.AlbumVisual>
               </S.AlbumCard>
               <S.TrackTitle
                 $glowColor={textGlowColorRgba}
@@ -437,14 +428,48 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-              >{title || env.music || ''}</S.TrackTitle>
+                $blend={textBlendMode}
+                $color={titleColor}
+            >
+              <S.FadeSlideText key={displayTitle || env.music || 'title-loading'}>
+                {showTitleLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTitle || env.music || '')}
+              </S.FadeSlideText>
+            </S.TrackTitle>
               <S.Artist
                 $glowColor={textGlowColorRgba}
                 $shadowColor={textShadowColorRgba}
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-              >{artist || ''}</S.Artist>
+            >
+              <S.FadeSlideText key={displayArtist || 'artist-loading'}>
+                {showArtistLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : displayArtist}
+              </S.FadeSlideText>
+            </S.Artist>
+            {/* 음악 파형 인디케이터 */}
+            <S.WaveformIndicator>
+              {waveformData.map((height, i) => (
+                <S.WaveformBar
+                  key={i}
+                  $height={height}
+                />
+              ))}
+            </S.WaveformIndicator>
+            {/* 숨김 오디오 요소 */}
+            {audioSrc ? (
+              <audio
+                ref={audioRef}
+                src={audioSrc}
+                autoPlay
+                loop
+                playsInline
+                preload="auto"
+                style={{ display: 'none' }}
+              />
+            ) : null}
+            {showChangeMessage && (
+              <S.ChangeMessage>값이 변경되는 것에 3초 소요</S.ChangeMessage>
+            )}
             </S.LeftPanel>
             <S.RightPanel
               style={cssVars}
@@ -462,7 +487,8 @@ export default function TV2Controls() {
                 $top={rightCircleTop}
               />
               <S.ClimateGroup>
-                <S.ClimateRow
+              <S.ClimateRow
+                key={`temp-${displayTemp || env.temp || ''}`}
                   $glowColor={textGlowColorRgba}
                   $shadowColor={textShadowColorRgba}
                   $shadowBlur={textShadowBlur}
@@ -478,9 +504,12 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-temperature.png" alt="" />
                   </S.ClimateIcon>
-                  <div>{env.temp}°C</div>
+                  <S.FadeSlideText $roulette key={displayTemp || env.temp || 'temp-loading'}>
+                    {showTempLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : ''))}
+                  </S.FadeSlideText>
                 </S.ClimateRow>
-                <S.ClimateRow
+              <S.ClimateRow
+                key={`hum-${displayHumidity || env.humidity || ''}`}
                   $glowColor={textGlowColorRgba}
                   $shadowColor={textShadowColorRgba}
                   $shadowBlur={textShadowBlur}
@@ -496,8 +525,11 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-humidity.png" alt="" />
                   </S.ClimateIcon>
-                  <div>{env.humidity}%</div>
+                  <S.FadeSlideText $roulette key={displayHumidity || env.humidity || 'humidity-loading'}>
+                    {showHumidityLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : ''))}
+                  </S.FadeSlideText>
                 </S.ClimateRow>
+              <S.NoticeTyping>3초 뒤 기기 작동을 시작합니다</S.NoticeTyping>
               </S.ClimateGroup>
               <S.RightSw1Ellipse
                 $right={rightCircleRight}

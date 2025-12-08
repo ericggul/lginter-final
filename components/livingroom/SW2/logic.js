@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import useSocketSW2 from "@/utils/hooks/useSocketSW2";
 import { playSfx } from "@/utils/hooks/useSound";
+import { parseMusicString, getAlbumCoverPath, getAlbumSongPath, getAlbumData } from "@/utils/data/albumData";
 
 // 뷰에서 사용할 블롭 배치/초기 키워드 설정
 export const BLOB_CONFIGS = [
@@ -193,22 +194,34 @@ export function useSW2Logic() {
     } catch {}
   }, [keywords]);
 
-  const parseSong = useCallback((song) => {
-    if (!song) return { t: '', a: '' };
-    const parts = String(song).split(' - ');
-    if (parts.length >= 2) return { t: parts[0].trim(), a: parts.slice(1).join(' - ').trim() };
-    return { t: String(song).trim(), a: '' };
-  }, []);
-
   useEffect(() => {
     const songStr = ambienceData?.song;
-    const { t, a } = parseSong(songStr);
+    if (!songStr) {
+      setTitle('');
+      setArtist('');
+      setCoverSrc('');
+      setAudioSrc('');
+      return;
+    }
+    
+    // Parse using albumData utility
+    const parsed = parseMusicString(songStr);
+    let t = parsed.title;
+    let a = parsed.artist;
+    
+    // Try to get album data for display title/artist
+    const albumData = getAlbumData(songStr);
+    if (albumData) {
+      t = albumData.displayTitle || t;
+      a = albumData.displayArtist || a;
+    }
+    
     // 초기엔 즉시 적용
     if (!title && t) {
       setTitle(t);
       setArtist(a);
-      setCoverSrc(`/api/album?name=${encodeURIComponent(t)}`);
-      setAudioSrc(`/api/music?name=${encodeURIComponent(t)}`);
+      setCoverSrc(getAlbumCoverPath(songStr));
+      setAudioSrc(getAlbumSongPath(songStr));
       return;
     }
     // 곡이 바뀌었고, 기존 곡이 재생 중이면 즉시 전환
@@ -216,19 +229,12 @@ export function useSW2Logic() {
       if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
       setTitle(t);
       setArtist(a);
-      setCoverSrc(`/api/album?name=${encodeURIComponent(t)}`);
-      setAudioSrc(`/api/music?name=${encodeURIComponent(t)}`);
+      setCoverSrc(getAlbumCoverPath(songStr));
+      setAudioSrc(getAlbumSongPath(songStr));
       switchTimerRef.current = null;
       return;
     }
-    // 곡이 비워지면 모두 비움
-    if (!t) {
-      setTitle('');
-      setArtist('');
-      setCoverSrc('');
-      setAudioSrc('');
-    }
-  }, [ambienceData?.song, parseSong, title]);
+  }, [ambienceData?.song, title]);
 
   useEffect(
     () => () => {

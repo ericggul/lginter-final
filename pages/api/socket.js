@@ -322,6 +322,14 @@ export default function handler(req, res) {
             }
           : null;
 
+      console.log('📡 Server received controller-new-decision:', {
+        userId: payload.userId,
+        hasIndividual: !!raw?.individual,
+        individual: raw?.individual,
+        personal: personal,
+        aggregatedEnv: aggregatedEnv,
+      });
+
       // Record decision using aggregated env so deviceState snapshots stay consistent
       const d = recordDecision(payload.userId, aggregatedEnv, payload.reason);
       const decisionId = d.id;
@@ -331,6 +339,12 @@ export default function handler(req, res) {
       const tv2Env = personal
         ? { temp: personal.temp, humidity: personal.humidity, lightColor: personal.lightColor, music: personal.music }
         : null;
+      
+      if (tv2Env) {
+        console.log('📤 Sending to TV2:', { tv2Env, decisionId, userId: payload.userId });
+      } else {
+        console.warn('⚠️ TV2 env is null - personal decision missing');
+      }
       // SW1: keep aggregated climate
       const sw1Env = { temp: aggregatedEnv.temp, humidity: aggregatedEnv.humidity };
       // SW2: 개인 디시전만 사용 (폴백 제거). 개인 결과가 없으면 SW2 업데이트/전송을 수행하지 않는다.

@@ -1,5 +1,7 @@
 // Album cover provider (keep user's numeric mapping 1.png ~ 16.png)
 // Query: /api/album?name=<songName-like>
+import { getAlbumNumberByTrackName, getAlbumByNumber } from '@/utils/data/albumData';
+
 export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
@@ -23,36 +25,20 @@ export default async function handler(req, res) {
     const simplify = (s) => String(s).toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
     const want = simplify(name);
 
-    // Numeric mapping based on user's canonical list
-    const NAME_TO_NUM = {
-      lifeis: '1',
-      glow: '2',
-      cleansoulcalming: '3',
-      borealis: '4',
-      happystroll: '5',
-      ukuleledance: '6',
-      happyalley: '7',
-      sunnysideup: '8',
-      newbeginnings: '9',
-      solstice: '10',
-      solace: '11',
-      thetravellingsymphony: '12',
-      amberlight: '13',
-      echoes: '14',
-      shouldersofgiants: '15',
-      akindofhope: '16'
-    };
-
     let chosen = null;
 
-    // 0) Try numeric mapping first
-    const mapped = NAME_TO_NUM[want];
-    if (mapped) {
-      const asData = path.join(albumDir, `${mapped}.png`);
-      try { await fsp.access(asData); chosen = asData; } catch {}
-      if (!chosen) {
-        const asPublic = path.join(publicDir, `${mapped}.png`);
-        try { await fsp.access(asPublic); chosen = asPublic; } catch {}
+    // 0) Try numeric mapping first using albumData
+    const albumNum = getAlbumNumberByTrackName(name);
+    if (albumNum) {
+      const albumData = getAlbumByNumber(albumNum);
+      if (albumData) {
+        const mapped = String(albumNum);
+        const asData = path.join(albumDir, `${mapped}.png`);
+        try { await fsp.access(asData); chosen = asData; } catch {}
+        if (!chosen) {
+          const asPublic = path.join(publicDir, `${mapped}.png`);
+          try { await fsp.access(asPublic); chosen = asPublic; } catch {}
+        }
       }
     }
 

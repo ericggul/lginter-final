@@ -147,11 +147,11 @@ MUSIC (exact titles):
   the travelling symphony, happy stroll, Ukulele Dance, Happy Alley, sunny side up,
   Amberlight, Echoes, Shoulders Of Giants, A Kind Of Hope
 
-CONSTRAINTS (Stability first)
-- Keep decisions deterministic for the same emotion.
-- Do NOT rotate tracks across calls for the same emotion. Reuse the same track.
+CONSTRAINTS (Variety for personalization)
+- For personal decisions, select different music tracks to provide variety across calls.
+- Choose music that fits the emotion but vary the selection for freshness.
 - Use soft, pleasant RGB lighting (no neon primaries). Keep hex consistent.
-- Never copy “emotion color” into lighting; select independently.
+- Never copy "emotion color" into lighting; select independently.
 
 CLIMATE OVERRIDES (apply when explicit words appear in currentUser.lastVoice.text)
 - "춥/추워", "cold/freezing/chilly" → temperature_celsius = 28
@@ -161,6 +161,7 @@ CLIMATE OVERRIDES (apply when explicit words appear in currentUser.lastVoice.tex
 
 VARIETY (neutral inputs)
 - Avoid identical outputs across different users. Nudge values by a small, deterministic offset (±1–3°C, ±5–15%) using currentUser.id as a seed; keep within safe ranges.
+- For lighting colors: Select different soft RGB colors for each user to provide visual variety. Use currentUser.id to vary the color selection while keeping it pleasant and soft.
 `.trim();
 
 // SW2: Emotion→Color(gradient)→Environment→Music→Lighting strict pipeline prompt (JSON output)
