@@ -19,6 +19,9 @@ export const SW1_BLOB_CONFIGS = [
 ];
 
 const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
+// Timeline durations (ms) for staged animations
+const T3_TO_T4_MS = 5000; // allow t3 bloom/entry motion to finish
+const T4_TO_T5_MS = 3800; // allow t4 merge/background pulses to finish
 const DUMMY_ID_REGEX = /^dummy:/;
 
 // Humidity → mode label
@@ -318,9 +321,9 @@ export function useSW1Logic() {
         humidity: nextClimate.humidity,
         addedAt: Date.now(),
       });
-      stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), 4000);
+      stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), T3_TO_T4_MS);
     } else if (timelineState === 't4') {
-      stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), 2000);
+      stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), T4_TO_T5_MS);
     } else if (timelineState === 't5') {
       setEntryBlob(null);
       setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));

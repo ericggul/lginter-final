@@ -294,6 +294,8 @@ export default function SW1Controls() {
           $strength={edgeBlur.strength}
           $opacity={edgeBlur.opacity}
         />
+        {/* T4: 배경 채도/광량 펄스 */}
+        {timelineState === 't4' && <S.BackgroundPulse />}
         {/* 신입 블롭을 BlobRotator 밖에 렌더링 (회전 영향 없음, 고정된 하단→중앙 경로) */}
         {entryBlob && (timelineState === 't3' || timelineState === 't4') && (
           <S.NewEntryBlob
@@ -361,9 +363,9 @@ export default function SW1Controls() {
             );
           })}
           {/* 데이터와 무관하게 항상 함께 도는 작은 장식용 원 3개 */}
-          <S.Sw1SmallOrbitDot1 />
-          <S.Sw1SmallOrbitDot2 />
-          <S.Sw1SmallOrbitDot3 />
+          <S.Sw1SmallOrbitDot1 data-stage={timelineState} />
+          <S.Sw1SmallOrbitDot2 data-stage={timelineState} />
+          <S.Sw1SmallOrbitDot3 data-stage={timelineState} />
         </S.BlobRotator>
         {/* 항상 흐릿하게 돌아다니는 자유 블롭 4개 (데이터 무관, 아주 부드럽고 은은) */}
         <S.FreeBlur1 />
