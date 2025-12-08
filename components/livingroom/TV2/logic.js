@@ -18,6 +18,21 @@ const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const hsla = (h, s, l, a = 1) => `hsla(${Math.round(h)}, ${clamp(Math.round(s), 0, 100)}%, ${clamp(Math.round(l), 0, 100)}%, ${a})`;
 const toHsla = (h, s, l, a = 1) => hsla(h, s, l, a);
 
+const mixHex = (hexA, hexB, ratio = 0.5) => {
+  const toRgb = (hex) => {
+    const m = hex?.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (!m) return null;
+    return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+  };
+  const a = toRgb(hexA);
+  const b = toRgb(hexB);
+  if (!a || !b) return hexA || hexB;
+  const mix = (ai, bi) => Math.round(ai * ratio + bi * (1 - ratio));
+  const [r, g, bVal] = [mix(a[0], b[0]), mix(a[1], b[1]), mix(a[2], b[2])];
+  const toHex = (v) => v.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(bVal)}`;
+};
+
 function hexToRgb(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
   if (!m) return null;
@@ -641,18 +656,24 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     };
   }, [trackGradient, albumTone]);
   
-  // Color conversions
-  const headerStartColor = hexColor && hexColor.match(/^#[0-9A-F]{6}$/i) ? hexColor : levaControls?.headerGradientStart || '#4880e2';
+  // Color conversions (헤더: 좌측 앨범, 가운데 조명, 우측 화이트)
+  const headerStartBase = hexColor && hexColor.match(/^#[0-9A-F]{6}$/i) ? hexColor : levaControls?.headerGradientStart || '#4880e2';
+  const headerStartColor = albumPalette?.left1 || headerStartBase;
+  const headerMidColor = headerStartBase;
+  const headerEndColor = '#ffffff';
   const headerGradientStartRgba = hexToRgba(headerStartColor, levaControls?.headerGradientOpacity || 1);
-  const headerGradientMidRgba = hexToRgba(levaControls?.headerGradientMid || '#ffe9f4', levaControls?.headerGradientOpacity || 1);
-  const headerGradientEndRgba = hexToRgba(levaControls?.headerGradientEnd || '#fcfcfc', levaControls?.headerGradientOpacity || 1);
+  const headerGradientMidRgba = hexToRgba(headerMidColor, levaControls?.headerGradientOpacity || 1);
+  const headerGradientEndRgba = hexToRgba(headerEndColor, levaControls?.headerGradientOpacity || 1);
   
   const rightCircleColor1Rgba = hexToRgba(levaControls?.rightCircleColor1 || '#f8e9eb', levaControls?.rightCircleColor1Opacity || 1);
-  const rightCircleColor2Rgba = hexToRgba(levaControls?.rightCircleColor2 || '#e8adbe', levaControls?.rightCircleColor2Opacity || 0.69);
+  const rightCircleColor2Base = levaControls?.rightCircleColor2 || '#e8adbe';
+  const rightCircleColor2Rgba = hexToRgba(albumPalette?.left2 || rightCircleColor2Base, levaControls?.rightCircleColor2Opacity || 0.69);
   const tempC = typeof env?.temp === 'number' ? env.temp : 24;
   const warmHue = computeMiniWarmHue(tempC);
   const tempBasedColor3 = toHslaSW1(warmHue, 65, 75, levaControls?.rightCircleColor3Opacity || 0.37);
-  const rightCircleColor3Rgba = tempBasedColor3;
+  const blobCenterBase = albumPalette?.left3 || tempBasedColor3;
+  // 중앙 컬러를 약간 더 연하게 고정
+  const rightCircleColor3Rgba = hexToRgba(mixHex(blobCenterBase, '#ffffff', 0.35), levaControls?.rightCircleColor3Opacity || 0.37);
   const rightCircleColor4Rgba = hexToRgba(levaControls?.rightCircleColor4 || '#fff3ed', levaControls?.rightCircleColor4Opacity || 0.60);
   
   const rightPanelBgColor1Rgba = hexToRgba(levaControls?.rightPanelBgColor1 || '#ffffff', levaControls?.rightPanelBgColor1Opacity || 0.95);

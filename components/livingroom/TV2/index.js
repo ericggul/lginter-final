@@ -23,6 +23,7 @@ export default function TV2Controls() {
     headerGradientMid,
     headerGradientEnd,
     headerGradientMidPos,
+    headerGradientEndPos,
     headerGradientOpacity,
     // 3. 좌측 패널 백그라운드 그라데이션
     leftPanelColor1,
@@ -68,6 +69,7 @@ export default function TV2Controls() {
     textShadowBlur,
     textShadowOffsetX,
     textShadowOffsetY,
+    textBlendMode,
     iconGlowColor,
     iconShadowColor,
     iconShadowOpacity,
@@ -82,7 +84,8 @@ export default function TV2Controls() {
     headerGradientStart: { value: '#4880e2', label: '헤더 시작 색상' },
     headerGradientMid: { value: '#ffe9f4', label: '헤더 중간 색상' },
     headerGradientEnd: { value: '#fcfcfc', label: '헤더 끝 색상' },
-    headerGradientMidPos: { value: 73, min: 0, max: 100, step: 1, label: '헤더 중간 위치(%)' },
+    headerGradientMidPos: { value: 10, min: 0, max: 100, step: 1, label: '헤더 중간 위치(%)' },
+    headerGradientEndPos: { value: 90, min: 0, max: 100, step: 1, label: '헤더 우측 위치(%)' },
     headerGradientOpacity: { value: 1, min: 0, max: 1, step: 0.01, label: '헤더 투명도' },
     // 3. 좌측 패널 백그라운드 그라데이션
     leftPanelColor1: { value: '#ff719c', label: '좌측 색상1' },
@@ -128,6 +131,7 @@ export default function TV2Controls() {
     textShadowBlur: { value: 8, min: 0, max: 20, step: 1, label: '텍스트 그림자 블러' },
     textShadowOffsetX: { value: 1, min: -10, max: 10, step: 1, label: '텍스트 그림자 X 오프셋' },
     textShadowOffsetY: { value: 0, min: -10, max: 10, step: 1, label: '텍스트 그림자 Y 오프셋' },
+    textBlendMode: { value: 'overlay', options: ['overlay', 'difference', 'screen', 'multiply'], label: '텍스트 블렌드 모드' },
     iconGlowColor: { value: '#e9ffe6', label: '아이콘 글로우 색상' },
     iconShadowColor: { value: '#1c1b76', label: '아이콘 그림자 색상' },
     iconShadowOpacity: { value: 0.19, min: 0, max: 1, step: 0.01, label: '아이콘 그림자 투명도' },
@@ -241,6 +245,8 @@ export default function TV2Controls() {
     textGlowColorRgba,
     iconGlowColorRgba,
   } = displayLogic;
+
+  const titleColor = albumPalette?.left4 || albumPalette?.left3 || 'rgba(255,255,255,1)';
   
   // 브라우저 줌 방지 및 스크롤 비활성화 (UI 관련만 유지)
   useEffect(() => {
@@ -303,10 +309,12 @@ export default function TV2Controls() {
       <S.Scaler ref={scalerRef} style={{ '--tv2-scale': scale }}>
         <S.Root>
           <S.Header
+            key={`${headerGradientStartRgba}-${headerGradientMidRgba}-${headerGradientEndRgba}-${headerGradientEndPos}`}
             $gradientStart={headerGradientStartRgba}
             $gradientMid={headerGradientMidRgba}
             $gradientEnd={headerGradientEndRgba}
             $gradientMidPos={headerGradientMidPos}
+            $gradientEndPos={headerGradientEndPos}
             $edgeBlurAmount={edgeBlurAmount}
             $edgeBlurWidth={edgeBlurWidth}
           >
@@ -319,17 +327,17 @@ export default function TV2Controls() {
             >
               <img src="/figma/tv2-weather.png" alt="" loading="eager" />
             </S.HeaderIcon>
-            <S.HeaderTitle
-              $glowColor={textGlowColorRgba}
-              $shadowColor={textShadowColorRgba}
-              $shadowBlur={textShadowBlur}
-              $shadowOffsetX={textShadowOffsetX}
-              $shadowOffsetY={textShadowOffsetY}
-            >
-              <S.FadeSlideText key={displayHeaderTextValue || displayHeaderText || 'header-loading'}>
-                {showHeaderLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHeaderTextValue || displayHeaderText || '')}
-              </S.FadeSlideText>
-            </S.HeaderTitle>
+              <S.HeaderTitle
+                $glowColor={textGlowColorRgba}
+                $shadowColor={textShadowColorRgba}
+                $shadowBlur={textShadowBlur}
+                $shadowOffsetX={textShadowOffsetX}
+                $shadowOffsetY={textShadowOffsetY}
+              >
+                <S.FadeSlideText $slideLR key={displayHeaderTextValue || displayHeaderText || 'header-loading'}>
+                  {showHeaderLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHeaderTextValue || displayHeaderText || '')}
+                </S.FadeSlideText>
+              </S.HeaderTitle>
           </S.Header>
           <S.Content>
             <S.LeftPanel
@@ -353,6 +361,9 @@ export default function TV2Controls() {
                 $color2={albumPalette?.left2 || leftPanelColor2}
                 $color4={albumPalette?.left4 || leftPanelColor4}
               />
+              <S.EmotionFlow>
+                <span>{musicTag || env.music || ''}</span>
+              </S.EmotionFlow>
               <S.AngularSweep />
               <S.AngularSharp />
               <S.MusicRow
@@ -371,7 +382,7 @@ export default function TV2Controls() {
                 >
                   <img src="/figma/tv2-song.png" alt="" />
                 </S.MusicIcon>
-              <S.FadeSlideText key={env.music || 'music-loading'}>
+              <S.FadeSlideText $slideLR key={env.music || 'music-loading'}>
                 {(() => {
                   if (!env.music) {
                     return <S.LoadingDots><span /><span /><span /></S.LoadingDots>;
@@ -417,6 +428,8 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
+                $blend={textBlendMode}
+                $color={titleColor}
             >
               <S.FadeSlideText key={displayTitle || env.music || 'title-loading'}>
                 {showTitleLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTitle || env.music || '')}
@@ -474,7 +487,8 @@ export default function TV2Controls() {
                 $top={rightCircleTop}
               />
               <S.ClimateGroup>
-                <S.ClimateRow
+              <S.ClimateRow
+                key={`temp-${displayTemp || env.temp || ''}`}
                   $glowColor={textGlowColorRgba}
                   $shadowColor={textShadowColorRgba}
                   $shadowBlur={textShadowBlur}
@@ -494,7 +508,8 @@ export default function TV2Controls() {
                     {showTempLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : ''))}
                   </S.FadeSlideText>
                 </S.ClimateRow>
-                <S.ClimateRow
+              <S.ClimateRow
+                key={`hum-${displayHumidity || env.humidity || ''}`}
                   $glowColor={textGlowColorRgba}
                   $shadowColor={textShadowColorRgba}
                   $shadowBlur={textShadowBlur}
@@ -514,6 +529,7 @@ export default function TV2Controls() {
                     {showHumidityLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : ''))}
                   </S.FadeSlideText>
                 </S.ClimateRow>
+              <S.NoticeTyping>3초 뒤 기기 작동을 시작합니다</S.NoticeTyping>
               </S.ClimateGroup>
               <S.RightSw1Ellipse
                 $right={rightCircleRight}

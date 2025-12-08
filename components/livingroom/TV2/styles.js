@@ -27,9 +27,33 @@ export const Root = styled.div`
   font-family: 'Inter', 'Pretendard', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 `;
 
-const headerGradientSlide = keyframes`
-  0%   { background-position: 0% 0; }
-  100% { background-position: 100% 0; }
+/* 조명 컬러가 우측에서 좌측으로 밀고 들어온 뒤 멈춤 */
+const headerPush = keyframes`
+  /* 우측에서 좌측으로 부드럽게 밀려와 정지 */
+  0%   { background-position: -130% 0; opacity: 0.75; filter: blur(1px); }
+  60%  { background-position: -12% 0; opacity: 0.95; filter: blur(0.4px); }
+  100% { background-position: 0% 0; opacity: 1; filter: blur(0px); }
+`;
+
+const emotionFlow = keyframes`
+  0%   { transform: translateX(40%); opacity: 0; }
+  15%  { opacity: 0.75; }
+  50%  { opacity: 0.9; }
+  100% { transform: translateX(-120%); opacity: 0; }
+`;
+
+const climatePush = keyframes`
+  0%   { transform: translateX(60%) rotateX(20deg); opacity: 0; }
+  60%  { transform: translateX(-6%) rotateX(-8deg); opacity: 1; }
+  100% { transform: translateX(0) rotateX(0deg); opacity: 1; }
+`;
+
+const noticeTyping = keyframes`
+  0%   { width: 0; opacity: 0; }
+  8%   { width: 0; opacity: 1; }
+  55%  { width: 100%; opacity: 1; }
+  80%  { width: 100%; opacity: 0.9; }
+  100% { width: 100%; opacity: 0; }
 `;
 
 export const Header = styled.div`
@@ -41,13 +65,18 @@ export const Header = styled.div`
   /* 좌→우로 흐르는 그라데이션 모션 */
   background: linear-gradient(90deg,
     ${props => props.$gradientStart || 'rgba(102,157,255,1)'} 0%,
-    ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos || 45}%,
-    ${props => props.$gradientEnd || 'rgba(196,201,206,1)'} 100%);
-  /* 끊김 느낌 줄이기 위해 모션 제거 */
-  background-size: 100% 100%;
-  animation: none;
+    ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos ?? 10}%,
+    ${props => props.$gradientEnd || '#ffffff'} ${props => props.$gradientEndPos ?? 90}%,
+    ${props => props.$gradientEnd || '#ffffff'} 100%);
+  /* 컬러 영역을 넓혀 자연스럽게 */
+  background-size: 220% 100%;
+  background-position: 120% 0;
+  animation: ${headerPush} 1.9s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
   /* Removed will-change to prevent potential flickering */
-  box-shadow: 0 10px 40px rgba(0,0,0,0.08) inset;
+  box-shadow:
+    0 10px 40px rgba(0,0,0,0.08) inset,
+    0 14px 34px rgba(0,0,0,0.05) inset,
+    0 -12px 24px rgba(255,255,255,0.15) inset;
   z-index: 3;
   /* 하단 경계 블러 효과 */
   &::after {
@@ -65,6 +94,22 @@ export const Header = styled.div`
     pointer-events: none;
     z-index: 4;
   }
+  /* 상단 경계 블러 보조 (얇은 라인) */
+  & .header-edge-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: ${props => (props.$edgeBlurWidth || 20) * 0.5}px;
+    background: linear-gradient(90deg,
+      ${props => props.$gradientStart || 'rgba(102,157,255,1)'} 0%,
+      ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos || 45}%,
+      ${props => props.$gradientEnd || 'rgba(196,201,206,1)'} 100%);
+    filter: blur(${props => (props.$edgeBlurAmount || 15) * 0.8}px);
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 4;
+  }
 `;
 
 export const HeaderIcon = styled.div`
@@ -79,9 +124,8 @@ export const HeaderIcon = styled.div`
     width: 70%;
     height: 70%;
     filter:
-      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
-      drop-shadow(0 0 12px rgba(255,255,255,0.7));
+      drop-shadow(0 0 ${props => (props.$shadowBlur || 6)}px ${props => props.$glowColor || 'rgba(255,255,255,0.7)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 3}px ${props => (props.$shadowBlur || 6)}px ${props => props.$shadowColor || 'rgba(0,0,0,0.55)'});
   }
   img {
     width: 70%;
@@ -89,9 +133,8 @@ export const HeaderIcon = styled.div`
     object-fit: contain;
     display: block;
     filter:
-      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
-      drop-shadow(0 0 12px rgba(255,255,255,0.7));
+      drop-shadow(0 0 ${props => (props.$shadowBlur || 6)}px ${props => props.$glowColor || 'rgba(255,255,255,0.7)'})
+      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 3}px ${props => (props.$shadowBlur || 6)}px ${props => props.$shadowColor || 'rgba(0,0,0,0.55)'});
   }
 `;
 
@@ -100,11 +143,11 @@ export const HeaderTitle = styled.div`
   font-size: 80px;
   font-weight: 400;
   letter-spacing: 0.02em;
-  color: rgba(255,255,255,1);
-  text-shadow: 
-    0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+  text-align: left;
+  color: rgba(255,255,255,0.9);
+  text-shadow:
+    0 0 10px rgba(0,0,0,0.18),
+    0 0 16px rgba(255,255,255,0.32);
 `;
 
 export const Content = styled.div`
@@ -142,10 +185,10 @@ export const LeftPanel = styled.div`
     transform-origin: 50% 50%;
     transform: matrix(1, 0, 0, -1, 0, 0) rotate(0deg);
     animation: conicTurn 28s linear infinite;
-    /* 블러를 10~80 사이로 클램프 */
+    /* 블러를 10~200 사이로 클램프 */
     filter: blur(${props => {
       const v = props.$blur ?? 30;
-      return Math.min(80, Math.max(10, v));
+      return Math.min(200, Math.max(10, v));
     }}px);
     will-change: transform, filter;
     pointer-events: none;
@@ -290,6 +333,7 @@ export const MusicRow = styled.div`
   /* 장르 텍스트도 중간 수준으로 */
   font-size: 85px;
   font-weight: 400;
+  text-transform: uppercase;
   color: rgba(255,255,255,1);
   text-shadow: 
     0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
@@ -472,9 +516,15 @@ const albumBlurIn = keyframes`
 `;
 
 const rouletteIn = keyframes`
-  0%   { opacity: 0; transform: translateY(30px) rotateX(35deg) scale(0.95); }
-  50%  { opacity: 1; transform: translateY(-8px) rotateX(-12deg) scale(1.02); }
-  100% { opacity: 1; transform: translateY(0) rotateX(0deg) scale(1); }
+  0%   { opacity: 0; transform: translateY(24px) scale(0.96); }
+  55%  { opacity: 1; transform: translateY(-6px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+const slideInLR = keyframes`
+  0%   { opacity: 0; transform: translateX(-48px); }
+  60%  { opacity: 1; transform: translateX(6px); }
+  100% { opacity: 1; transform: translateX(0); }
 `;
 
 export const AlbumVisual = styled.div`
@@ -516,7 +566,7 @@ const textGlowPulse = keyframes`
 `;
 
 export const FadeSlideText = styled.div`
-  animation: ${props => props.$roulette ? rouletteIn : fadeSlideUp} 0.6s ease;
+  animation: ${props => props.$slideLR ? slideInLR : (props.$roulette ? rouletteIn : fadeSlideUp)} 0.6s ease;
   will-change: opacity, transform;
   ${props => props.$shouldGlow ? `
     animation: ${fadeSlideUp} 0.6s ease, ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
@@ -546,18 +596,20 @@ export const LoadingDots = styled.div`
 export const TrackTitle = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 앨범 위로 더 띄워 간격 확보 (추가 상향) */
-  top: calc(var(--album-y) - 600px);
+  /* 앨범 위로 띄워 간격 확보 */
+  top: calc(var(--album-y) - 640px);
   transform: translateX(-50%);
   /* 음악 제목 폰트 약간 더 키움 */
   font-size: 80px;
   text-transform: uppercase;
   font-weight: 500;
-  color: rgba(255,255,255,1);
-  text-shadow: 
-    0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+  color: ${props => props.$color || 'rgba(255,255,255,1)'};
+  mix-blend-mode: normal;
+  animation: ${rouletteIn} 0.6s ease;
+  will-change: transform, opacity;
+  text-shadow:
+    0 0 10px rgba(0,0,0,0.18),
+    0 0 16px rgba(255,255,255,0.32);
   z-index: 20;
   pointer-events: none;
 `;
@@ -565,16 +617,19 @@ export const TrackTitle = styled.div`
 export const Artist = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 트랙 타이틀 아래, 간격 유지하며 추가 상향 */
-  top: calc(var(--album-y) - 470px);
+  /* 트랙 타이틀 아래, 앨범 상단 위쪽 */
+  top: calc(var(--album-y) - 510px);
   transform: translateX(-50%);
   /* 아티스트 텍스트 폰트 키움 */
   font-size: 64px;
-  color: rgba(255,255,255,1);
-  text-shadow: 
-    0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+  font-weight: 500;
+  color: ${props => props.$color || 'rgba(255,255,255,1)'};
+  mix-blend-mode: normal;
+  animation: ${rouletteIn} 0.6s ease;
+  will-change: transform, opacity;
+  text-shadow:
+    0 0 10px rgba(0,0,0,0.18),
+    0 0 16px rgba(255,255,255,0.32);
   z-index: 20;
   pointer-events: none;
 `;
@@ -594,6 +649,35 @@ export const WaveformIndicator = styled.div`
   height: 120px;
   z-index: 20;
   pointer-events: none;
+`;
+
+export const EmotionFlow = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 48px;
+  height: 64px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 6;
+  mix-blend-mode: screen;
+  opacity: 0.75;
+  & > span {
+    position: absolute;
+    left: -40%;
+    bottom: 0;
+    font-size: 58px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.9);
+    text-shadow:
+      0 0 10px rgba(255,255,255,0.5),
+      0 0 22px rgba(255,255,255,0.35),
+      0 2px 10px rgba(0,0,0,0.35);
+    animation: ${emotionFlow} 10s linear infinite;
+    white-space: nowrap;
+  }
 `;
 
 export const WaveformBar = styled.div`
@@ -630,6 +714,23 @@ export const RightPanel = styled.div`
     filter: blur(${props => props.$edgeBlurAmount || 15}px);
     pointer-events: none;
     z-index: 2;
+  }
+  /* 좌측 경계와 유사한 부드러운 블러를 오른쪽에도 추가 */
+  &::after {
+    content: '';
+    position: absolute;
+    left: -40px;
+    top: 0;
+    bottom: 0;
+    width: ${props => (props.$edgeBlurWidth || 20) * 2}px;
+    background: linear-gradient(180deg,
+      ${props => props.$bgColor1 || 'rgba(255,235,235,0.95)'} 0%,
+      ${props => props.$bgColor2 || 'rgba(253,210,210,0.78)'} 50%,
+      ${props => props.$bgColor3 || 'rgba(250,250,250,0.90)'} 100%);
+    filter: blur(${props => (props.$edgeBlurAmount || 15) * 1.4}px);
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 1;
   }
 `;
 
@@ -732,11 +833,29 @@ export const ClimateRow = styled.div`
   display: flex; align-items: center; gap: 40px;
   /* 온도/습도 텍스트도 중간 수준으로 */
   font-size: 85px;
+  font-weight: 400;
   color: rgba(255,255,255,1);
+  animation: ${climatePush} 0.8s ease-out;
+  will-change: transform, opacity;
   text-shadow: 
     0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
     ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
     ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+`;
+
+export const NoticeTyping = styled.div`
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.9);
+  overflow: hidden;
+  white-space: nowrap;
+  animation: ${noticeTyping} 5s steps(32, end) infinite;
+  pointer-events: none;
+  text-shadow:
+    0 0 6px rgba(0,0,0,0.18),
+    0 0 12px rgba(255,255,255,0.28);
 `;
 
 export const ClimateIcon = styled.div`
