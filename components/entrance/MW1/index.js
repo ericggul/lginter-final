@@ -30,7 +30,11 @@ export default function MW1Controls() {
   useSocketMW1({
     onEntranceNewUser: () => {
       setIsActive(true);
-      setTimeout(() => setShowTip(true), 2000);
+      // 2초 후 텍스트 등장, 총 8초 후 사라짐
+      setTimeout(() => {
+        setShowTip(true);
+        setTimeout(() => setShowTip(false), 8000);
+      }, 2000);
       try { play('안녕하세요! 반갑습니다!'); } catch {}
       const a = activeRef.current;
       if (a) {
@@ -72,7 +76,11 @@ export default function MW1Controls() {
         preload="auto"
         $show={isActive}
       />
-      <S.CenterTip $show={showTip}>변화된 집 안의 상태를 구경해보세요</S.CenterTip>
+      <S.CenterTip $show={showTip}>
+        <strong>어서오세요!</strong>
+        {'\n'}
+        들어와서 조율된 공간을 경험해보세요
+      </S.CenterTip>
     </S.Container>
   );
 }
