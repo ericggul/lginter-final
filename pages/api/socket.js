@@ -366,7 +366,14 @@ export default function handler(req, res) {
 
       // split fan-out
       if (tv2Env) {
-        emitDeviceDecision({ target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
+        emitDeviceDecision({
+          target: 'tv2',
+          env: tv2Env,
+          reason: payload.reason,
+          emotionKeyword: payload.emotionKeyword,
+          decisionId,
+          mergedFrom: [payload.userId],
+        });
       }
       // SW1: 개인 결과(최대 4명)를 함께 전달(프론트는 선택적으로 사용)
       const individuals = [];
