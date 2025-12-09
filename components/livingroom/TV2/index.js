@@ -99,11 +99,12 @@ export default function TV2Controls() {
     leftPanelGradientPos4: { value: 283, min: 0, max: 360, step: 1, label: '좌측 그라데이션 위치4(deg)' },
     leftPanelBlur: { value: 1, min: 0, max: 100, step: 1, label: '좌측 블러' },
     // 4. 우측 원
-    rightCircleRight: { value: -4.9, min: -20, max: 20, step: 0.1, label: '우측 원 오른쪽 위치(%)' },
-    rightCircleTop: { value: 4, min: 0, max: 50, step: 0.1, label: '우측 원 상단 위치(%)' },
-    rightCircleScale: { value: 0.97, min: 0.1, max: 3, step: 0.01, label: '우측 원 크기 스케일' },
-    rightCircleWidth: { value: 2000, min: 500, max: 4000, step: 50, label: '우측 원 너비' },
-    rightCircleHeight: { value: 2000, min: 500, max: 4000, step: 50, label: '우측 원 높이' },
+    //    우측 원 전체를 더 위로 올리기 위해 top 기본값과 최소값 조정
+    rightCircleRight: { value: 20, min: -20, max: 20, step: 0.1, label: '우측 원 오른쪽 위치(%)' },
+    rightCircleTop: { value: -3, min: -20, max: 50, step: 0.1, label: '우측 원 상단 위치(%)' },
+    rightCircleScale: { value: 1.1, min: 0.1, max: 3, step: 0.01, label: '우측 원 크기 스케일' },
+    rightCircleWidth: { value: 2200, min: 500, max: 4000, step: 50, label: '우측 원 너비' },
+    rightCircleHeight: { value: 2200, min: 500, max: 4000, step: 50, label: '우측 원 높이' },
     rightCircleColor1: { value: '#f8e9eb', label: '우측 원 색상1' },
     rightCircleColor1Opacity: { value: 1, min: 0, max: 1, step: 0.01, label: '우측 원 색상1 투명도' },
     rightCircleColor2: { value: '#e8adbe', label: '우측 원 색상2' },
@@ -112,9 +113,10 @@ export default function TV2Controls() {
     rightCircleColor3Opacity: { value: 0.37, min: 0, max: 1, step: 0.01, label: '우측 원 색상3 투명도' },
     rightCircleColor4: { value: '#fff3ed', label: '우측 원 색상4' },
     rightCircleColor4Opacity: { value: 0.60, min: 0, max: 1, step: 0.01, label: '우측 원 색상4 투명도' },
-    rightCircleGradientPos1: { value: 21.5, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치1(%)' },
-    rightCircleGradientPos2: { value: 58.2, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치2(%)' },
-    rightCircleGradientPos3: { value: 67.5, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치3(%)' },
+    //    현재 튜닝된 그라데이션 위치값을 기본값으로 반영
+    rightCircleGradientPos1: { value: 15.2, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치1(%)' },
+    rightCircleGradientPos2: { value: 56.2, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치2(%)' },
+    rightCircleGradientPos3: { value: 79.9, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치3(%)' },
     rightCircleOpacity: { value: 1, min: 0, max: 1, step: 0.01, label: '우측 원 전체 투명도' },
     // 5. 우측 패널 배경색
     rightPanelBgColor1: { value: '#ffffff', label: '우측 패널 배경색1' },
@@ -534,6 +536,8 @@ export default function TV2Controls() {
                 alt=""
                 $right={rightCircleRight}
                 $top={rightCircleTop}
+                /* 우측 원보다 약간 작게, 동일한 중심에서 회전하도록 설정 */
+                $size={rightCircleWidth * rightCircleScale * 0.9}
               />
               <S.ClimateGroup>
               <S.ClimateRow
