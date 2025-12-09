@@ -67,7 +67,8 @@ export const BlobBase = styled.div`
   padding: 0 0.752604vw; /* further 15% */
   width: ${(p) => p.$text ? `${calculateBlobWidth(p.$text)}vw` : '8vw'};
   min-width: 8vw; /* 최소 width 보장 */
-  transition: opacity 1600ms ease-in-out, width 300ms ease-out;
+  /* width/위치 변화 속도를 전반적으로 더 천천히 */
+  transition: opacity 1600ms ease-in-out, width 800ms ease-out, top ${(p) => (p.$isAnimating ? '1800ms' : '600ms')} cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: ${(p) => (p.$visible ? 'auto' : 'none')};
   position: relative;
   
@@ -96,7 +97,7 @@ export const InterestBox = styled(BlobBase)`
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 300ms ease-out, left 300ms ease-out, top 300ms ease-out;
+  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
   opacity: ${(p) => (p.$visible ? 0.7 : 0)};
   /* Boost contrast by introducing complementary warm hues and bright whites */
   background: ${(p) => p.$gradient || defaultInterestGradient};
@@ -147,7 +148,7 @@ export const PlayfulBox = styled(BlobBase)`
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 300ms ease-out, left 300ms ease-out, top 300ms ease-out;
+  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
   opacity: ${(p) => (p.$visible ? 0.7 : 0)};
   /* Increase contrast with bright whites and deeper oranges/sky */
   background: ${(p) => p.$gradient || defaultPlayfulGradient};
@@ -269,7 +270,7 @@ export const HappyBox = styled(BlobBase)`
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 300ms ease-out, left 300ms ease-out, top 300ms ease-out;
+  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
   opacity: ${(p) => (p.$visible ? 0.7 : 0)};
   /* Increase white vs pink contrast in the moving gradient */
   background: ${(p) => p.$gradient || defaultHappyGradient};
@@ -320,7 +321,7 @@ export const AnnoyedBox = styled(BlobBase)`
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
   z-index: 1001;
-  transition: opacity 1600ms ease-in-out, width 300ms ease-out, left 300ms ease-out, top 300ms ease-out;
+  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
   opacity: ${(p) => (p.$visible ? 0.7 : 0)};
   /* Sharper contrast with white flashes and warm tension */
   background: ${(p) => p.$gradient || defaultAnnoyedGradient};
@@ -390,7 +391,7 @@ export const SadBox = styled(BlobBase)`
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 300ms ease-out, left 300ms ease-out, top 300ms ease-out;
+  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
   opacity: ${(p) => (p.$visible ? 0.7 : 0)};
   /* Add bright whites and deeper blues for stronger emotional contrast */
   background: ${(p) => p.$gradient || defaultSadGradient};
@@ -458,7 +459,7 @@ export const SelfConfidentBox = styled(BlobBase)`
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 300ms ease-out, left 300ms ease-out, top 300ms ease-out;
+  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
   opacity: ${(p) => (p.$visible ? 0.7 : 0)};
   background: ${(p) => p.$gradient || defaultSelfConfidentGradient};
   background-size: 320% 320%;
