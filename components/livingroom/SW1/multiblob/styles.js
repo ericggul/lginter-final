@@ -646,7 +646,8 @@ const spiralRadiusAppear = keyframes`
       translate(-50%, -50%)
       rotate(var(--orbit-angle))
       translateX(calc(var(--R) * var(--orbit-radius-factor) * 0.26))
-      rotate(calc(-1 * var(--orbit-angle)));
+      rotate(calc(-1 * var(--orbit-angle)))
+      scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
     opacity: 0;
   }
   to {
@@ -655,7 +656,8 @@ const spiralRadiusAppear = keyframes`
       translate(-50%, -50%)
       rotate(var(--orbit-angle))
       translateX(calc(var(--R) * var(--orbit-radius-factor) * 1))
-      rotate(calc(-1 * var(--orbit-angle)));
+      rotate(calc(-1 * var(--orbit-angle)))
+      scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1)));
     opacity: var(--z-opacity-base);
   }
 `;
@@ -968,7 +970,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
       // 가장 앞 (사용자 가까이) → 크고 선명
       return `
         --z-scale-base: 1.15;
-        --z-blur-base: 0.35vw;
+        --z-blur-base: 0.3vw;
         --z-opacity-base: 1;
         z-index: 5;
       `;
@@ -976,17 +978,17 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     if ($depthLayer === 2) {
       // 가장 뒤 → 작고 흐림
       return `
-        --z-scale-base: 0.7;
-        --z-blur-base: 1.5vw;
-        --z-opacity-base: 0.45;
+        --z-scale-base: 0.72;
+        --z-blur-base: 1.0vw;
+        --z-opacity-base: 0.62;
         z-index: 1;
       `;
     }
     // 중간 레이어
     return `
-      --z-scale-base: 0.9;
-      --z-blur-base: 1.1vw;
-      --z-opacity-base: 0.8;
+      --z-scale-base: 0.95;
+      --z-blur-base: 0.85vw;
+      --z-opacity-base: 0.9;
       z-index: 3;
     `;
   }}
