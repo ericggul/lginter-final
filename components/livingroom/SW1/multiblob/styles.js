@@ -202,12 +202,12 @@ export const EdgeBlurLayer = styled.div`
   opacity: ${({ $opacity = 0.8 }) => $opacity};
 `;
 
-/* T4: 배경 채도/광량 펄스 오버레이 (stage 기반) */
+/* T4: 배경 채도/광량 펄스 오버레이 (stage 기반, 화면 가장자리 위주) */
 const bgPulse = keyframes`
   0%   { opacity: 0; }
-  20%  { opacity: 0.36; }
-  48%  { opacity: 0.24; }
-  70%  { opacity: 0.32; }
+  20%  { opacity: 0.85; }
+  48%  { opacity: 0.55; }
+  70%  { opacity: 0.78; }
   100% { opacity: 0; }
 `;
 
@@ -215,17 +215,41 @@ export const BackgroundPulse = styled.div`
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* 더 위 레이어에 올려 시각적 영향 확대 (EdgeGlass 4 위, 중앙 그라데이션 6 아래) */
+  /* EdgeGlass(4) 위, 중앙 그라데이션(6) 아래에서 가장자리 위주로 색감만 강화 */
   z-index: 5;
-  background: radial-gradient(
-    110% 110% at 50% 50%,
-    hsla(12, 88%, 78%, 0.58) 0%,
-    hsla(18, 86%, 74%, 0.52) 30%,
-    hsla(198, 68%, 72%, 0.36) 58%,
-    hsla(198, 68%, 72%, 0.00) 100%
-  );
-  mix-blend-mode: overlay;
-  filter: saturate(1.45) brightness(1.12);
+  /* 중앙은 최대한 투명하게 두고, 상하좌우 가장자리 쪽만 컬러 채도/밝기를 올리는 그라데이션 */
+  background:
+    radial-gradient(
+      circle at -10% 50%,
+      hsla(18, 92%, 78%, 0.00) 0%,
+      hsla(18, 92%, 78%, 0.00) 30%,
+      hsla(18, 92%, 78%, 0.70) 65%,
+      hsla(18, 92%, 78%, 0.00) 100%
+    ),
+    radial-gradient(
+      circle at 110% 50%,
+      hsla(18, 92%, 78%, 0.00) 0%,
+      hsla(18, 92%, 78%, 0.00) 30%,
+      hsla(18, 92%, 78%, 0.70) 65%,
+      hsla(18, 92%, 78%, 0.00) 100%
+    ),
+    radial-gradient(
+      circle at 50% -10%,
+      hsla(190, 72%, 78%, 0.00) 0%,
+      hsla(190, 72%, 78%, 0.00) 32%,
+      hsla(190, 72%, 78%, 0.70) 70%,
+      hsla(190, 72%, 78%, 0.00) 100%
+    ),
+    radial-gradient(
+      circle at 50% 110%,
+      hsla(190, 72%, 78%, 0.00) 0%,
+      hsla(190, 72%, 78%, 0.00) 32%,
+      hsla(190, 72%, 78%, 0.70) 70%,
+      hsla(190, 72%, 78%, 0.00) 100%
+    );
+  /* 화면 가장자리 채도/밝기만 강하게 끌어올리기 */
+  mix-blend-mode: screen;
+  filter: saturate(1.6) brightness(1.1);
   opacity: 0;
   animation: ${bgPulse} 3.6s ease-in-out infinite;
 `;
