@@ -209,6 +209,13 @@ export default function SW2Controls() {
         />
       )}
 
+      {/* t4: 화면 전체 배경 채도/광량 펄스 레이어 (SW1 BackgroundPulse 참고) */}
+      {timelineState === 't4' && (
+        <>
+          <S.BackgroundPulse data-stage={timelineState} aria-hidden="true" />
+        </>
+      )}
+
       <S.BlobRotator $duration={animation.rotationDuration}>
         {tunedBlobConfigs.map((blob, idx) => {
           const Component = S[blob.componentKey];
@@ -235,10 +242,11 @@ export default function SW2Controls() {
           );
         })}
       </S.BlobRotator>
-      {/* t5: 배경 전체가 한 번 더 부드럽게 빛나는 펄스 */}
-      {timelineState === 't5' && <S.BackgroundPulse data-stage={timelineState} aria-hidden="true" />}
-      {/* If background frame image is unavailable, pass empty to avoid 404 */}
-      <S.FrameBg $url="" />
+      {/* t5: 배경(프레임) 자체의 채도만 살짝 올라갔다가 복귀하는 펄스는
+          FrameBg 에서 처리하므로, 별도 오버레이는 사용하지 않는다. */}
+      {/* If background frame image is unavailable, pass empty to avoid 404.
+          t5에서 배경 자체의 채도 펄스를 주기 위해 timelineState 를 data-stage 로 전달. */}
+      <S.FrameBg $url="" data-stage={timelineState} />
       <S.TopStatus>
         <span>사용자 {participantCount}명을 위한 조율중</span>
         <S.Dots aria-hidden="true">
@@ -252,11 +260,25 @@ export default function SW2Controls() {
       <S.AlbumCard>
         {coverSrc ? (
           <S.AlbumImage
+            key={coverSrc || title}
             src={coverSrc}
             alt={title || 'cover'}
-            onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
-            onLoad={(e) => { e.currentTarget.style.visibility = 'visible'; }}
-            style={{ visibility: 'visible' }}
+            onError={(e) => {
+              if (e.currentTarget) {
+                e.currentTarget.style.opacity = '0';
+              }
+            }}
+            onLoad={(e) => {
+              // React의 SyntheticEvent는 풀링되므로, 실제 DOM 요소를 미리 캡처해 둔다.
+              const img = e.currentTarget;
+              if (!img) return;
+              // 새 앨범 커버가 로드되면 0 → 1로 부드럽게 페이드인
+              requestAnimationFrame(() => {
+                if (img) {
+                  img.style.opacity = '1';
+                }
+              });
+            }}
           />
         ) : (
           <S.AlbumPlaceholder />

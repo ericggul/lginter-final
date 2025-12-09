@@ -53,6 +53,8 @@ export const Root = styled.div`
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  /* 앨범 컬러/배경이 바뀔 때 부드럽게 전환 */
+  transition: background-color 800ms ease-in-out;
 `;
 
 /** 화면 상단 쪽에서 퍼져 나가는 파동 레이어 (배경 전용, 상호작용 없음) */
@@ -171,6 +173,13 @@ export const Dot = styled.span`
 `;
 
 /* Full-bleed background image for selected Figma frame */
+const frameSatPulseSw2 = keyframes`
+  0%   { filter: saturate(1) brightness(1); }
+  35%  { filter: saturate(1.45) brightness(1.06); }
+  75%  { filter: saturate(1.25) brightness(1.03); }
+  100% { filter: saturate(1) brightness(1); }
+`;
+
 export const FrameBg = styled.div`
   position: absolute;
   inset: 0;
@@ -192,6 +201,13 @@ export const FrameBg = styled.div`
     transform: rotate(90deg);
     transform-origin: center;
   }
+
+  /* t5: 배경(프레임) 자체의 채도/밝기가 살짝 올라갔다가 원래 톤으로 복귀하는 펄스 */
+  ${({ 'data-stage': stage }) =>
+    stage === 't5' &&
+    css`
+      animation: ${frameSatPulseSw2} 2.2s ease-in-out forwards;
+    `}
 `;
 
 /* t4 시점: 상단 원 하이라이트용 스케일/불빛 펄스 (효과를 더 강하게) */
@@ -246,6 +262,14 @@ export const CenterGlow = styled.div`
 
   /* 62.8px 블러를 3840px 기준으로 스케일 ≈ 1.64vw */
   filter: ${({ $blur = 1.64 }) => `blur(${$blur}vw)`};
+
+  /* 앨범 컬러/CenterGlow 설정이 변경될 때 자연스럽게 보이도록 트랜지션 */
+  transition:
+    background 900ms ease-in-out,
+    filter 900ms ease-in-out,
+    opacity 900ms ease-in-out,
+    box-shadow 900ms ease-in-out,
+    transform 1100ms cubic-bezier(0.22, 1, 0.36, 1);
 
   /* t4: 상단 원이 한 번 강하게 빛나며 살짝 커졌다가 되돌아오는 모션 */
   ${({ 'data-stage': stage }) =>
@@ -615,6 +639,10 @@ export const AlbumImage = styled.img`
   height: 100%;
   object-fit: cover;
   display: block;
+  /* 새 앨범 커버가 로드될 때 서서히 페이드인 */
+  opacity: 0;
+  transition: opacity 1600ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
 `;
 
 export const AlbumPlaceholder = styled.div`
@@ -658,40 +686,105 @@ const entryCollapse = keyframes`
   }
 `;
 
-/* t5: 전체 배경이 한 번 더 부드럽게 빛나고 2초 동안 서서히 잦아드는 펄스 */
-const bgPulse = keyframes`
-  0% {
-    opacity: 0;
-    transform: scale(1);
-  }
-  20% {
-    opacity: 0.9;
-    transform: scale(1.03);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.02);
-  }
+/* t4: 화면 가장자리 위주로 배경 채도/광량을 강하게 끌어올리는 펄스 */
+const bgPulseT4 = keyframes`
+  0%   { opacity: 0; transform: scale(1); }
+  20%  { opacity: 0.95; transform: scale(1.02); }
+  55%  { opacity: 0.65; transform: scale(1.04); }
+  100% { opacity: 0; transform: scale(1.0); }
 `;
 
-/* t5: 배경 전체를 감싸는 소프트 화이트 펄스 */
+/* t5: 전체 배경이 한 번 더 부드럽게 빛나고 2초 동안 서서히 잦아드는 펄스 */
+const bgPulseT5 = keyframes`
+  0%   { opacity: 0;   transform: scale(1);    }
+  25%  { opacity: 0.9; transform: scale(1.03); }
+  100% { opacity: 0;   transform: scale(1.02); }
+`;
+
+/* t4/t5: 배경 전체를 감싸는 채도/광량 펄스 오버레이 */
 export const BackgroundPulse = styled.div`
   position: absolute;
   inset: -15%;
   border-radius: 50%;
   pointer-events: none;
+  /* FrameBg(0) 위, CenterGlow(2)/EntryCircle(3) 아래에서 색감/밝기만 강화 */
   z-index: 1;
-  background: radial-gradient(
-    circle at 50% 30%,
-    rgba(255, 255, 255, 0.85) 0%,
-    rgba(255, 255, 255, 0.4) 35%,
-    rgba(255, 255, 255, 0.0) 75%
-  );
+  /* 중앙은 상대적으로 투명하게 두고, 상하좌우 가장자리 쪽만
+     앨범 컬러 기반 채도/밝기를 올리는 그라데이션 */
+  background:
+    radial-gradient(
+      circle at -10% 50%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 0%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 30%,
+      hsla(var(--album-h, 340), var(--album-s, 70%), calc(var(--album-l, 78%)), 0.8) 65%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 100%
+    ),
+    radial-gradient(
+      circle at 110% 50%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 0%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 30%,
+      hsla(var(--album-h, 340), var(--album-s, 70%), calc(var(--album-l, 78%)), 0.8) 65%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 100%
+    ),
+    radial-gradient(
+      circle at 50% -10%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 0%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 32%,
+      hsla(var(--album-h, 340), var(--album-s, 75%), calc(var(--album-l, 82%)), 0.9) 70%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 100%
+    ),
+    radial-gradient(
+      circle at 50% 110%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 0%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 32%,
+      hsla(var(--album-h, 340), var(--album-s, 75%), calc(var(--album-l, 82%)), 0.9) 70%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 100%
+    );
+  /* 화면 가장자리 채도/밝기만 강하게 끌어올리기 */
   mix-blend-mode: screen;
   opacity: 0;
 
+  &[data-stage='t4'] {
+    animation: ${bgPulseT4} 4s ease-in-out forwards;
+    filter: saturate(1.6) brightness(1.1);
+  }
+
   &[data-stage='t5'] {
-    animation: ${bgPulse} 2s ease-in-out forwards;
+    animation: ${bgPulseT5} 2s ease-in-out forwards;
+    filter: saturate(1.35) brightness(1.05);
+  }
+`;
+
+/* t5: 중앙 영역의 채도가 높아졌다가 서서히 원래 채도로 돌아가는 펄스 */
+const centerSaturationPulseSw2 = keyframes`
+  0%   { opacity: 0.0; filter: saturate(1) brightness(1); }
+  35%  { opacity: 0.55; filter: saturate(1.6) brightness(1.06); }
+  75%  { opacity: 0.28; filter: saturate(1.3) brightness(1.03); }
+  100% { opacity: 0.0; filter: saturate(1) brightness(1); }
+`;
+
+export const Sw2CenterSaturationPulse = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  /* FrameBg(0)/BackgroundPulse(1) 위, CenterGlow(2) 아래에서 중앙 채도만 살짝 올림 */
+  z-index: 2;
+
+  /* 앨범 컬러 기반 중앙 채도 펄스 레이어 */
+  background: radial-gradient(
+    60% 60% at 50% 45%,
+    hsla(var(--album-h, 340), var(--album-s, 80%), calc(var(--album-l, 70%)), 0.00) 0%,
+    hsla(var(--album-h, 340), var(--album-s, 80%), calc(var(--album-l, 70%)), 0.00) 32%,
+    hsla(var(--album-h, 340), calc(var(--album-s, 86%)), calc(var(--album-l, 72%)), 0.70) 58%,
+    hsla(var(--album-h, 340), var(--album-s, 80%), calc(var(--album-l, 78%)), 0.00) 90%
+  );
+
+  opacity: 0;
+  mix-blend-mode: soft-light;
+
+  &[data-stage='t5'] {
+    animation: ${centerSaturationPulseSw2} 2.2s ease-in-out forwards;
   }
 `;
 
