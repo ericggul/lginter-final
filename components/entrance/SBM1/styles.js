@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 export const Container = styled.div`
   min-height: 100vh;
@@ -18,6 +18,21 @@ export const Container = styled.div`
   transition: filter 600ms ease;
   /* Blob pop scale (set via inline var) */
   --sbm-blob-zoom: 1;
+
+  /* Active 상태일 때 화면 테두리 부드러운 글로우 */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 32px;
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.7),
+      0 0 42px 0 rgba(248, 140, 210, 0.96),
+      0 0 120px 0 rgba(234, 96, 184, 0.78);
+    opacity: var(--sbm-border-glow-opacity, 0);
+    transition: opacity 650ms cubic-bezier(0.19, 1, 0.22, 1);
+  }
 `;
 
 export const Card = styled.div`
@@ -70,12 +85,23 @@ export const BGFlash = styled.div`
   pointer-events: none;
   z-index: 0;
   opacity: var(--sbm-bgflash-opacity, 0);
-  transition: opacity 900ms ease;
-  /* very soft light pink wash */
+  transition: opacity 650ms ease;
+  /* Active 순간에만 들어오는 마젠타 핑크 계열 워시 */
   background:
-    radial-gradient(farthest-side at 50% 40%, rgba(255, 210, 235, 0.26) 0%, rgba(255, 220, 240, 0.18) 42%, rgba(255, 230, 245, 0.08) 72%, rgba(255, 240, 250, 0.00) 100%),
-    linear-gradient(180deg, rgba(255, 238, 245, 0.48) 0%, rgba(255, 238, 245, 0.00) 100%);
-  mix-blend-mode: normal;
+    radial-gradient(
+      farthest-side at 58% 32%,
+      rgba(236, 112, 204, 0.85) 0%,
+      rgba(244, 154, 219, 0.65) 32%,
+      rgba(252, 210, 240, 0.28) 68%,
+      rgba(255, 240, 250, 0.00) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 232, 246, 0.96) 0%,
+      rgba(255, 244, 252, 0.52) 45%,
+      rgba(255, 249, 253, 0.00) 100%
+    );
+  mix-blend-mode: screen;
 `;
 
 export const Blob = styled.div`
@@ -191,7 +217,34 @@ export const BlobBL = styled(Blob)`
     bobFloatBL 12s ease-in-out infinite;
 `;
 
-export const TopMessage = styled.h2`
+/* 좌측 상단에 작게 떠 있는 추가 블롭 */
+export const BlobTinyTL = styled(Blob)`
+  left: calc(-0.6 * var(--kiss)); 
+  top: calc(-0.4 * var(--kiss));
+  width: 34vmin;
+  height: 34vmin;
+  opacity: 0.78;
+  filter: blur(10px) saturate(120%);
+  /* 살짝 더 보라/마젠타 쪽으로 기울인 팔레트 */
+  background:
+    radial-gradient(farthest-side at 68% 32%, rgba(239, 144, 218, 0.95) 0%, rgba(239, 144, 218, 0.55) 32%, rgba(239,144,218,0.00) 72%),
+    radial-gradient(farthest-side at 26% 74%, rgba(190, 190, 255, 0.85) 0%, rgba(190,190,255,0.00) 68%),
+    radial-gradient(farthest-side at 42% 40%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.72) 52%, rgba(255, 255, 255, 0.00) 78%);
+  /* 공통 스케일 변수 반영 (Idle: 1, Active: 0.55) + 천천히 둥둥 떠다니는 모션 */
+  transition: --sbm-blob-zoom 650ms cubic-bezier(0.22, 1, 0.36, 1);
+  @keyframes bobFloatTiny { 
+    0%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0,0,0);} 
+    50%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0.9vmin,0.6vmin,0);} 
+    100%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0,0,0);} 
+  }
+  animation:
+    bobFloatTiny 9s ease-in-out infinite alternate,
+    l3 12s ease-in-out infinite alternate;
+  @media (prefers-reduced-motion: reduce){ animation: none; }
+`;
+
+// 기본 안내 문구 (QR 안내) - tip이 아닐 때 활성
+export const TopMessageBase = styled.h2`
   position: absolute;
   /* responsive sizing based on viewport */
   width: clamp(280px, 60vw, 1173px);
@@ -207,18 +260,27 @@ export const TopMessage = styled.h2`
   color: #000000;
   margin: 0; z-index: 1;
   white-space: pre-line;
-  /* Tip animation */
-  transform: translate(-50%, 0);
-  transition: opacity 400ms ease, transform 500ms ease;
-  ${(p) => p.$tip ? `
-    animation: tipInOut 3000ms ease forwards;
+  /* 기본 문구: tip 활성화 여부에 따라 위로 사라지거나 다시 내려오며 나타남 */
+  opacity: ${(p) => (p.$active ? 1 : 0)};
+  transform: translate(-50%, ${(p) => (p.$active ? '0' : '-18px')});
+  transition:
+    opacity 600ms cubic-bezier(0.19, 1, 0.22, 1),
+    transform 600ms cubic-bezier(0.19, 1, 0.22, 1);
+`;
+
+// Tip 문구 - tip이 true일 때만 재생되는 찰진 인/아웃 애니메이션
+export const TopMessageTip = styled(TopMessageBase)`
+  opacity: 0;
+  ${(p) => p.$active ? `
+    animation: tipInOut 7000ms cubic-bezier(0.19, 1, 0.22, 1) forwards;
   ` : ''}
 
   @keyframes tipInOut {
-    0%   { opacity: 0; transform: translate(-50%, 14px); }
-    15%  { opacity: 1; transform: translate(-50%, 0); }
-    85%  { opacity: 1; transform: translate(-50%, 0); }
-    100% { opacity: 0; transform: translate(-50%, -6px); }
+    0%   { opacity: 0; transform: translate(-50%, 28px); }
+    18%  { opacity: 1; transform: translate(-50%, -6px); }   /* 살짝 튀어오르며 등장 */
+    26%  { opacity: 1; transform: translate(-50%, 0); }      /* 제자리 안착 */
+    82%  { opacity: 1; transform: translate(-50%, 0); }      /* 충분히 머무름 */
+    100% { opacity: 0; transform: translate(-50%, -14px); }  /* 위로 찰지게 빠지며 사라짐 */
   }
 `;
 
