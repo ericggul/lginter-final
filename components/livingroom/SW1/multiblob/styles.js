@@ -70,6 +70,47 @@ const rimScale = keyframes`
 export const BlobRotator = SharedBlobRotator;
 export const ContentRotator = SharedContentRotator;
 
+// 미니 블롭 텍스트: 값/카테고리 전환 시 자연스러운 페이드 인/아웃
+export const MiniTopText = styled.strong`
+  display: block;
+  font-weight: 600;
+  font-size: 0.8em;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transform: ${({ $visible }) =>
+    $visible ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.98)'};
+  transition: opacity 260ms ease-out, transform 260ms ease-out;
+`;
+
+export const MiniBottomText = styled.span`
+  display: block;
+  margin-top: 0.08em;
+  font-size: 0.65em;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  opacity: ${({ $visible }) => ($visible ? 0.96 : 0)};
+  transform: ${({ $visible }) =>
+    $visible ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.98)'};
+  transition: opacity 260ms ease-out, transform 260ms ease-out;
+`;
+
+// 배경 전체가 천천히 호흡하듯이 확장/수축하는 인터랙션
+const bgBreath = keyframes`
+  0% {
+    background-size: 145% 145%;
+    background-position: 50% 0%;
+  }
+  50% {
+    background-size: 165% 165%;
+    background-position: 48% 6%;
+  }
+  100% {
+    background-size: 145% 145%;
+    background-position: 50% 0%;
+  }
+`;
+
 export const Root = styled.div`
   /* TV용 풀 화면 캔버스: 스크롤이 생기지 않도록 화면에 고정 */
   position: fixed;
@@ -80,11 +121,12 @@ export const Root = styled.div`
   min-height: 100vh;
   /* 16:9 기준 비율을 유지하되, 세로가 더 넉넉한 화면에서는 높이를 우선 사용 */
   --view-base: min(100vw, 177.7778vh); /* 16 / 9 * 100 */
-  background-color: #FAEFFA;
+  background-color: #FFFFFF;
   background-image: ${({ $backgroundUrl }) => ($backgroundUrl ? `url(${$backgroundUrl})` : 'none')};
-  background-position: center center;
+  background-position: center top;
   background-repeat: no-repeat;
-  background-size: contain;
+  background-size: 150% 150%;
+  animation: ${bgBreath} 22s ease-in-out infinite;
   font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow: hidden;
   /* radius from center to place small blob centers (kept inside viewport) */
@@ -114,6 +156,34 @@ export const Stage = styled.div`
   pointer-events: none;
   /* reference size for the 중심 블롭과 오빗 블롭 크기 (한 단계 더 축소) */
   --largestBlobSize: clamp(7.5vw, 36vmin, 20vw);
+`;
+
+// 메인 블롭 컬러가 바뀔 때 전체 배경이 한 번 강하게 물들었다가 사라지는 오버레이
+const bgFlashFill = keyframes`
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+`;
+
+export const BgFlashOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1; /* EdgeBlur(3)/EdgeGlass(4) 아래, 배경 위 */
+  background: ${({ $h = 340 }) =>
+    `radial-gradient(circle at 50% 65%,
+      hsla(${$h}, 78%, 86%, 1.0) 0%,
+      hsla(${$h}, 72%, 88%, 0.95) 34%,
+      hsla(${$h}, 68%, 90%, 0.0) 82%)`};
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: ${bgFlashFill} 1200ms ease-out forwards;
 `;
 
 /* 화면 가장자리에 글라스모피즘(유리) 느낌을 주는 레이어
@@ -600,6 +670,27 @@ export const CenterMode = styled.div`
   text-shadow: 0 0.026042vw 0 rgba(0,0,0,0.48), 0 0.078125vw 0.3125vw rgba(0,0,0,0.36);
 `;
 
+// TV2와 완전히 동일한 반투명 흰색 로딩 점 스타일
+const dots = keyframes`
+  0%, 20% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
+`;
+
+export const LoadingDots = styled.div`
+  display: inline-flex;
+  gap: 10px;
+  span {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: ${({ $color = 'rgba(255,255,255,0.8)' }) => $color};
+    animation: ${dots} 1.2s infinite;
+  }
+  span:nth-child(2) { animation-delay: 0.2s; }
+  span:nth-child(3) { animation-delay: 0.4s; }
+`;
+
 
 
 export const Dots = styled.span`
@@ -988,6 +1079,9 @@ const BlobBase = styled.div`
     pointer-events: none;
   }
 `;
+
+// SW2 등 다른 컴포넌트에서 SW1 미니 블롭 비주얼을 재사용할 수 있도록 내보내기
+export const Sw1MiniBlobBase = BlobBase;
 
 // 가운데 원 주변을 도는 7개의 블롭을 위한 공통 오빗 컴포넌트
 // 각 슬롯별 각도는 React 쪽에서 $angleDeg prop으로 전달한다.

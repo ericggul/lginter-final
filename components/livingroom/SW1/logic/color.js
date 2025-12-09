@@ -7,43 +7,30 @@ export const lerp = (a, b, t) => a + (b - a) * t;
 export const hueForTemp = (tempC, { coolHue, warmHue, tMin = 15, tMax = 35 } = {}) =>
   lerp(coolHue, warmHue, invlerp(tMin, tMax, tempC));
 
-// 1) Big blob: innerRingH, mid2H use same hue; S/L unchanged (taken from UI controls)
-//    - 차가운 결정일수록 쿨핑크/퍼플 계열 (H ≈ 285°)
-//    - 따뜻한 결정일수록 웜핑크 계열 (H ≈ 345°)
+// 1) Big blob: innerRingH, mid2H use same hue; S/L은 UI 컨트롤에서 고정.
+//    - 온도 범위 18–30℃를 205°(시원) → 333°(더움) 사이로 선형 매핑.
 export function computeBigBlobHues(tempC) {
-  const H = hueForTemp(tempC, { coolHue: 285, warmHue: 345, tMin: 18, tMax: 30 });
+  const t = invlerp(18, 30, tempC);
+  const H = lerp(205, 333, t);
   return { innerRingH: Math.round(H), mid2H: Math.round(H) };
 }
 
-// Background: 동일한 H만 공유하고, S/L은 고정값에서 살짝만 조정
-export function computeBackgroundHsl(tempC, { sBase = 45, lBase = 96 } = {}) {
-  const H = hueForTemp(tempC, { coolHue: 285, warmHue: 345, tMin: 18, tMax: 30 });
-  const S = clamp(sBase * 0.7, 0, 100);
-  const L = clamp(lBase + 2, 0, 100);
-  return { h: Math.round(H), s: Math.round(S), l: Math.round(L) };
+// Background: big blob과 동일한 H를 공유하고, S/L은 훨씬 연한 톤으로 고정
+// - s 기본값: 47
+// - l 기본값: 90 (기존보다 더 밝게)
+export function computeBackgroundHsl(tempC, { sBase = 47, lBase = 90 } = {}) {
+  const { mid2H } = computeBigBlobHues(tempC);
+  const S = clamp(sBase, 0, 100);
+  const L = clamp(lBase, 0, 100);
+  return { h: mid2H, s: Math.round(S), l: Math.round(L) };
 }
 
-// 2) Mini blob: warmH only (S/L unchanged)
-// Mini blob warm hue: tuned so that 22~23℃ ≈ yellow/apricot (≈ 48~30deg)
-// We use anchored piecewise interpolation over a widened 15~35℃ band.
+// 2) Mini blob: warmH
+//    - L은 현재 값 유지, S는 83으로 맞추고
+//    - H는 큰 블롭 midH 와 동일한 로직(18~30℃ → 205°~333°)을 사용
 export function computeMiniWarmHue(tempC) {
-  const t = invlerp(15, 35, tempC);
-  const anchors = [
-    { t: 0.00, hue: 223 }, // very cool → blue
-    { t: 0.25, hue: 200 }, // cool
-    { t: 0.40, hue: 24  }, // ≈22~23℃ → pinkish orange (less yellow)
-    { t: 0.50, hue: 8   }, // ≈25℃ → red-leaning apricot
-    { t: 1.00, hue: 0   }, // hot → red
-  ];
-  for (let i = 0; i < anchors.length - 1; i += 1) {
-    const a = anchors[i];
-    const b = anchors[i + 1];
-    if (t <= b.t) {
-      const tt = invlerp(a.t, b.t, t);
-      return Math.round(lerp(a.hue, b.hue, tt));
-    }
-  }
-  return Math.round(anchors[anchors.length - 1].hue);
+  const H = hueForTemp(tempC, { coolHue: 205, warmHue: 333, tMin: 18, tMax: 30 });
+  return Math.round(H);
 }
 
 // 3) New input pulse: midAlpha 1 → down (default 0.24) for duration then back to 1

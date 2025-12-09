@@ -3,6 +3,7 @@ import {
   BlobRotator as SharedBlobRotator,
   ContentRotator as SharedContentRotator,
 } from '../shared/rotationStyles';
+import { Sw1MiniBlobBase } from '../SW1/multiblob/styles';
 
 export const BlobRotator = styled(SharedBlobRotator)`
   /* SW2에서는 블롭이 회전하지 않고 고정된 위치에 머무르도록 애니메이션 제거 */
@@ -810,150 +811,113 @@ const miniRingPulse = keyframes`
   }
 `;
 
+// SW1의 BlobBase 스타일을 그대로 복사해온 SW2 전용 미니 블롭 베이스
+// (시각적으로 SW1 미니 블롭과 동일하게 보이도록 함)
 const Sw2BlobBase = styled.div`
   position: absolute;
-  /* 중앙 기준 위치만 맞추고, 회전 각도는 halo(::before)에만 적용.
-     depthLayer(0: 앞, 1: 중간, 2: 뒤)에 따라 크기 펄스 애니메이션을 다르게 준다. */
   transform: translate(-50%, -50%);
-
-  /**
-   * 크기: 백엔드에서 내려오는 blob.size.base 를 그대로 활용하되,
-   *      SW1 대비 한 단계 더 작은 미니 블롭 느낌으로 축소
-   */
-  width: calc(var(--blob-size, 16vw) * 0.45);
-  height: calc(var(--blob-size, 16vw) * 0.45);
+  /* 주변 원 크기 - 전체적으로 한 단계 더 작게 축소 */
+  width: 22vw;
+  height: 22vw;
   border-radius: 50%;
+  /* 테두리를 제거해서 외곽 블러가 더 자연스럽게 보이도록 처리 */
   border: none;
+  /* box-shadow 대신 별도 레이어에 실제 blur를 적용하기 위해 overflow를 노출 */
   box-shadow: none;
   overflow: visible;
+  /* 기본 원은 투명, 실제 색/그라데이션은 ::before/::after 레이어에서만 렌더 */
   background: transparent;
-  /* Emotion 3-tone gradient by CSS vars:
-     center = emotion color; mid = warm yellow; outer = pink.
-     Defaults keep previous look if no vars provided. */
-  --blob-bg: radial-gradient(
-    84.47% 61.21% at 66.09% 54.37%,
-    hsla(var(--mini-h, 340), var(--mini-s, 80%), var(--mini-l, 70%), 1.0) 0%,
-    hsla(var(--mini-mid-h, 45), var(--mini-mid-s, 95%), var(--mini-mid-l, 85%), 0.95) 65%,
-    hsla(var(--mini-outer-h, 340), var(--mini-outer-s, 90%), var(--mini-outer-l, 88%), 1.0) 100%
-  );
-  /* Small pink sector overlay defaults (one side keeps pink glow) */
-  --pink-sector-start: 300deg;
-  --pink-sector-size: 42deg;
-  opacity: ${({ $depthLayer = 1 }) =>
-    $depthLayer === 0 ? 0.98 : $depthLayer === 1 ? 0.9 : 0.78};
+  /* 전체 투명도를 조정해 주변 원이 너무 죽지 않으면서도 중앙보다 한 단계 뒤에 있도록 설정 */
+  opacity: 0.9;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 0.1vw;
+  gap: 0.02vw;
   text-align: center;
+  color: #A1908A;
   font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400;
   font-size: 2.083333vw;
   letter-spacing: 0.01em;
-  /* 중앙 CenterGlow(2) 아래, FrameBg(0) 위에 오도록
-     depthLayer(0/1/2)에 따라 1/0/0 으로 배치한다. */
-  z-index: ${({ $depthLayer = 1 }) =>
-    $depthLayer === 0 ? 1 : 0};
-  will-change: background-position, transform, opacity;
+  z-index: 2;
+  will-change: background-position, transform;
   isolation: isolate;
-  /* remove stroke to avoid gray edges on compositing */
-  border: none;
-
-  /* z축이 계속 살아 움직이는 것처럼 보이도록
-     ease-in-out 대신 linear 로 바꿔, 중간에서 잠깐 멈춘 느낌을 줄인다. */
-  animation: ${({ $depthLayer = 1 }) => {
-    if ($depthLayer === 0) {
-      return css`${frontDepthPulse} 7s linear infinite`;
-    }
-    if ($depthLayer === 1) {
-      return css`${midDepthPulse} 9s linear infinite`;
-    }
-    return css`${backDepthPulse} 11s linear infinite`;
-  }};
-
-  /* 키워드 텍스트는 항상 선명한 흰색으로 */
-  & span {
+  & > * {
     position: relative;
     z-index: 1;
+  }
+  & strong,
+  & span {
     font-size: 1.6vw;
     font-weight: 400;
-    letter-spacing: 0.02em;
-    color: #ffffff;
-    /* SW1과 톤을 맞춘 은은한 bloom 효과 */
+    letter-spacing: 0.01em;
+    color: #FFFFFF;
     mix-blend-mode: screen;
+    /* 약하게 번지는 글로우 느낌 (bloom) */
     text-shadow:
-      0 0.10vw 0.25vw rgba(255, 255, 255, 0.95),
-      0 0.32vw 0.70vw rgba(255, 192, 220, 0.85),
-      0 0.68vw 1.35vw rgba(255, 192, 220, 0.5);
+      0 0.10vw 0.25vw rgba(255, 255, 255, 0.9),
+      0 0.35vw 0.75vw rgba(255, 193, 218, 0.85),
+      0 0.70vw 1.40vw rgba(255, 193, 218, 0.55);
   }
-
-  /* 바깥 halo: 실제 색과 blur는 ::before 에서만 처리해서 텍스트는 선명하게 유지 */
+  /* 원보다 살짝 큰 레이어에 blur를 적용해서 외곽이 부드럽게 퍼지도록 처리 (halo) */
   &::before {
     content: '';
-  position: absolute;
-    inset: -3.2vw;
+    position: absolute;
+    /* 중앙 원 주변에 아주 부드럽게 깔리는 큰 광원 느낌을 위해 더 크게 확장 */
+    inset: -3.6vw;            /* 원보다 훨씬 더 크게 (halo) */
     border-radius: inherit;
-    /* Keep a small pink sector on one side by layering a conic-gradient over the emotion bg */
-    background:
-      conic-gradient(
-        from var(--pink-sector-start),
-        rgba(255, 105, 180, 0.36) 0deg,
-        rgba(255, 105, 180, 0.36) var(--pink-sector-size),
-        rgba(255, 105, 180, 0.0) var(--pink-sector-size)
-      ),
-      var(--blob-bg, transparent);
-    /* 제공받은 Figma 회전 각도는 halo에만 적용 (내용 텍스트는 회전하지 않도록 분리) */
-    transform: rotate(-66.216deg);
-    transform-origin: center;
-    z-index: 0;
+    /* 각 블롭에서 정의한 --blob-bg 그라데이션을 사용해 컬러가 밖으로 퍼지게 */
+    background: var(--blob-bg, transparent);
+    /* SW1 미니 블롭처럼 더 강한 외곽 블러를 주어 블러 서클이 분명하게 보이도록 조정 */
+    filter: blur(5.6vw);      /* 외곽 블러 강도 (SW2 전용으로 살짝 상향) */
+    opacity: 0.26;            /* 은은하지만 존재감은 유지 */
+    z-index: 0;               /* 텍스트/콘텐츠(1)보다 아래, 내부 그라데이션보다 아래 */
     pointer-events: none;
-    will-change: filter, opacity;
-
-    /* depthLayer 에 따라 서로 다른 강도로 채도/블러 펄스 (메인보다 살짝 더 부드럽게) */
-    animation: ${({ $depthLayer = 1 }) => {
-      if ($depthLayer === 0) {
-        return css`${frontHaloPulse} 9s ease-in-out infinite`;
-      }
-      if ($depthLayer === 1) {
-        return css`${midHaloPulse} 11s ease-in-out infinite`;
-      }
-      return css`${backHaloPulse} 13s ease-in-out infinite`;
-    }};
   }
-
-  /* ::after: 중앙에서 밖으로 퍼지는 얇은 링 파동 (메인보다 연하고 부드럽게) */
+  /* 내부 입체감을 위한 그라데이션 원 (가장자리는 마스크로 부드럽게 페이드) */
   &::after {
     content: '';
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100%;
-    height: 100%;
+    inset: 0.2vw;             /* halo 안쪽을 채우는 몸통 */
     border-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
-    /* center dot → 얇은 링이 블롭 외곽에서 더 멀리 퍼져 나가며 사라지는 파동 */
-    background: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.0) 0%,
-      rgba(255, 255, 255, 0.0) 55%,
-      rgba(255, 255, 255, 0.55) 70%,
-      rgba(255, 255, 255, 0.0) 92%
+    /* 입체감을 주기 위해 밝은 하이라이트 레이어만 컬러 그라데이션 위에 겹쳐서 사용 (뚜렷한 그림자 레이어는 제거) */
+    background:
+      /* 구의 정면이 살짝 더 밝게 보이도록 하는 넓은 하이라이트 (더 낮은 알파/짧은 범위) */
+      radial-gradient(
+        circle at 50% 38%,
+        rgba(255, 255, 255, 0.24) 0%,
+        rgba(255, 255, 255, 0.0) 45%
+      ),
+      /* 코어 하이라이트도 영역과 알파를 줄여서 컬러가 더 잘 드러나도록 조정 */
+      radial-gradient(
+        circle at 26% 20%,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.0) 24%
+      ),
+      var(--blob-bg, transparent);
+    background-size: 320% 320%;
+    background-position: 0% 50%;
+    /* 가장자리로 갈수록 부드럽게 투명해지도록 마스크 → 외곽 경계선이 딱 끊겨 보이지 않게 처리 */
+    -webkit-mask-image: radial-gradient(
+      circle at 50% 45%,
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 1) 52%,
+      rgba(0, 0, 0, 0.55) 76%,
+      rgba(0, 0, 0, 0) 100%
     );
-    transform-origin: center;
-    filter: blur(2.6vw);
-    mix-blend-mode: screen;
-    /* 링이 중앙에서 바깥으로 퍼져 나가는 느낌 (조금 더 명확하게 보이도록 속도/강도 조정) */
-    animation: ${({ $depthLayer = 1 }) => {
-      if ($depthLayer === 0) {
-        return css`${miniRingPulse} 7s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
-      }
-      if ($depthLayer === 1) {
-        return css`${miniRingPulse} 9s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
-      }
-      return css`${miniRingPulse} 11s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
-    }};
+    mask-image: radial-gradient(
+      circle at 50% 45%,
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 1) 52%,
+      rgba(0, 0, 0, 0.55) 76%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    /* 안쪽 색은 선명하게, 외곽은 살짝 더 퍼져 보이도록 블러 강도 상향 */
+    filter: blur(0.55vw);
+    /* 주변 4개 원에서는 파동/물결 느낌이 나지 않도록 내부 그라데이션은 고정 (애니메이션 제거) */
+    z-index: 0.5;
+    pointer-events: none;
   }
 `;
 
