@@ -953,18 +953,29 @@ export const Sw2InterestBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 18vw);
   left: var(--blob-left, 84vw);
   background-size: 320% 320%;
+  /* 상단 interest 원: 부드럽게 궤도를 돌면서 크기가 바뀌어
+     다른 두 원과 자리를 주고받는 듯한 깊이감을 만든다. */
+  animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 `;
 
 export const Sw2WonderBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 40vw);
   left: var(--blob-left, 32vw);
   background-size: 320% 320%;
+  /* 좌측 wonder 원: interest / happy 와 타이밍을 어긋나게 해
+     서로가 앞뒤로 교차하며 도는 느낌을 강화한다. */
+  animation: ${wonderDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: -6s;
 `;
 
 export const Sw2HappyBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 8vw);
   left: var(--blob-left, 18vw);
   background-size: 320% 320%;
+  /* 우측 happy 원: 세 원 중 가장 긴 주기로 움직여
+     전체가 느리게 회전하는 삼각 궤도처럼 보이게 한다. */
+  animation: ${happyDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: -12s;
 `;
 
 /* 중앙 하단 → 상단으로 이동하는 엔트리 원 (t3, t4에서만 노출)
