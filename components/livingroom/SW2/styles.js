@@ -41,19 +41,20 @@ const topRipple = keyframes`
 `;
 
 export const Root = styled.div`
-  /* TV용 풀 화면 캔버스: 스크롤이 생기지 않도록 화면에 고정 */
+  /* 화면 비율(16:9)에 고정하지 않고,
+     어떤 해상도/창 크기에서도 뷰포트 전체를 자연스럽게 채우도록 변경 */
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100vw;
-  height: 56.25vw; /* 2160 / 3840 * 100 */
-  aspect-ratio: 3840 / 2160;
+  height: 100vh;
   background: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  /* 앨범 컬러/배경이 바뀔 때 부드럽게 전환 */
+  transition: background-color 800ms ease-in-out;
 `;
 
 /** 화면 상단 쪽에서 퍼져 나가는 파동 레이어 (배경 전용, 상호작용 없음) */
@@ -172,6 +173,13 @@ export const Dot = styled.span`
 `;
 
 /* Full-bleed background image for selected Figma frame */
+const frameSatPulseSw2 = keyframes`
+  0%   { filter: saturate(1) brightness(1); }
+  35%  { filter: saturate(1.45) brightness(1.06); }
+  75%  { filter: saturate(1.25) brightness(1.03); }
+  100% { filter: saturate(1) brightness(1); }
+`;
+
 export const FrameBg = styled.div`
   position: absolute;
   inset: 0;
@@ -193,6 +201,41 @@ export const FrameBg = styled.div`
     transform: rotate(90deg);
     transform-origin: center;
   }
+
+  /* t5: 배경(프레임) 자체의 채도/밝기가 살짝 올라갔다가 원래 톤으로 복귀하는 펄스 */
+  ${({ 'data-stage': stage }) =>
+    stage === 't5' &&
+    css`
+      animation: ${frameSatPulseSw2} 2.2s ease-in-out forwards;
+    `}
+`;
+
+/* t4 시점: 상단 원 하이라이트용 스케일/불빛 펄스 (효과를 더 강하게) */
+const centerBloomOnce = keyframes`
+  0% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1);
+    opacity: 0.9;
+  }
+  35% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1.04);
+    opacity: 0.96;
+  }
+`;
+
+/* t5 시점: 하이라이트에서 서서히 원래 상태로 돌아가는 모션 (조금 더 밝게 유지) */
+const centerRestore = keyframes`
+  0% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1);
+    opacity: 0.94;
+  }
 `;
 
 /* 중앙 앨범 카드를 감싸는 SW1 스타일의 핑크 링/그라디언트 글로우 */
@@ -204,20 +247,54 @@ export const CenterGlow = styled.div`
   /* Figma 스펙에서 살짝 축소 (더 작게). Leva에서 전달된 scale 로 추가 조절 */
   width: ${({ $scale = 1 }) => `calc(100vw * ${2200 * $scale} / 3840)`};
   height: ${({ $scale = 1 }) => `calc(100vw * ${2200 * $scale} / 3840)`};
-  transform: translate(-50%, -50%) rotate(-47.8deg);
+  transform: translate(-50%, -50%) rotate(-47.8deg) scale(1);
+  transform-origin: center;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 2; /* FrameBg(0) 위, BlobRotator(1)와 AlbumCard(4)의 중간 레이어 */
+  /* 레이어 순서:
+     - Blob 들(최대 1) 아래에는 두지 않고
+     - TopWaveLayer(3) 보다는 아래, 앨범 카드보다도 아래에 둔다. */
+  z-index: 2;
 
-  opacity: ${({ $opacity = 0.82 }) => $opacity};
+  /* 중앙 원 외곽이 조금 더 또렷하게 보이도록
+     기본 투명도를 살짝 높였다. */
+  opacity: ${({ $opacity = 0.9 }) => $opacity};
 
   /* 기본값은 Figma radial-gradient 스펙, Leva에서 전달된 $background가 있으면 우선 사용 */
   background: ${({ $background }) =>
     $background ||
     'radial-gradient(71.1% 71.1% at 43.76% 55.19%, rgba(255, 63, 148, 0.82) 16.35%, rgba(246, 211, 196, 0.82) 56.73%, rgba(151, 222, 248, 0.82) 85.51%)'};
 
-  /* 62.8px 블러를 3840px 기준으로 스케일 ≈ 1.64vw */
-  filter: ${({ $blur = 1.64 }) => `blur(${$blur}vw)`};
+  /* 블러 강도를 약간 줄여 외곽 링이 더 선명하게 보이도록 조정 */
+  filter: ${({ $blur = 1.4 }) => `blur(${$blur}vw)`};
+
+  /* 앨범 컬러/CenterGlow 설정이 변경될 때 자연스럽게 보이도록 트랜지션 */
+  transition:
+    background 900ms ease-in-out,
+    filter 900ms ease-in-out,
+    opacity 900ms ease-in-out,
+    box-shadow 900ms ease-in-out,
+    transform 1100ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* t4: 상단 원이 한 번 강하게 빛나며 살짝 커졌다가 되돌아오는 모션 */
+  ${({ 'data-stage': stage }) =>
+    stage === 't4' &&
+    css`
+      animation: ${centerBloomOnce} 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      box-shadow:
+        0 0 6vw rgba(255, 255, 255, 0.9),
+        0 0 12vw rgba(255, 192, 220, 0.7);
+    `}
+
+  /* t5: 살짝 더 부드러운 복귀/잔광 모션 */
+  ${({ 'data-stage': stage }) =>
+    stage === 't5' &&
+    css`
+      animation: ${centerRestore} 2s ease-in-out forwards;
+      box-shadow:
+        0 0 5vw rgba(255, 255, 255, 0.7),
+        0 0 10vw rgba(255, 192, 220, 0.5);
+    `}
 `;
 
 /* === Mobile blob motion (adapted) ===================================== */
@@ -567,6 +644,10 @@ export const AlbumImage = styled.img`
   height: 100%;
   object-fit: cover;
   display: block;
+  /* 새 앨범 커버가 로드될 때 서서히 페이드인 */
+  opacity: 0;
+  transition: opacity 1600ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
 `;
 
 export const AlbumPlaceholder = styled.div`
@@ -575,19 +656,156 @@ export const AlbumPlaceholder = styled.div`
   background: white;
 `;
 
-/* 공통 SW2 블롭 베이스: SW2 회전 원을 Figma 스펙 느낌으로 단순화한 버전 */
-/* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (미니 블롭 전용) */
-const miniRingPulse = keyframes`
+/* ---------------------------
+ * Timeline t3/t4/t5 전용 모션
+ * -------------------------*/
+
+/* t3: 화면 하단(화면 밖)에서 상단 원(interest 블롭) 위치까지 2초 동안 서서히 이동하는 엔트리 원 */
+const entryMoveUp = keyframes`
   0% {
-    transform: translate(-50%, -50%) scale(0.18);
-    opacity: 0.36;
+    top: 110%;
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.9);
   }
-  60% {
-    transform: translate(-50%, -50%) scale(1.4);
-    opacity: 0.22;
+  20% {
+    opacity: 1;
+    top: 85%;
   }
   100% {
-    transform: translate(-50%, -50%) scale(1.8);
+    top: 40%;
+    transform: translate(-50%, -50%) scale(1);
+  }
+`;
+
+/* t4: 상단 근처에 도달한 원이 안쪽으로 말려 들어가며 빛나는 모션 */
+const entryCollapse = keyframes`
+  0% {
+    top: 40%;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    top: 38%;
+    transform: translate(-50%, -50%) scale(0.05);
+    opacity: 0;
+  }
+`;
+
+/* t4: 화면 가장자리 위주로 배경 채도/광량을 강하게 끌어올리는 펄스 */
+const bgPulseT4 = keyframes`
+  0%   { opacity: 0; transform: scale(1); }
+  20%  { opacity: 0.95; transform: scale(1.02); }
+  55%  { opacity: 0.65; transform: scale(1.04); }
+  100% { opacity: 0; transform: scale(1.0); }
+`;
+
+/* t5: 전체 배경이 한 번 더 부드럽게 빛나고 2초 동안 서서히 잦아드는 펄스 */
+const bgPulseT5 = keyframes`
+  0%   { opacity: 0;   transform: scale(1);    }
+  25%  { opacity: 0.9; transform: scale(1.03); }
+  100% { opacity: 0;   transform: scale(1.02); }
+`;
+
+/* t4/t5: 배경 전체를 감싸는 채도/광량 펄스 오버레이 */
+export const BackgroundPulse = styled.div`
+  position: absolute;
+  inset: -15%;
+  border-radius: 50%;
+  pointer-events: none;
+  /* FrameBg(0) 위, CenterGlow(2)/EntryCircle(3) 아래에서 색감/밝기만 강화 */
+  z-index: 1;
+  /* 중앙은 상대적으로 투명하게 두고, 상하좌우 가장자리 쪽만
+     앨범 컬러 기반 채도/밝기를 올리는 그라데이션 */
+  background:
+    radial-gradient(
+      circle at -10% 50%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 0%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 30%,
+      hsla(var(--album-h, 340), var(--album-s, 70%), calc(var(--album-l, 78%)), 0.8) 65%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 100%
+    ),
+    radial-gradient(
+      circle at 110% 50%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 0%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 30%,
+      hsla(var(--album-h, 340), var(--album-s, 70%), calc(var(--album-l, 78%)), 0.8) 65%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 80%)), 0.0) 100%
+    ),
+    radial-gradient(
+      circle at 50% -10%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 0%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 32%,
+      hsla(var(--album-h, 340), var(--album-s, 75%), calc(var(--album-l, 82%)), 0.9) 70%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 100%
+    ),
+    radial-gradient(
+      circle at 50% 110%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 0%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 32%,
+      hsla(var(--album-h, 340), var(--album-s, 75%), calc(var(--album-l, 82%)), 0.9) 70%,
+      hsla(var(--album-h, 340), var(--album-s, 60%), calc(var(--album-l, 84%)), 0.0) 100%
+    );
+  /* 화면 가장자리 채도/밝기만 강하게 끌어올리기 */
+  mix-blend-mode: screen;
+  opacity: 0;
+
+  &[data-stage='t4'] {
+    animation: ${bgPulseT4} 4s ease-in-out forwards;
+    filter: saturate(1.6) brightness(1.1);
+  }
+
+  &[data-stage='t5'] {
+    animation: ${bgPulseT5} 2s ease-in-out forwards;
+    filter: saturate(1.35) brightness(1.05);
+  }
+`;
+
+/* t5: 중앙 영역의 채도가 높아졌다가 서서히 원래 채도로 돌아가는 펄스 */
+const centerSaturationPulseSw2 = keyframes`
+  0%   { opacity: 0.0; filter: saturate(1) brightness(1); }
+  35%  { opacity: 0.55; filter: saturate(1.6) brightness(1.06); }
+  75%  { opacity: 0.28; filter: saturate(1.3) brightness(1.03); }
+  100% { opacity: 0.0; filter: saturate(1) brightness(1); }
+`;
+
+export const Sw2CenterSaturationPulse = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  /* FrameBg(0)/BackgroundPulse(1) 위, CenterGlow(2) 아래에서 중앙 채도만 살짝 올림 */
+  z-index: 2;
+
+  /* 앨범 컬러 기반 중앙 채도 펄스 레이어 */
+  background: radial-gradient(
+    60% 60% at 50% 45%,
+    hsla(var(--album-h, 340), var(--album-s, 80%), calc(var(--album-l, 70%)), 0.00) 0%,
+    hsla(var(--album-h, 340), var(--album-s, 80%), calc(var(--album-l, 70%)), 0.00) 32%,
+    hsla(var(--album-h, 340), calc(var(--album-s, 86%)), calc(var(--album-l, 72%)), 0.70) 58%,
+    hsla(var(--album-h, 340), var(--album-s, 80%), calc(var(--album-l, 78%)), 0.00) 90%
+  );
+
+  opacity: 0;
+  mix-blend-mode: soft-light;
+
+  &[data-stage='t5'] {
+    animation: ${centerSaturationPulseSw2} 2.2s ease-in-out forwards;
+  }
+`;
+
+/* 공통 SW2 블롭 베이스: SW2 회전 원을 Figma 스펙 느낌으로 단순화한 버전 */
+/* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (각 블롭 외곽에서 나가는 은은한 파동) */
+const miniRingPulse = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.45;
+  }
+  65% {
+    transform: translate(-50%, -50%) scale(1.9);
+    opacity: 0.26;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
     opacity: 0.0;
   }
 `;
@@ -633,22 +851,25 @@ const Sw2BlobBase = styled.div`
   font-weight: 400;
   font-size: 2.083333vw;
   letter-spacing: 0.01em;
+  /* 중앙 CenterGlow(2) 아래, FrameBg(0) 위에 오도록
+     depthLayer(0/1/2)에 따라 1/0/0 으로 배치한다. */
   z-index: ${({ $depthLayer = 1 }) =>
-    $depthLayer === 0 ? 5 : $depthLayer === 1 ? 4 : 3};
+    $depthLayer === 0 ? 1 : 0};
   will-change: background-position, transform, opacity;
   isolation: isolate;
   /* remove stroke to avoid gray edges on compositing */
   border: none;
 
-  /* z축이 살아 움직이는 것처럼 보이는 크기/깊이 펄스 */
+  /* z축이 계속 살아 움직이는 것처럼 보이도록
+     ease-in-out 대신 linear 로 바꿔, 중간에서 잠깐 멈춘 느낌을 줄인다. */
   animation: ${({ $depthLayer = 1 }) => {
     if ($depthLayer === 0) {
-      return css`${frontDepthPulse} 7s ease-in-out infinite`;
+      return css`${frontDepthPulse} 7s linear infinite`;
     }
     if ($depthLayer === 1) {
-      return css`${midDepthPulse} 9s ease-in-out infinite`;
+      return css`${midDepthPulse} 9s linear infinite`;
     }
-    return css`${backDepthPulse} 11s ease-in-out infinite`;
+    return css`${backDepthPulse} 11s linear infinite`;
   }};
 
   /* 키워드 텍스트는 항상 선명한 흰색으로 */
@@ -712,13 +933,13 @@ const Sw2BlobBase = styled.div`
     border-radius: inherit;
     pointer-events: none;
     z-index: 0;
-    /* center dot → thin ring expanding outward, fading to 0 */
+    /* center dot → 얇은 링이 블롭 외곽에서 더 멀리 퍼져 나가며 사라지는 파동 */
     background: radial-gradient(
       circle,
       rgba(255, 255, 255, 0.0) 0%,
-      rgba(255, 255, 255, 0.0) 60%,
-      rgba(255, 255, 255, 0.50) 72%,
-      rgba(255, 255, 255, 0.0) 88%
+      rgba(255, 255, 255, 0.0) 55%,
+      rgba(255, 255, 255, 0.55) 70%,
+      rgba(255, 255, 255, 0.0) 92%
     );
     transform-origin: center;
     filter: blur(2.6vw);
@@ -740,16 +961,127 @@ export const Sw2InterestBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 18vw);
   left: var(--blob-left, 84vw);
   background-size: 320% 320%;
+  /* 상단 interest 원: 부드럽게 궤도를 돌면서 크기가 바뀌어
+     다른 두 원과 자리를 주고받는 듯한 깊이감을 만든다. */
+  animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  /* 중앙 상단 메인 원은 다른 블롭보다 조금 더 선명하게 보이도록
+     기본 투명도를 살짝 올려 준다. */
+  opacity: 0.95;
 `;
 
 export const Sw2WonderBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 40vw);
   left: var(--blob-left, 32vw);
   background-size: 320% 320%;
+  /* 좌측 wonder 원: interest / happy 와 타이밍을 어긋나게 해
+     서로가 앞뒤로 교차하며 도는 느낌을 강화한다. */
+  animation: ${wonderDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: -6s;
 `;
 
 export const Sw2HappyBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 8vw);
   left: var(--blob-left, 18vw);
   background-size: 320% 320%;
+  /* 우측 happy 원: 세 원 중 가장 긴 주기로 움직여
+     전체가 느리게 회전하는 삼각 궤도처럼 보이게 한다. */
+  animation: ${happyDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: -12s;
+`;
+
+/* 추가 블롭 2개: calm / vivid
+ * 기존 3개의 궤도와 위상을 어긋나게 해서
+ * 항상 5개의 원이 서로 다른 크기/깊이로 떠 있는 느낌을 만든다.
+ */
+export const Sw2CalmBox = styled(Sw2BlobBase)`
+  top: var(--blob-top, 26vw);
+  left: var(--blob-left, 30vw);
+  background-size: 320% 320%;
+  animation: ${wonderDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: -3s;
+`;
+
+export const Sw2VividBox = styled(Sw2BlobBase)`
+  top: var(--blob-top, 26vw);
+  left: var(--blob-left, 70vw);
+  background-size: 320% 320%;
+  animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: -9s;
+`;
+
+/* 중앙 하단 → 상단으로 이동하는 엔트리 원 (t3, t4에서만 노출)
+ * 디자인은 상단에 있는 SW2 블롭(Sw2InterestBox)과 동일하게, Sw2BlobBase를 재사용한다.
+ */
+export const EntryCircle = styled(Sw2BlobBase)`
+  top: var(--entry-top, 78%);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* 앨범 카드(4), 캡션(6)보다 뒤에 위치시키기 위해 z-index를 낮춘다. */
+  z-index: 3;
+  /* 엔트리 전용 모션을 쓰기 위해 기본 depth 펄스 애니메이션은 제거 */
+  animation: none;
+  /* 상단 interest 블롭보다 더 크게 – 중앙 메인 원처럼 보이도록 스케일 업 */
+  width: calc(var(--blob-size, 24vw) * 1.55);
+  height: calc(var(--blob-size, 24vw) * 1.55);
+
+  /* 엔트리 블롭은 중앙은 선명하고, 외곽으로 갈수록 부드럽게 블러링되는 그라디언트를 사용한다. */
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.88) 28%,
+      rgba(255, 255, 255, 0.52) 55%,
+      rgba(255, 255, 255, 0.00) 88%
+    ),
+    var(--blob-bg, transparent);
+
+  /* 외곽 halo: 바깥쪽으로만 더 크게 퍼지는 블러를 얹어서
+     중심은 그대로 두고, 경계가 자연스럽게 흐려지도록 조정.
+     Sw2BlobBase 의 conic-gradient / pulse 애니메이션은 사용하지 않기 위해
+     background/animation 을 완전히 덮어쓴다. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.0) 58%,
+      rgba(255, 255, 255, 0.82) 72%,
+      rgba(255, 255, 255, 0.0) 90%
+    );
+    filter: blur(1.6vw);
+    opacity: 1;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    transform: none;
+    animation: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -3.5vw;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.0) 40%,
+      rgba(255, 255, 255, 0.55) 72%,
+      rgba(255, 255, 255, 0.0) 100%
+    );
+    filter: blur(4vw);
+    opacity: 0.85;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    transform: none;
+    animation: none;
+  }
+
+  &[data-stage='t3'] {
+    animation: ${entryMoveUp} 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  &[data-stage='t4'] {
+    animation: ${entryCollapse} 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
 `;
