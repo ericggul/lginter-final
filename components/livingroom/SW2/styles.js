@@ -251,17 +251,22 @@ export const CenterGlow = styled.div`
   transform-origin: center;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 2; /* FrameBg(0) 위, BlobRotator(1)와 AlbumCard(4)의 중간 레이어 */
+  /* 레이어 순서:
+     - Blob 들(최대 1) 아래에는 두지 않고
+     - TopWaveLayer(3) 보다는 아래, 앨범 카드보다도 아래에 둔다. */
+  z-index: 2;
 
-  opacity: ${({ $opacity = 0.82 }) => $opacity};
+  /* 중앙 원 외곽이 조금 더 또렷하게 보이도록
+     기본 투명도를 살짝 높였다. */
+  opacity: ${({ $opacity = 0.9 }) => $opacity};
 
   /* 기본값은 Figma radial-gradient 스펙, Leva에서 전달된 $background가 있으면 우선 사용 */
   background: ${({ $background }) =>
     $background ||
     'radial-gradient(71.1% 71.1% at 43.76% 55.19%, rgba(255, 63, 148, 0.82) 16.35%, rgba(246, 211, 196, 0.82) 56.73%, rgba(151, 222, 248, 0.82) 85.51%)'};
 
-  /* 62.8px 블러를 3840px 기준으로 스케일 ≈ 1.64vw */
-  filter: ${({ $blur = 1.64 }) => `blur(${$blur}vw)`};
+  /* 블러 강도를 약간 줄여 외곽 링이 더 선명하게 보이도록 조정 */
+  filter: ${({ $blur = 1.4 }) => `blur(${$blur}vw)`};
 
   /* 앨범 컬러/CenterGlow 설정이 변경될 때 자연스럽게 보이도록 트랜지션 */
   transition:
@@ -789,18 +794,18 @@ export const Sw2CenterSaturationPulse = styled.div`
 `;
 
 /* 공통 SW2 블롭 베이스: SW2 회전 원을 Figma 스펙 느낌으로 단순화한 버전 */
-/* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (미니 블롭 전용) */
+/* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (각 블롭 외곽에서 나가는 은은한 파동) */
 const miniRingPulse = keyframes`
   0% {
-    transform: translate(-50%, -50%) scale(0.18);
-    opacity: 0.36;
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.45;
   }
-  60% {
-    transform: translate(-50%, -50%) scale(1.4);
-    opacity: 0.22;
+  65% {
+    transform: translate(-50%, -50%) scale(1.9);
+    opacity: 0.26;
   }
   100% {
-    transform: translate(-50%, -50%) scale(1.8);
+    transform: translate(-50%, -50%) scale(2.4);
     opacity: 0.0;
   }
 `;
@@ -846,8 +851,10 @@ const Sw2BlobBase = styled.div`
   font-weight: 400;
   font-size: 2.083333vw;
   letter-spacing: 0.01em;
+  /* 중앙 CenterGlow(2) 아래, FrameBg(0) 위에 오도록
+     depthLayer(0/1/2)에 따라 1/0/0 으로 배치한다. */
   z-index: ${({ $depthLayer = 1 }) =>
-    $depthLayer === 0 ? 5 : $depthLayer === 1 ? 4 : 3};
+    $depthLayer === 0 ? 1 : 0};
   will-change: background-position, transform, opacity;
   isolation: isolate;
   /* remove stroke to avoid gray edges on compositing */
@@ -925,13 +932,13 @@ const Sw2BlobBase = styled.div`
     border-radius: inherit;
     pointer-events: none;
     z-index: 0;
-    /* center dot → thin ring expanding outward, fading to 0 */
+    /* center dot → 얇은 링이 블롭 외곽에서 더 멀리 퍼져 나가며 사라지는 파동 */
     background: radial-gradient(
       circle,
       rgba(255, 255, 255, 0.0) 0%,
-      rgba(255, 255, 255, 0.0) 60%,
-      rgba(255, 255, 255, 0.50) 72%,
-      rgba(255, 255, 255, 0.0) 88%
+      rgba(255, 255, 255, 0.0) 55%,
+      rgba(255, 255, 255, 0.55) 70%,
+      rgba(255, 255, 255, 0.0) 92%
     );
     transform-origin: center;
     filter: blur(2.6vw);
@@ -956,6 +963,9 @@ export const Sw2InterestBox = styled(Sw2BlobBase)`
   /* 상단 interest 원: 부드럽게 궤도를 돌면서 크기가 바뀌어
      다른 두 원과 자리를 주고받는 듯한 깊이감을 만든다. */
   animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  /* 중앙 상단 메인 원은 다른 블롭보다 조금 더 선명하게 보이도록
+     기본 투명도를 살짝 올려 준다. */
+  opacity: 0.95;
 `;
 
 export const Sw2WonderBox = styled(Sw2BlobBase)`
@@ -976,6 +986,26 @@ export const Sw2HappyBox = styled(Sw2BlobBase)`
      전체가 느리게 회전하는 삼각 궤도처럼 보이게 한다. */
   animation: ${happyDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -12s;
+`;
+
+/* 추가 블롭 2개: calm / vivid
+ * 기존 3개의 궤도와 위상을 어긋나게 해서
+ * 항상 5개의 원이 서로 다른 크기/깊이로 떠 있는 느낌을 만든다.
+ */
+export const Sw2CalmBox = styled(Sw2BlobBase)`
+  top: var(--blob-top, 26vw);
+  left: var(--blob-left, 30vw);
+  background-size: 320% 320%;
+  animation: ${wonderDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: -3s;
+`;
+
+export const Sw2VividBox = styled(Sw2BlobBase)`
+  top: var(--blob-top, 26vw);
+  left: var(--blob-left, 70vw);
+  background-size: 320% 320%;
+  animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: -9s;
 `;
 
 /* 중앙 하단 → 상단으로 이동하는 엔트리 원 (t3, t4에서만 노출)

@@ -22,8 +22,9 @@ export const BLOB_CONFIGS = [
   {
     id: 'happy',
     componentKey: 'Sw2HappyBox',
-    // 화면 오른쪽 아래 큰 원 – 살짝 화면 안쪽으로 당김
-    anchor: { x: 78, y: 56 },
+    // 화면 오른쪽 아래 큰 원 – 하단 쪽으로 조금 더 내려서
+    // 다른 원과 살짝 떨어지도록 조정
+    anchor: { x: 80, y: 60 },
     radius: { x: 5.8, y: 4.2 },
     jitter: { x: 1.0, y: 0.8 },
     size: { base: 50, min: 44, max: 56 },
@@ -34,14 +35,44 @@ export const BLOB_CONFIGS = [
   {
     id: 'wonder',
     componentKey: 'Sw2WonderBox',
-    // 화면 왼쪽 아래 큰 원 – 살짝 화면 안쪽으로 당김
-    anchor: { x: 22, y: 56 },
+    // 화면 왼쪽 아래 큰 원 – 하단 쪽으로 조금 더 내려서
+    // 다른 원과 살짝 떨어지도록 조정
+    anchor: { x: 20, y: 60 },
     radius: { x: 5.4, y: 4.1 },
     jitter: { x: 0.9, y: 0.75 },
     size: { base: 46, min: 40, max: 52 },
     depthLayer: 1, // 중간 레이어
     labelTop: '',
     labelBottom: '집중',
+  },
+  {
+    id: 'calm',
+    componentKey: 'Sw2CalmBox',
+    // 좌측 하단 쪽에 살짝 더 작은 원 – 큰 원(wonder)보다 조금 더 아래쪽
+    // 에 배치해서 자연스럽게 2단 레이어가 되도록 조정
+    // (좌측 아래에서 더 오른쪽으로 옮겨 중앙 쪽에 가깝게 배치)
+    anchor: { x: 24, y: 52 },
+    radius: { x: 4.2, y: 3.4 },
+    jitter: { x: 0.7, y: 0.6 },
+    size: { base: 32, min: 26, max: 38 },
+    depthLayer: 2,
+    labelTop: '',
+    labelBottom: '차분',
+  },
+  {
+    id: 'vivid',
+    componentKey: 'Sw2VividBox',
+    // 우측 하단 쪽에 살짝 더 작은 원 – 큰 원(happy)보다 조금 더 아래쪽
+    // 에 배치해서 자연스럽게 2단 레이어가 되도록 조정
+    // (오른쪽 아래에서 훨씬 위로 올려, 평온 블롭과 겹치지 않으면서도
+    // 화면 안쪽 상단까지 시야에 잘 들어오도록 조정)
+    anchor: { x: 86, y: 46 },
+    radius: { x: 4.1, y: 3.3 },
+    jitter: { x: 0.7, y: 0.6 },
+    size: { base: 34, min: 28, max: 40 },
+    depthLayer: 1,
+    labelTop: '',
+    labelBottom: '선명',
   },
 ];
 
@@ -77,8 +108,8 @@ export function createSocketHandlers({ setAmbienceData, setAssignedUsers, search
 export function useSW2Logic() {
   const [ambienceData, setAmbienceData] = useState(null);
   const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
-  // 최근 사용자 키워드 (음성 텍스트 / emotionKeyword) 최대 3개까지 유지
-  // 초기에는 감정 관련 더미 키워드 3개를 채워둔다
+  // 최근 사용자 키워드 (음성 텍스트 / emotionKeyword) 최대 5개까지 유지
+  // 초기에는 감정 관련 더미 키워드 5개를 채워둔다
   const initialKeywords = useMemo(
     () => BLOB_CONFIGS.map((b) => ({ text: b.labelBottom || '', isNew: false, id: Date.now() + Math.random() })),
     []
@@ -232,8 +263,9 @@ export function useSW2Logic() {
       if (uid) {
         setActiveUsers((prev) => {
           const next = new Set(prev);
-          next.add(uid);
-          return next;
+          const clone = new Set(next);
+          clone.add(uid);
+          return clone;
         });
       }
       // 모바일에서 바로 들어오는 사용자 입력 텍스트도 블롭 키워드로 사용
