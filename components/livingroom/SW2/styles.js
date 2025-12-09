@@ -41,13 +41,12 @@ const topRipple = keyframes`
 `;
 
 export const Root = styled.div`
-  /* TV용 풀 화면 캔버스: 스크롤이 생기지 않도록 화면에 고정 */
+  /* 화면 비율(16:9)에 고정하지 않고,
+     어떤 해상도/창 크기에서도 뷰포트 전체를 자연스럽게 채우도록 변경 */
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100vw;
-  height: 56.25vw; /* 2160 / 3840 * 100 */
-  aspect-ratio: 3840 / 2160;
+  height: 100vh;
   background: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   display: flex;
