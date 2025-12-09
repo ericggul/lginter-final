@@ -321,57 +321,59 @@ export default function SW1Controls() {
         )}
         <S.BlobRotator $duration={animation.rotationDuration}>
           {blobConfigs
-            .map((b) => {
+            .map((b, index) => {
               const Component = S[b.componentKey];
-            return (
-              <Component
-                key={b.id}
-                $angleDeg={b.angleDeg}
-                $depthLayer={b.depthLayer}
-                $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
-                $zSeed={b.zSeed}
-                data-stage={timelineState}
-                style={{
-                  // HSL variables for gradient in styles
-                  '--blob-h': miniColor.h,
-                  '--blob-s': `${miniColor.s}%`,
-                  '--blob-l': `${miniColor.l}%`,
-                  '--blob-warm-h': computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp),
-                  '--blob-warm-s1': `${miniColor.warmS1}%`,
-                  '--blob-warm-l1': '85%',
-                  '--blob-warm-s2': `${miniColor.warmS2}%`,
-                  '--blob-warm-l2': '88%',
-                  '--blob-warm-start': '60%',
-                  '--size-boost': b.sizeBoost ?? 1,
-                  // 각 블롭마다 호흡 강도를 미세하게 다르게
-                  '--orbit-radius-amp': (() => {
-                    const base =
-                      b.depthLayer === 0 ? 0.24 :
-                      b.depthLayer === 1 ? 0.19 : 0.16;
-                    const noise = ((b.zSeed ?? 0) - 0.5) * 0.06; // ±0.03
-                    const v = Math.max(0.12, Math.min(0.30, base + noise));
-                    return String(v);
-                  })(),
-                }}
-              >
-                {/* 신규 블롭도 T4에서 별도 화이트 오버레이 없이 동일 룩 유지 */}
-                <S.ContentRotator $duration={animation.rotationDuration}>
-                  <strong>{b.top}</strong>
-                  <span>{b.bottom}</span>
-                </S.ContentRotator>
-              </Component>
-            );
-          })}
+              return (
+                <Component
+                  key={b.id}
+                  $angleDeg={b.angleDeg}
+                  $depthLayer={b.depthLayer}
+                  $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
+                  $zSeed={b.zSeed}
+                  $order={index}
+                  data-stage={timelineState}
+                  style={{
+                    // HSL variables for gradient in styles
+                    '--blob-h': miniColor.h,
+                    '--blob-s': `${miniColor.s}%`,
+                    '--blob-l': `${miniColor.l}%`,
+                    '--blob-warm-h': computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp),
+                    '--blob-warm-s1': `${miniColor.warmS1}%`,
+                    '--blob-warm-l1': '85%',
+                    '--blob-warm-s2': `${miniColor.warmS2}%`,
+                    '--blob-warm-l2': '88%',
+                    '--blob-warm-start': '60%',
+                    '--size-boost': b.sizeBoost ?? 1,
+                    // 각 블롭마다 호흡 강도를 미세하게 다르게
+                    '--orbit-radius-amp': (() => {
+                      const base =
+                        b.depthLayer === 0 ? 0.24 :
+                        b.depthLayer === 1 ? 0.19 : 0.16;
+                      const noise = ((b.zSeed ?? 0) - 0.5) * 0.06; // ±0.03
+                      const v = Math.max(0.12, Math.min(0.30, base + noise));
+                      return String(v);
+                    })(),
+                  }}
+                >
+                  {/* 신규 블롭도 T4에서 별도 화이트 오버레이 없이 동일 룩 유지 */}
+                  <S.ContentRotator $duration={animation.rotationDuration}>
+                    <strong>{b.top}</strong>
+                    <span>{b.bottom}</span>
+                  </S.ContentRotator>
+                </Component>
+              );
+            })}
           {/* 데이터와 무관하게 항상 함께 도는 작은 장식용 원 3개 */}
           <S.Sw1SmallOrbitDot1 data-stage={timelineState} />
           <S.Sw1SmallOrbitDot2 data-stage={timelineState} />
           <S.Sw1SmallOrbitDot3 data-stage={timelineState} />
         </S.BlobRotator>
-        {/* 항상 흐릿하게 돌아다니는 자유 블롭 4개 (데이터 무관, 아주 부드럽고 은은) */}
-        <S.FreeBlur1 />
-        <S.FreeBlur2 />
-        <S.FreeBlur3 />
-        <S.FreeBlur4 />
+        {/* 항상 흐릿하게 돌아다니는 자유 블롭 4개 (데이터 무관, 아주 부드럽고 은은)
+            - T4에서는 중앙 집중 연출을 위해 잠시 투명 처리 (styles에서 data-stage 기반으로 제어) */}
+        <S.FreeBlur1 data-stage={timelineState} />
+        <S.FreeBlur2 data-stage={timelineState} />
+        <S.FreeBlur3 data-stage={timelineState} />
+        <S.FreeBlur4 data-stage={timelineState} />
         {/* Debug markers: center and intended entry (bottom center). Remove after verification. */}
         <S.DebugCenter />
         <S.DebugBottomStart />

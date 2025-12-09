@@ -74,9 +74,10 @@ export function useSW1Logic() {
   const [activeUsers, setActiveUsers] = useState(new Set());
   const [timelineState, setTimelineState] = useState('t1'); // t1..t5
   const [stateTick, setStateTick] = useState(0);
-  const [bloomTick, setBloomTick] = useState(0); // T3/T4 트리거
+  const [bloomTick, setBloomTick] = useState(0); // 중앙 블룸 트리거 (T4 진입 시점)
   const [typeTick, setTypeTick] = useState(0);  // T4 타이포 라이즈 트리거
-  const stageTimersRef = useRef({ t4: null, t5: null });
+  // 각 스테이지 전환/이펙트용 타이머
+  const stageTimersRef = useRef({ t3Bloom: null, t4: null, t5: null });
   const prevTimelineRef = useRef('t1');
   const stageOrder = ['t1', 't2', 't3', 't4', 't5'];
 
@@ -84,7 +85,7 @@ export function useSW1Logic() {
     Object.values(stageTimersRef.current || {}).forEach((id) => {
       if (id) clearTimeout(id);
     });
-    stageTimersRef.current = { t4: null, t5: null };
+    stageTimersRef.current = { t3Bloom: null, t4: null, t5: null };
   }, []);
 
   const requestStage = useCallback((next) => {
@@ -191,8 +192,9 @@ export function useSW1Logic() {
       };
       setNextClimate(incomingClimate);
       try { window.__sw1DecisionTick = (window.__sw1DecisionTick || 0) + 1; } catch {}
-      // T4: 디시전 수신 시 블룸/타입 트리거
-      setBloomTick((x) => x + 1);
+      // T4: 디시전 수신 시 타이포/상태 갱신 트리거
+      // 중앙 블룸은 하단 엔트리 블롭이 실제로 중앙에 도달하는 타이밍(T3 후반)에 맞춰
+      // timelineState === 't3' 처리(useEffect)에서만 한 번 트리거한다.
       setTypeTick((x) => x + 1);
 
       // Participants (source-of-truth from message)
@@ -325,7 +327,6 @@ export function useSW1Logic() {
     clearStageTimers();
 
     if (timelineState === 't3') {
-      setBloomTick((x) => x + 1); // enter bloom once
       // 기존 오빗 블롭은 그대로 두고, 진입용 블롭만 별도 상태에 생성
       setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));
       setEntryBlob({
@@ -336,6 +337,9 @@ export function useSW1Logic() {
       });
       stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), T3_TO_T4_MS);
     } else if (timelineState === 't4') {
+      // 하단 엔트리 블롭이 이미 중앙에 도달해 있는 상태에서
+      // 중앙 그라데이션/화이트 버스트가 한 번 강하게 빛나도록 T4 진입 시 bloomTick 트리거
+      setBloomTick((x) => x + 1);
       stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), T4_TO_T5_MS);
     } else if (timelineState === 't5') {
       setEntryBlob(null);
