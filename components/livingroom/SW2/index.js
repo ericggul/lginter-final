@@ -18,6 +18,7 @@ export default function SW2Controls() {
     audioRef,
     participantCount,
     blobRefs,
+    timelineState,
   } = useSW2Logic();
 
   const animation = useControls('SW2 Animation', {
@@ -131,6 +132,11 @@ export default function SW2Controls() {
     [blobConfigs, blobTuning, keywords]
   );
 
+  const interestBlob = useMemo(
+    () => tunedBlobConfigs.find((blob) => blob.id === 'interest'),
+    [tunedBlobConfigs]
+  );
+
   // Leva 스펙(기본 핑크)과 앨범 컬러 기반 내부 채움 중 선택
   const levaPinkBackground = `radial-gradient(${centerRing.radius}% ${centerRing.radius}% at ${centerRing.focusX}% ${centerRing.focusY}%, ${centerRing.color1} ${centerRing.stop1}%, ${centerRing.color2} ${centerRing.stop2}%, ${centerRing.color3} ${centerRing.stop3}%)`;
   // 앨범 기반: 안쪽은 앨범 컬러, 바깥은 기존 핑크 계열을 유지
@@ -163,7 +169,14 @@ export default function SW2Controls() {
   const displayArtist = artist || 'Kevin MacLeod';
 
   return (
-    <S.Root style={{ backgroundColor: `hsla(var(--album-h, ${getEmotionEntry(keywords?.[0] || '설렘').center.h}), 35%, 90%, 0.22)` }}>
+    <S.Root
+      data-stage={timelineState}
+      style={{
+        backgroundColor: `hsla(var(--album-h, ${getEmotionEntry(keywords?.[0] || '설렘').center.h}), 35%, 90%, 0.22)`,
+        // CenterGlow / EntryCircle 가 동일한 스케일을 쓰도록 공유 CSS 변수 설정
+        '--center-scale': centerRing.sizeScale,
+      }}
+    >
       {/* 상단에서부터 번져 나가는 핑크 파동 레이어 (백엔드와 무관한 순수 프론트 효과) */}
       <S.TopWaveLayer aria-hidden="true">
         {/* 서로 다른 딜레이를 줘서 연속적인 리플 느낌 생성 */}
@@ -174,12 +187,27 @@ export default function SW2Controls() {
 
       {/* 가운데 원형 핑크 그라디언트 (SW1 스타일 응용) */}
       <S.CenterGlow
+        data-stage={timelineState}
         $topPercent={centerRing.topPercent}
         $opacity={centerRing.opacity}
         $blur={centerRing.blur}
         $scale={centerRing.sizeScale}
         $background={centerGlowBackground}
       />
+
+      {/* t3: 중앙 하단에서 등장해 상단 블롭과 같은 디자인으로 이동
+          t4: 상단 블롭 속으로 말려 들어가는 엔트리 블롭 */}
+      {interestBlob && (timelineState === 't3' || timelineState === 't4') && (
+        <S.EntryCircle
+          data-stage={timelineState}
+          aria-hidden="true"
+          $depthLayer={interestBlob.depthLayer}
+          style={{
+            '--blob-size': `${interestBlob.size.base}vw`,
+            ...(interestBlob.emotionEntry ? buildMiniVars(interestBlob.emotionEntry) : {}),
+          }}
+        />
+      )}
 
       <S.BlobRotator $duration={animation.rotationDuration}>
         {tunedBlobConfigs.map((blob, idx) => {
@@ -207,6 +235,8 @@ export default function SW2Controls() {
           );
         })}
       </S.BlobRotator>
+      {/* t5: 배경 전체가 한 번 더 부드럽게 빛나는 펄스 */}
+      {timelineState === 't5' && <S.BackgroundPulse data-stage={timelineState} aria-hidden="true" />}
       {/* If background frame image is unavailable, pass empty to avoid 404 */}
       <S.FrameBg $url="" />
       <S.TopStatus>

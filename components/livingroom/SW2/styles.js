@@ -194,6 +194,34 @@ export const FrameBg = styled.div`
   }
 `;
 
+/* t4 시점: 상단 원 하이라이트용 스케일/불빛 펄스 (효과를 더 강하게) */
+const centerBloomOnce = keyframes`
+  0% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1);
+    opacity: 0.9;
+  }
+  35% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1.04);
+    opacity: 0.96;
+  }
+`;
+
+/* t5 시점: 하이라이트에서 서서히 원래 상태로 돌아가는 모션 (조금 더 밝게 유지) */
+const centerRestore = keyframes`
+  0% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-47.8deg) scale(1);
+    opacity: 0.94;
+  }
+`;
+
 /* 중앙 앨범 카드를 감싸는 SW1 스타일의 핑크 링/그라디언트 글로우 */
 export const CenterGlow = styled.div`
   position: absolute;
@@ -203,7 +231,8 @@ export const CenterGlow = styled.div`
   /* Figma 스펙에서 살짝 축소 (더 작게). Leva에서 전달된 scale 로 추가 조절 */
   width: ${({ $scale = 1 }) => `calc(100vw * ${2200 * $scale} / 3840)`};
   height: ${({ $scale = 1 }) => `calc(100vw * ${2200 * $scale} / 3840)`};
-  transform: translate(-50%, -50%) rotate(-47.8deg);
+  transform: translate(-50%, -50%) rotate(-47.8deg) scale(1);
+  transform-origin: center;
   border-radius: 50%;
   pointer-events: none;
   z-index: 2; /* FrameBg(0) 위, BlobRotator(1)와 AlbumCard(4)의 중간 레이어 */
@@ -217,6 +246,26 @@ export const CenterGlow = styled.div`
 
   /* 62.8px 블러를 3840px 기준으로 스케일 ≈ 1.64vw */
   filter: ${({ $blur = 1.64 }) => `blur(${$blur}vw)`};
+
+  /* t4: 상단 원이 한 번 강하게 빛나며 살짝 커졌다가 되돌아오는 모션 */
+  ${({ 'data-stage': stage }) =>
+    stage === 't4' &&
+    css`
+      animation: ${centerBloomOnce} 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      box-shadow:
+        0 0 6vw rgba(255, 255, 255, 0.9),
+        0 0 12vw rgba(255, 192, 220, 0.7);
+    `}
+
+  /* t5: 살짝 더 부드러운 복귀/잔광 모션 */
+  ${({ 'data-stage': stage }) =>
+    stage === 't5' &&
+    css`
+      animation: ${centerRestore} 2s ease-in-out forwards;
+      box-shadow:
+        0 0 5vw rgba(255, 255, 255, 0.7),
+        0 0 10vw rgba(255, 192, 220, 0.5);
+    `}
 `;
 
 /* === Mobile blob motion (adapted) ===================================== */
@@ -574,6 +623,78 @@ export const AlbumPlaceholder = styled.div`
   background: white;
 `;
 
+/* ---------------------------
+ * Timeline t3/t4/t5 전용 모션
+ * -------------------------*/
+
+/* t3: 화면 하단(화면 밖)에서 상단 원(interest 블롭) 위치까지 2초 동안 서서히 이동하는 엔트리 원 */
+const entryMoveUp = keyframes`
+  0% {
+    top: 110%;
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.9);
+  }
+  20% {
+    opacity: 1;
+    top: 85%;
+  }
+  100% {
+    top: 40%;
+    transform: translate(-50%, -50%) scale(1);
+  }
+`;
+
+/* t4: 상단 근처에 도달한 원이 안쪽으로 말려 들어가며 빛나는 모션 */
+const entryCollapse = keyframes`
+  0% {
+    top: 40%;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    top: 38%;
+    transform: translate(-50%, -50%) scale(0.05);
+    opacity: 0;
+  }
+`;
+
+/* t5: 전체 배경이 한 번 더 부드럽게 빛나고 2초 동안 서서히 잦아드는 펄스 */
+const bgPulse = keyframes`
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  20% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+`;
+
+/* t5: 배경 전체를 감싸는 소프트 화이트 펄스 */
+export const BackgroundPulse = styled.div`
+  position: absolute;
+  inset: -15%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0.4) 35%,
+    rgba(255, 255, 255, 0.0) 75%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+
+  &[data-stage='t5'] {
+    animation: ${bgPulse} 2s ease-in-out forwards;
+  }
+`;
+
 /* 공통 SW2 블롭 베이스: SW2 회전 원을 Figma 스펙 느낌으로 단순화한 버전 */
 /* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (미니 블롭 전용) */
 const miniRingPulse = keyframes`
@@ -751,4 +872,49 @@ export const Sw2HappyBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 8vw);
   left: var(--blob-left, 18vw);
   background-size: 320% 320%;
+`;
+
+/* 중앙 하단 → 상단으로 이동하는 엔트리 원 (t3, t4에서만 노출)
+ * 디자인은 상단에 있는 SW2 블롭(Sw2InterestBox)과 동일하게, Sw2BlobBase를 재사용한다.
+ */
+export const EntryCircle = styled(Sw2BlobBase)`
+  top: var(--entry-top, 78%);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  /* 엔트리 전용 모션을 쓰기 위해 기본 depth 펄스 애니메이션은 제거 */
+  animation: none;
+  /* 상단 interest 블롭보다 훨씬 크게 – 중앙 메인 원처럼 보이도록 스케일 업 */
+  width: calc(var(--blob-size, 24vw) * 1.35);
+  height: calc(var(--blob-size, 24vw) * 1.35);
+
+  /* 엔트리 블롭은 중심을 더 선명하게 보이도록 별도 코어를 갖는다. */
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(255, 255, 255, 0.96) 32%,
+      rgba(255, 255, 255, 0.0) 70%
+    ),
+    var(--blob-bg, transparent);
+
+  /* 외곽 halo를 약하게 줄여서 실제 크기가 더 또렷하게 보이도록 조정 */
+  &::before {
+    inset: -1.6vw;
+    filter: blur(1.2vw);
+    opacity: 0.85;
+  }
+
+  &::after {
+    filter: blur(1.6vw);
+    opacity: 0.8;
+  }
+
+  &[data-stage='t3'] {
+    animation: ${entryMoveUp} 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  &[data-stage='t4'] {
+    animation: ${entryCollapse} 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
 `;

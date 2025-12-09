@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import useSocketSW2 from "@/utils/hooks/useSocketSW2";
 import { playSfx } from "@/utils/hooks/useSound";
 import { parseMusicString, getAlbumCoverPath, getAlbumSongPath, getAlbumData } from "@/utils/data/albumData";
+import { TIMELINE_STATES } from "./logic/moving";
 
 // 뷰에서 사용할 블롭 배치/초기 키워드 설정
 export const BLOB_CONFIGS = [
@@ -95,6 +96,52 @@ export function useSW2Logic() {
   const blobRefs = useRef({});
   const searchYouTubeMusic = useCallback(async () => {}, []); // no-op
 
+  // ---------------------------
+  // Timeline stage (t1..t5)
+  // ---------------------------
+  const [timelineState, setTimelineState] = useState('t1'); // t1..t5
+  const stageOrder = ['t1', 't2', 't3', 't4', 't5'];
+  // t3 → t4, t4 → t5 전환을 부드럽게 제어하기 위한 로컬 타이머
+  const stageTimersRef = useRef({ t4: null, t5: null });
+  const prevTimelineRef = useRef('t1');
+
+  const clearStageTimers = useCallback(() => {
+    Object.values(stageTimersRef.current || {}).forEach((id) => {
+      if (id) clearTimeout(id);
+    });
+    stageTimersRef.current = { t4: null, t5: null };
+  }, []);
+
+  const requestStage = useCallback((next) => {
+    if (!stageOrder.includes(next)) return;
+    setTimelineState((prev) => {
+      const prevIdx = stageOrder.indexOf(prev);
+      const nextIdx = stageOrder.indexOf(next);
+      // t3는 재진입을 허용(다시 voiceinput 단계가 온 경우)
+      if (nextIdx < prevIdx && next !== 't3') {
+        return prev;
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => () => clearStageTimers(), [clearStageTimers]);
+
+  useEffect(() => {
+    const prev = prevTimelineRef.current;
+    if (prev === timelineState) return;
+    prevTimelineRef.current = timelineState;
+    clearStageTimers();
+
+    if (timelineState === 't3') {
+      const ms = TIMELINE_STATES.t3.entryToCenterMs || 4500;
+      stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), ms);
+    } else if (timelineState === 't4') {
+      const ms = TIMELINE_STATES.t4.mergeMs || 2600;
+      stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), ms);
+    }
+  }, [timelineState, clearStageTimers, requestStage]);
+
   const sanitizeKeyword = (raw) => {
     const s = String(raw || '').trim();
     if (!s) return '';
@@ -138,6 +185,26 @@ export function useSW2Logic() {
 
   // Only listen to orchestrated decisions; ignore legacy device-decision to prevent non-orchestrated playback
 
+  const handleTimelineStage = useCallback((payload) => {
+    try {
+      const stage = String(payload?.stage || '').toLowerCase();
+      // 서버에서 오는 타임라인 스테이지명을 t1~t5로 매핑하되,
+      // SW2에서는 t3 이후(t4/t5)는 프론트 전용 타이머로만 진행한다.
+      const map = {
+        welcome: 't1',
+        voicestart: 't2',
+        voiceinput: 't3',
+        // orchestrated/result 는 SW2에서는 로컬 타이머로만 처리 → 무시
+        t1: 't1',
+        t2: 't2',
+        t3: 't3',
+      };
+      const next = map[stage];
+      if (!next) return;
+      requestStage(next);
+    } catch {}
+  }, [requestStage]);
+
   useSocketSW2({
     onDeviceNewDecision: (msg) => {
       // Orchestrated only
@@ -174,6 +241,8 @@ export function useSW2Logic() {
         pushKeyword(payload.text || payload.emotion);
       }
     },
+    // 타임라인 스테이지 신호는 SW2 프론트 연출에만 사용 (백엔드는 그대로)
+    onTimelineStage: handleTimelineStage,
   });
 
   useEffect(() => {
@@ -279,5 +348,6 @@ export function useSW2Logic() {
     audioRef,
     participantCount,
     blobRefs,
+    timelineState,
   };
 }
