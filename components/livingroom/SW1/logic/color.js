@@ -8,16 +8,18 @@ export const hueForTemp = (tempC, { coolHue, warmHue, tMin = 15, tMax = 35 } = {
   lerp(coolHue, warmHue, invlerp(tMin, tMax, tempC));
 
 // 1) Big blob: innerRingH, mid2H use same hue; S/L unchanged (taken from UI controls)
+//    - 차가운 결정일수록 쿨핑크/퍼플 계열 (H ≈ 285°)
+//    - 따뜻한 결정일수록 웜핑크 계열 (H ≈ 345°)
 export function computeBigBlobHues(tempC) {
-  const H = hueForTemp(tempC, { coolHue: 205, warmHue: 88 });
+  const H = hueForTemp(tempC, { coolHue: 285, warmHue: 345, tMin: 18, tMax: 30 });
   return { innerRingH: Math.round(H), mid2H: Math.round(H) };
 }
 
-// Background: same hue, lighter/weaker S/L
+// Background: 동일한 H만 공유하고, S/L은 고정값에서 살짝만 조정
 export function computeBackgroundHsl(tempC, { sBase = 45, lBase = 96 } = {}) {
-  const H = hueForTemp(tempC, { coolHue: 205, warmHue: 88 });
-  const S = clamp(sBase * 0.6, 0, 100);
-  const L = clamp(lBase + 5, 0, 100);
+  const H = hueForTemp(tempC, { coolHue: 285, warmHue: 345, tMin: 18, tMax: 30 });
+  const S = clamp(sBase * 0.7, 0, 100);
+  const L = clamp(lBase + 2, 0, 100);
   return { h: Math.round(H), s: Math.round(S), l: Math.round(L) };
 }
 

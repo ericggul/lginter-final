@@ -16,6 +16,9 @@ export const SW1_BLOB_CONFIGS = [
   // 추가 슬롯(최대 10개까지 확장 가능)
   { id: 'slot6', componentKey: 'Sw1OrbitBlob', angleDeg: -60,  depthLayer: 2, radiusFactor: 1.62 },
   { id: 'slot7', componentKey: 'Sw1OrbitBlob', angleDeg: 60,   depthLayer: 1, radiusFactor: 1.68 },
+  { id: 'slot8', componentKey: 'Sw1OrbitBlob', angleDeg: 0,    depthLayer: 2, radiusFactor: 1.50 },
+  { id: 'slot9', componentKey: 'Sw1OrbitBlob', angleDeg: -120, depthLayer: 1, radiusFactor: 1.55 },
+  { id: 'slot10',componentKey: 'Sw1OrbitBlob', angleDeg: 110,  depthLayer: 2, radiusFactor: 1.65 },
 ];
 
 const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
@@ -358,8 +361,8 @@ export function useSW1Logic() {
 
   // Derive mini-blob display text set (temp on top, humidity% on bottom)
   const miniBlobDisplay = useMemo(() => {
-    // 항상 MAX_BLOBS 길이를 유지해 초회 메시지가 6개만 와도 슬롯이 빠지지 않도록 고정
-    const filled = ensureBlobCount(miniResults, displayClimate, MAX_BLOBS, MAX_BLOBS);
+    // 항상 최소 4개 슬롯은 유지하되, 최대 10개까지만 화면에 배치
+    const filled = ensureBlobCount(miniResults, displayClimate, 4, MAX_BLOBS);
     return SW1_BLOB_CONFIGS.slice(0, filled.length).map((cfg, idx) => {
       const r = filled[idx];
       const top = r?.temp != null ? `${r.temp}℃` : '';
@@ -393,6 +396,34 @@ export function useSW1Logic() {
       };
     });
   }, [miniResults, zSeeds, displayClimate]);
+
+  // 오래된 실사용자 블롭은 1분에 하나씩 자연스럽게 제거 (최대 10개까지 유지)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMiniResults((prev) => {
+        if (!prev || !prev.length) return prev;
+        const now = Date.now();
+        let removedThisTick = false;
+        const next = [...prev];
+        for (let i = 0; i < next.length; i += 1) {
+          const r = next[i];
+          if (!r) continue;
+          const uid = String(r.userId || '');
+          if (!uid || DUMMY_ID_REGEX.test(uid)) continue; // 더미는 유지
+          const addedAt = r.addedAt || 0;
+          // 60초 이상 지난 실사용자 블롭을 한 번에 하나씩만 제거
+          if (!removedThisTick && addedAt && now - addedAt > 60_000) {
+            next[i] = null;
+            slotByUserRef.current.delete(uid);
+            removedThisTick = true;
+          }
+        }
+        return removedThisTick ? next : prev;
+      });
+    }, 10_000); // 10초마다 검사 → 1분 이상된 블롭을 순차적으로 하나씩 제거
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Play sfx when a new real user appears in mini blobs
   useEffect(() => {
