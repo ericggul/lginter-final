@@ -7,7 +7,7 @@ import * as S from './styles';
 import { useTV2Logic, useTV2DisplayLogic } from './logic';
 
 export default function TV2Controls() {
-  const { env, title, artist, coverSrc, audioSrc, reason } = useTV2Logic();
+  const { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword } = useTV2Logic();
   const scalerRef = useRef(null);
   const audioRef = useRef(null);
 
@@ -148,6 +148,7 @@ export default function TV2Controls() {
     coverSrc,
     audioSrc,
     reason,
+    emotionKeyword,
     levaControls: {
       edgeBlurAmount,
       edgeBlurWidth,
@@ -215,6 +216,8 @@ export default function TV2Controls() {
     displayTemp,
     displayHumidity,
     displayHeaderText: displayHeaderTextValue,
+    displayReason,
+    showReasonLoading,
     showTitleLoading,
     showArtistLoading,
     showAlbumCover,
@@ -244,9 +247,27 @@ export default function TV2Controls() {
     iconShadowColorRgba,
     textGlowColorRgba,
     iconGlowColorRgba,
+    motionState,
+    decisionKey,
+    showBorderFlash,
+    isT4,
+    isT5,
+    triggerT4Animations,
+    triggerT5Animations,
+    waveformPulseIntensity,
   } = displayLogic;
 
-  const titleColor = albumPalette?.left4 || albumPalette?.left3 || 'rgba(255,255,255,1)';
+  // 곡명 컬러는 항상 화이트로 고정
+  const titleColor = 'rgba(255,255,255,1)';
+
+  // 모든 정보가 한 번에 뜨도록 공통 로딩 상태
+  const isLoading =
+    showTitleLoading ||
+    showArtistLoading ||
+    showTempLoading ||
+    showHumidityLoading ||
+    showHeaderLoading ||
+    showReasonLoading;
   
   // 브라우저 줌 방지 및 스크롤 비활성화 (UI 관련만 유지)
   useEffect(() => {
@@ -309,7 +330,7 @@ export default function TV2Controls() {
       <S.Scaler ref={scalerRef} style={{ '--tv2-scale': scale }}>
         <S.Root>
           <S.Header
-            key={`${headerGradientStartRgba}-${headerGradientMidRgba}-${headerGradientEndRgba}-${headerGradientEndPos}`}
+            key={`header-${decisionKey}-${isT4}`}
             $gradientStart={headerGradientStartRgba}
             $gradientMid={headerGradientMidRgba}
             $gradientEnd={headerGradientEndRgba}
@@ -317,6 +338,8 @@ export default function TV2Controls() {
             $gradientEndPos={headerGradientEndPos}
             $edgeBlurAmount={edgeBlurAmount}
             $edgeBlurWidth={edgeBlurWidth}
+            $isT4={isT4}
+            $triggerT4={triggerT4Animations}
           >
             <S.HeaderIcon
               $glowColor={iconGlowColorRgba}
@@ -334,8 +357,17 @@ export default function TV2Controls() {
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
               >
-                <S.FadeSlideText $slideLR key={displayHeaderTextValue || displayHeaderText || 'header-loading'}>
-                  {showHeaderLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHeaderTextValue || displayHeaderText || '')}
+                <S.FadeSlideText $slideLR $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayHeaderTextValue || displayHeaderText || 'header-loading'}-${decisionKey}`}>
+                  {showHeaderLoading ? (
+                    <S.LoadingDots><span /><span /><span /></S.LoadingDots>
+                  ) : (
+                    <>
+                      {displayHeaderTextValue || displayHeaderText || ''}
+                      {displayReason && !showReasonLoading && (
+                        <S.ReasonCaption>{displayReason}</S.ReasonCaption>
+                      )}
+                    </>
+                  )}
                 </S.FadeSlideText>
               </S.HeaderTitle>
           </S.Header>
@@ -353,6 +385,8 @@ export default function TV2Controls() {
               $blur={blurAnim}
               $edgeBlurAmount={edgeBlurAmount}
               $edgeBlurWidth={edgeBlurWidth}
+              $isT4={isT4}
+              $triggerT4={triggerT4Animations}
             >
               <S.LeftPanelRightEdge
                 $blurAmount={edgeBlurAmount}
@@ -362,7 +396,11 @@ export default function TV2Controls() {
                 $color4={albumPalette?.left4 || leftPanelColor4}
               />
               <S.EmotionFlow>
-                <span>{musicTag || env.music || ''}</span>
+                <span>
+                  {isLoading
+                    ? <S.LoadingDots><span /><span /><span /></S.LoadingDots>
+                    : (musicTag || env.music || '')}
+                </span>
               </S.EmotionFlow>
               <S.AngularSweep />
               <S.AngularSharp />
@@ -382,7 +420,7 @@ export default function TV2Controls() {
                 >
                   <img src="/figma/tv2-song.png" alt="" />
                 </S.MusicIcon>
-              <S.FadeSlideText $slideLR key={env.music || 'music-loading'}>
+              <S.FadeSlideText $slideLR $isT5={isT5} $triggerT5={triggerT5Animations} key={`${env.music || 'music-loading'}-${decisionKey}`}>
                 {(() => {
                   if (!env.music) {
                     return <S.LoadingDots><span /><span /><span /></S.LoadingDots>;
@@ -397,13 +435,21 @@ export default function TV2Controls() {
                            normalizedCatalogId === normalizedParsedTitle;
                   });
                   const tag = catalogEntry?.tags?.[0] || env.music;
-                  return tag.charAt(0).toUpperCase() + tag.slice(1);
+                  const label = tag.charAt(0).toUpperCase() + tag.slice(1);
+                  return (
+                    <>
+                      {label}
+                      {displayReason && !showReasonLoading && (
+                        <S.ReasonCaption>{displayReason}</S.ReasonCaption>
+                      )}
+                    </>
+                  );
                 })()}
               </S.FadeSlideText>
               </S.MusicRow>
               <S.AlbumCard>
               <S.AlbumBg $bg={albumCardBackground || 'rgba(255,255,255,0.96)'} />
-            <S.AlbumVisual key={albumVisualKey}>
+            <S.AlbumVisual key={albumVisualKey} $isT5={isT5} $triggerT5={triggerT5Animations}>
                 {showAlbumCover && coverSrc ? (
                   <S.AlbumImage
                     src={coverSrc}
@@ -431,7 +477,7 @@ export default function TV2Controls() {
                 $blend={textBlendMode}
                 $color={titleColor}
             >
-              <S.FadeSlideText key={displayTitle || env.music || 'title-loading'}>
+              <S.FadeSlideText $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayTitle || env.music || 'title-loading'}-${decisionKey}`}>
                 {showTitleLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTitle || env.music || '')}
               </S.FadeSlideText>
             </S.TrackTitle>
@@ -442,16 +488,17 @@ export default function TV2Controls() {
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
             >
-              <S.FadeSlideText key={displayArtist || 'artist-loading'}>
+              <S.FadeSlideText $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayArtist || 'artist-loading'}-${decisionKey}`}>
                 {showArtistLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : displayArtist}
               </S.FadeSlideText>
             </S.Artist>
             {/* 음악 파형 인디케이터 */}
-            <S.WaveformIndicator>
+            <S.WaveformIndicator $pulseIntensity={waveformPulseIntensity} $isT5={isT5}>
               {waveformData.map((height, i) => (
                 <S.WaveformBar
                   key={i}
                   $height={height}
+                  $pulseIntensity={waveformPulseIntensity}
                 />
               ))}
             </S.WaveformIndicator>
@@ -479,6 +526,8 @@ export default function TV2Controls() {
               $bgColor2={rightPanelBgColor2Rgba}
               $bgColor2Pos={rightPanelBgColor2Pos}
               $bgColor3={rightPanelBgColor3Rgba}
+              $isT4={isT4}
+              $triggerT4={triggerT4Animations}
             >
               <S.RightEllipseMark 
                 src="/figma/Ellipse%202767.png" 
@@ -504,8 +553,17 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-temperature.png" alt="" />
                   </S.ClimateIcon>
-                  <S.FadeSlideText $roulette key={displayTemp || env.temp || 'temp-loading'}>
-                    {showTempLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : ''))}
+                  <S.FadeSlideText $roulette $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayTemp || env.temp || 'temp-loading'}-${decisionKey}`}>
+                    {showTempLoading ? (
+                      <S.LoadingDots><span /><span /><span /></S.LoadingDots>
+                    ) : (
+                      <>
+                        {displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : '')}
+                        {displayReason && !showReasonLoading && (
+                          <S.ReasonCaption>{displayReason}</S.ReasonCaption>
+                        )}
+                      </>
+                    )}
                   </S.FadeSlideText>
                 </S.ClimateRow>
               <S.ClimateRow
@@ -525,8 +583,17 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-humidity.png" alt="" />
                   </S.ClimateIcon>
-                  <S.FadeSlideText $roulette key={displayHumidity || env.humidity || 'humidity-loading'}>
-                    {showHumidityLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : ''))}
+                  <S.FadeSlideText $roulette $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayHumidity || env.humidity || 'humidity-loading'}-${decisionKey}`}>
+                    {showHumidityLoading ? (
+                      <S.LoadingDots><span /><span /><span /></S.LoadingDots>
+                    ) : (
+                      <>
+                        {displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : '')}
+                        {displayReason && !showReasonLoading && (
+                          <S.ReasonCaption>{displayReason}</S.ReasonCaption>
+                        )}
+                      </>
+                    )}
                   </S.FadeSlideText>
                 </S.ClimateRow>
               <S.NoticeTyping>3초 뒤 기기 작동을 시작합니다</S.NoticeTyping>
@@ -552,6 +619,7 @@ export default function TV2Controls() {
               <S.ThinkingDot /><S.ThinkingDot /><S.ThinkingDot />
             </S.ThinkingOverlay>
           )}
+          {showBorderFlash && <S.BorderFlash />}
         </S.Root>
       </S.Scaler>
     </S.Viewport>
