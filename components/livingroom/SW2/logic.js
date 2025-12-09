@@ -369,6 +369,8 @@ export function useSW2Logic() {
     return Math.max(names.size, activeUsers.size || 0);
   }, [assignedUsers, activeUsers]);
 
+  const lightColor = ambienceData?.lightColor || null;
+
   return {
     blobConfigs: BLOB_CONFIGS,
     keywords,
@@ -381,5 +383,6 @@ export function useSW2Logic() {
     participantCount,
     blobRefs,
     timelineState,
+    lightColor,
   };
 }

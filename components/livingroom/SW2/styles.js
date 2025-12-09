@@ -327,8 +327,11 @@ export const HeadText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 600; /* Semi Bold */
   font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
-  color: #111827;
+  color: #FFFFFF;
   letter-spacing: 0.02em;
+  text-shadow:
+    0 0.08vw 0.32vw rgba(0, 0, 0, 0.55),
+    0 0.26vw 0.78vw rgba(0, 0, 0, 0.45);
 `;
 
 export const SubText = styled.div`
@@ -336,8 +339,11 @@ export const SubText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400; /* Regular */
   font-size: clamp(0.416667vw, 2.6vmin, 1.458333vw);
-  color: #374151;
+  color: rgba(255, 255, 255, 0.92);
   letter-spacing: 0.02em;
+  text-shadow:
+    0 0.06vw 0.28vw rgba(0, 0, 0, 0.5),
+    0 0.20vw 0.72vw rgba(0, 0, 0, 0.4);
 `;
 
 export const Column = styled.div`
@@ -624,6 +630,56 @@ export const EmptyText = styled.p`
   opacity: 0.6;
 `;
 
+/* SW2 전용 미니 텍스트 플레이스홀더: '...' 에 가벼운 호흡 애니메이션 */
+const ellipsisPulse = keyframes`
+  0%, 100% {
+    opacity: 0.25;
+    transform: translateY(0.12vw);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+export const MiniEllipsis = styled.span`
+  display: inline-block;
+  letter-spacing: 0.24em;
+  font-weight: 500;
+  animation: ${ellipsisPulse} 1.2s ease-in-out infinite;
+`;
+
+export const MiniKeywordLine = styled.span`
+  display: block;
+  font-weight: 600;
+  font-size: 0.9vw;
+  letter-spacing: 0.06em;
+`;
+
+export const MiniMusicLine = styled.span`
+  display: block;
+  margin-top: 0.08vw;
+  font-weight: 400;
+  font-size: 0.62vw;
+  opacity: 0.9;
+`;
+
+/* 미니 블롭 외곽에 아주 연한 파동(halo) 애니메이션 */
+const miniHaloPulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.22;
+  }
+  45% {
+    transform: scale(1.08);
+    opacity: 0.33;
+  }
+  70% {
+    transform: scale(0.97);
+    opacity: 0.18;
+  }
+`;
+
 /* === Compact album card (square) ========================================= */
 export const AlbumCard = styled.div`
   --album-size: min(60vmin, 18.5vw);
@@ -640,15 +696,35 @@ export const AlbumCard = styled.div`
   overflow: hidden;
 `;
 
+const albumImageBlurIn = keyframes`
+  0% {
+    opacity: 0;
+    filter: blur(26px);
+    transform: scale(1.04);
+  }
+  60% {
+    opacity: 0.9;
+    filter: blur(10px);
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+`;
+
 export const AlbumImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  /* 새 앨범 커버가 로드될 때 서서히 페이드인 */
+  /* 새 앨범 커버가 설정될 때 컨테이너 전체가 강하게 블러리했다가 2초 뒤 선명해지도록 */
   opacity: 0;
+  filter: blur(26px);
   transition: opacity 1600ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity;
+  animation: ${albumImageBlurIn} 2s ease-out forwards;
+  will-change: opacity, filter, transform;
 `;
 
 export const AlbumPlaceholder = styled.div`
@@ -794,25 +870,7 @@ export const Sw2CenterSaturationPulse = styled.div`
   }
 `;
 
-/* 공통 SW2 블롭 베이스: SW2 회전 원을 Figma 스펙 느낌으로 단순화한 버전 */
-/* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (각 블롭 외곽에서 나가는 은은한 파동) */
-const miniRingPulse = keyframes`
-  0% {
-    transform: translate(-50%, -50%) scale(0.2);
-    opacity: 0.45;
-  }
-  65% {
-    transform: translate(-50%, -50%) scale(1.9);
-    opacity: 0.26;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(2.4);
-    opacity: 0.0;
-  }
-`;
-
-// SW1의 BlobBase 스타일을 그대로 복사해온 SW2 전용 미니 블롭 베이스
-// (시각적으로 SW1 미니 블롭과 동일하게 보이도록 함)
+/* 공통 SW2 블롭 베이스: SW2 전용 미니 블롭 (이전 버전으로 복원) */
 const Sw2BlobBase = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
@@ -865,15 +923,20 @@ const Sw2BlobBase = styled.div`
     content: '';
     position: absolute;
     /* 중앙 원 주변에 아주 부드럽게 깔리는 큰 광원 느낌을 위해 더 크게 확장 */
-    inset: -3.6vw;            /* 원보다 훨씬 더 크게 (halo) */
+    inset: -4.4vw;            /* 원보다 훨씬 더 크게 (halo) */
     border-radius: inherit;
-    /* 각 블롭에서 정의한 --blob-bg 그라데이션을 사용해 컬러가 밖으로 퍼지게 */
-    background: var(--blob-bg, transparent);
-    /* SW1 미니 블롭처럼 더 강한 외곽 블러를 주어 블러 서클이 분명하게 보이도록 조정 */
-    filter: blur(5.6vw);      /* 외곽 블러 강도 (SW2 전용으로 살짝 상향) */
-    opacity: 0.26;            /* 은은하지만 존재감은 유지 */
-    z-index: 0;               /* 텍스트/콘텐츠(1)보다 아래, 내부 그라데이션보다 아래 */
+    /* warm 톤 외곽 링 (SW1 미니 블롭 느낌) */
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.0) 0%,
+      hsla(var(--mini-outer-h, 45), var(--mini-outer-s, 96%), var(--mini-outer-l, 90%), 0.70) 55%,
+      hsla(var(--mini-outer-h, 45), var(--mini-outer-s, 96%), var(--mini-outer-l, 90%), 0.0) 100%
+    );
+    filter: blur(6.4vw);
+    opacity: 0.3;
+    z-index: 0;
     pointer-events: none;
+    animation: ${miniHaloPulse} 9s.ease-in-out infinite;
   }
   /* 내부 입체감을 위한 그라데이션 원 (가장자리는 마스크로 부드럽게 페이드) */
   &::after {
@@ -881,15 +944,12 @@ const Sw2BlobBase = styled.div`
     position: absolute;
     inset: 0.2vw;             /* halo 안쪽을 채우는 몸통 */
     border-radius: inherit;
-    /* 입체감을 주기 위해 밝은 하이라이트 레이어만 컬러 그라데이션 위에 겹쳐서 사용 (뚜렷한 그림자 레이어는 제거) */
     background:
-      /* 구의 정면이 살짝 더 밝게 보이도록 하는 넓은 하이라이트 (더 낮은 알파/짧은 범위) */
       radial-gradient(
         circle at 50% 38%,
         rgba(255, 255, 255, 0.24) 0%,
         rgba(255, 255, 255, 0.0) 45%
       ),
-      /* 코어 하이라이트도 영역과 알파를 줄여서 컬러가 더 잘 드러나도록 조정 */
       radial-gradient(
         circle at 26% 20%,
         rgba(255, 255, 255, 0.72) 0%,
@@ -898,24 +958,7 @@ const Sw2BlobBase = styled.div`
       var(--blob-bg, transparent);
     background-size: 320% 320%;
     background-position: 0% 50%;
-    /* 가장자리로 갈수록 부드럽게 투명해지도록 마스크 → 외곽 경계선이 딱 끊겨 보이지 않게 처리 */
-    -webkit-mask-image: radial-gradient(
-      circle at 50% 45%,
-      rgba(0, 0, 0, 1) 0%,
-      rgba(0, 0, 0, 1) 52%,
-      rgba(0, 0, 0, 0.55) 76%,
-      rgba(0, 0, 0, 0) 100%
-    );
-    mask-image: radial-gradient(
-      circle at 50% 45%,
-      rgba(0, 0, 0, 1) 0%,
-      rgba(0, 0, 0, 1) 52%,
-      rgba(0, 0, 0, 0.55) 76%,
-      rgba(0, 0, 0, 0) 100%
-    );
-    /* 안쪽 색은 선명하게, 외곽은 살짝 더 퍼져 보이도록 블러 강도 상향 */
-    filter: blur(0.55vw);
-    /* 주변 4개 원에서는 파동/물결 느낌이 나지 않도록 내부 그라데이션은 고정 (애니메이션 제거) */
+    filter: blur(0.85vw);
     z-index: 0.5;
     pointer-events: none;
   }
@@ -1048,4 +1091,33 @@ export const EntryCircle = styled(Sw2BlobBase)`
   &[data-stage='t4'] {
     animation: ${entryCollapse} 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
+`;
+
+/* SW2 하단 중앙 오디오 비주얼라이저 (TV2 WaveformIndicator를 재배치한 버전) */
+// TV2 WaveformIndicator 그대로 가져와서, SW2는 중앙 하단에만 위치만 변경
+export const Sw2Waveform = styled.div`
+  position: absolute;
+  left: 50%;
+  bottom: 7vh;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  /* TV2 인디케이터 가로폭의 1/2 정도로 축소 */
+  width: 300px;
+  height: 120px;
+  z-index: 20;
+  pointer-events: none;
+`;
+
+export const Sw2WaveformBar = styled.div`
+  width: 6px;
+  height: ${({ $height }) => $height || 4}px;
+  min-height: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  transform-origin: bottom;
+  transition: height 0.1s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 `;
