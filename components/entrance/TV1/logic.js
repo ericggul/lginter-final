@@ -23,11 +23,14 @@ const EMOTION_GRADIENTS = {
   // 3️⃣ 고에너지-긍정
   '설렘': 'linear-gradient(249deg, hsl(328, 95%, 77%) 0%, hsl(302, 100%, 60%) 10%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   '기대감': 'linear-gradient(220deg, hsl(328, 95%, 77%) 0%, hsl(307, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
+  '기대가 돼': 'linear-gradient(220deg, hsl(328, 95%, 77%) 0%, hsl(307, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   '발돋움': 'linear-gradient(341deg, hsl(328, 95%, 77%) 0%, hsl(337, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   '경쾌': 'linear-gradient(288deg, hsl(328, 95%, 77%) 0%, hsl(187, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   '감격': 'linear-gradient(288deg, hsl(328, 95%, 77%) 0%, hsl(16, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
+  '감격스러워': 'linear-gradient(288deg, hsl(328, 95%, 77%) 0%, hsl(16, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   '흥분': 'linear-gradient(205deg, hsl(328, 95%, 77%) 0%, hsl(298, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   '활력': 'linear-gradient(295deg, hsl(328, 95%, 77%) 0%, hsl(307, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
+  '활력 돋아': 'linear-gradient(295deg, hsl(328, 95%, 77%) 0%, hsl(307, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   '기쁨': 'linear-gradient(19deg, hsl(328, 95%, 77%) 0%, hsl(51, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   '자기확신': 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(86, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
   
@@ -193,8 +196,8 @@ function mapEmotionToBlobType(emotion) {
       return 'Interest';
     }
     
-    // 3️⃣ 고에너지-긍정: 설렘, 기대감, 발돋움, 경쾌, 감격, 흥분, 활력, 기쁨, 자기확신
-    if (['설렘', '기대감', '발돋움', '경쾌', '감격', '흥분', '활력', '기쁨', '자기확신'].includes(original)) {
+    // 3️⃣ 고에너지-긍정: 설렘, 기대감(기대가 돼), 경쾌, 감격(감격스러워), 흥분, 활력(활력 돋아), 기쁨, 자기확신
+    if (['설렘', '기대감', '기대가 돼', '발돋움', '경쾌', '감격', '감격스러워', '흥분', '활력', '활력 돋아', '기쁨', '자기확신'].includes(original)) {
       if (original === '자기확신') return 'SelfConfident';
       if (original === '경쾌') return 'Playful';
       return 'Happy';
@@ -273,7 +276,9 @@ function mapEmotionToBlobType(emotion) {
 // ============================================
 
 // 1열: 상단 블롭 6개 (고정)
-const COLUMN_1_TOP = 39.791667; // 상단 블롭 6개의 top 값 (vw)
+// 실제 상단 블롭(짜증나, 맑아, 상쾌함 등)의 top 은 BlobBox 기본값인 16.572917vw 근처이므로
+// 타임라인 시프트 2열→1열 시에도 해당 높이로 이동하도록 맞춘다.
+const COLUMN_1_TOP = 16.572917; // 상단 블롭 6개의 top 값 (vw)
 
 // 5열: Now 시점 (blobSpawnPoint)
 const COLUMN_5_TOP = 44.6191665; // Now 텍스트 중심과 정렬 (vw)
@@ -329,13 +334,43 @@ const TIME_MARKER_ROW_HEIGHT = 4.8322915; // 시간 표시 간 간격 (vw) - 레
 // 2,3,4열에는 모두 서로 다른 18개의 감정 키워드 사용
 export function initializeFixedBlobs(visibleBlobs, calculateBlobWidth) {
   const fixedBlobs = [];
+
+  // 1열(상단) 블롭 간 간격 계산 (Annoyed, Sad, Interest, Happy, Playful, SelfConfident)
+  // → 4열 고정 블롭 간 간격을 여기에 맞춰 동일하게 사용
+  let topRowSpacing = null;
+  try {
+    if (visibleBlobs && calculateBlobWidth) {
+      const startLeft = 19.610417;
+      const endRight = 84;
+      const availableWidth = endRight - startLeft;
+
+      const topRowItems = [
+        { key: 'Annoyed', text: visibleBlobs.Annoyed?.text || '' },
+        { key: 'Sad', text: visibleBlobs.Sad?.text || '' },
+        { key: 'Interest', text: visibleBlobs.Interest?.text || '' },
+        { key: 'Happy', text: visibleBlobs.Happy?.text || '' },
+        { key: 'Playful', text: visibleBlobs.Playful?.text || '' },
+        { key: 'SelfConfident', text: visibleBlobs.SelfConfident?.text || '' },
+      ].filter(item => visibleBlobs[item.key]?.visible === true && item.text);
+
+      const gapCountTop = topRowItems.length - 1;
+      if (gapCountTop > 0) {
+        const topWidths = topRowItems.map(item => calculateBlobWidth(item.text));
+        const totalTopWidth = topWidths.reduce((sum, w) => sum + w, 0);
+        const minSpacing = 1.0;
+        const remainingWidthTop = availableWidth - totalTopWidth;
+        const calculatedSpacingTop = remainingWidthTop / gapCountTop;
+        topRowSpacing = Math.max(minSpacing, calculatedSpacingTop);
+      }
+    }
+  } catch {}
   
-  // 각 열별로 서로 다른 감정 키워드 6개씩 할당 (총 18개, 모두 다름)
+  // 각 열별로 서로 다른 감정 키워드 배열 정의
   // 1열 블롭 제외: '짜증', '무기력', '맑음', '설렘', '상쾌함', '자기확신'
   const columnEmotions = {
-    2: ['긴장', '놀라움', '경계', '충격', '분노', '당혹'], // 고에너지-부정
-    3: ['포커스', '명료', '자각', '집중', '몰입', '호기심'], // 고에너지-인지
-    4: ['기대감', '발돋움', '경쾌', '감격', '흥분', '활력']  // 고에너지-긍정
+    2: ['긴장 되는것 같아', '사람이 너무 많아서 놀랐어', '당혹스러워'], // 고에너지-부정 (경계, 충격, 분노 제거)
+    3: ['집중이 잘 안돼', '완전 몰입 중이야', '호기심이 생겼어'], // 고에너지-인지 (문장 형태 3개만 유지)
+    4: ['기대가 돼', '감격스러워', '활력 돋아']  // 고에너지-긍정 (문장 형태 3개만 유지)
   };
   
   // 각 열(2,3,4)에 6개씩 배치 (총 18개)
@@ -351,7 +386,18 @@ export function initializeFixedBlobs(visibleBlobs, calculateBlobWidth) {
     // 각 열 내 블롭 너비 계산
     const blobWidths = emotionTexts.map(text => calculateBlobWidth(text));
     const totalBlobWidth = blobWidths.reduce((sum, width) => sum + width, 0);
-    const uniformSpacing = (availableWidth - totalBlobWidth) / 4.5; // 1열과 동일한 간격 계산
+    
+    // 블롭 개수에 맞춰 간격 계산 (블롭 개수 - 1개의 간격)
+    const gapCount = emotionTexts.length - 1;
+    const minSpacing = 1.0; // 최소 간격 보장
+    const remainingWidth = availableWidth - totalBlobWidth;
+    const calculatedSpacing = gapCount > 0 ? remainingWidth / gapCount : 0;
+    let uniformSpacing = Math.max(minSpacing, calculatedSpacing);
+
+    // 4열은 1열(상단) 블롭 간 간격과 동일하게 맞춤
+    if (col === 4 && topRowSpacing !== null) {
+      uniformSpacing = topRowSpacing;
+    }
     
     // 각 열 내 블롭 배치
     let currentLeft = startLeft;
@@ -400,22 +446,37 @@ function calculatePositionInColumn(column, existingBlobsInColumn, newText, calcu
   const lastBlob = existingBlobsInColumn[existingBlobsInColumn.length - 1];
   const lastBlobWidth = calculateBlobWidth(lastBlob.text);
   
+  // 5열(blobSpawnPoint)이 "가로로" 꽉 찼는지 체크
+  // → 새 블롭을 같은 줄에 배치했을 때 오른쪽 경계를 넘으면 가득 찬 것으로 간주
+  let isColumnFull = false;
+  
   // 같은 줄에 배치 시도
   let newLeft = lastBlob.left + lastBlobWidth + BLOB_SPACING;
   let newTop = columnTop;
   let newRowIndex = lastBlob.rowIndex || 0;
-  let isColumnFull = false;
   
   // 오른쪽 경계 체크
   if (newLeft + newBlobWidth > MAX_RIGHT) {
-    // 다음 줄로 이동 (같은 열 내)
-    newLeft = BLOB_SPAWN_POINT.left;
-    newTop = columnTop; // 같은 열이므로 top은 동일
-    newRowIndex = (lastBlob.rowIndex || 0) + 1;
-    
-    // 6개 이상이면 열이 꽉 찬 것으로 간주 (한 줄에 6개 기준)
-    if (existingBlobsInColumn.length >= 6) {
+    if (column === 5) {
+      // 5열에서 새 블롭이 우측 경계를 넘을 경우 → 5열이 가득 찼다고 보고 타임라인 시프트 트리거
       isColumnFull = true;
+      console.log('📺 TV1 Column 5 is full (horizontal overflow):', {
+        lastLeft: lastBlob.left,
+        lastWidth: lastBlobWidth,
+        newBlobWidth,
+        maxRight: MAX_RIGHT,
+        totalBlobs: existingBlobsInColumn.length,
+      });
+      // 실제 배치 위치는 이후 shiftAllColumnsUp + calculateNewBlobPosition 으로 다시 계산되므로
+      // 여기서는 기본 값만 유지
+      newLeft = BLOB_SPAWN_POINT.left;
+      newTop = columnTop;
+      newRowIndex = lastBlob.rowIndex || 0;
+    } else {
+      // 다른 열(2,3,4)은 기존 로직대로 같은 열 내에서 다음 줄로 이동 (레거시)
+      newLeft = BLOB_SPAWN_POINT.left;
+      newTop = columnTop;
+      newRowIndex = (lastBlob.rowIndex || 0) + 1;
     }
   }
   
@@ -517,6 +578,104 @@ function moveBlobsToPreviousColumn(prevBlobs, previousHour) {
     }
     
     return blob;
+  });
+}
+
+// 5열 블롭들을 4열로 올리고, 기존 4열 블롭들을 3열로, 3열 블롭들을 2열로, 2열 블롭들을 1열로 동시에 올리는 단순 시프트 함수
+// - column === 5 && !isFixed 인 블롭들 → column: 4, top: COLUMN_TOPS[4]
+// - column === 4 인 블롭들(고정/동적 모두) → column: 3, top: COLUMN_TOPS[3]
+// - column === 3 인 블롭들(고정/동적 모두) → column: 2, top: COLUMN_TOPS[2]
+// - column === 2 인 블롭들(고정/동적 모두) → column: 1, top: COLUMN_TOPS[1]
+// - left 값은 절대 변경하지 않음
+function shiftColumn5To4(prevBlobs) {
+  return prevBlobs.map(blob => {
+    // 5열 동적 블롭들 → 4열 위치로 이동
+    if (!blob.isFixed && blob.column === 5) {
+      return {
+        ...blob,
+        column: 4,
+        top: COLUMN_TOPS[4],
+        visible: true,
+        isNew: false,
+      };
+    }
+
+    // 기존 4열 블롭들(고정 + 동적) → 3열 위치로 이동
+    if (blob.column === 4) {
+      return {
+        ...blob,
+        column: 3,
+        top: COLUMN_TOPS[3],
+        visible: true,
+        isNew: false,
+      };
+    }
+
+    // 기존 3열 블롭들(고정 + 동적) → 2열 위치로 이동
+    if (blob.column === 3) {
+      return {
+        ...blob,
+        column: 2,
+        top: COLUMN_TOPS[2],
+        visible: true,
+        isNew: false,
+      };
+    }
+
+    // 기존 2열 블롭들(고정 + 동적) → 1열 위치로 이동
+    if (blob.column === 2) {
+      return {
+        ...blob,
+        column: 1,
+        top: COLUMN_TOPS[1],
+        visible: true,
+        isNew: false,
+      };
+    }
+
+    // 기존 1열 블롭들(고정 + 동적) → 살짝 위로 이동하며 fadeout
+    if (blob.column === 1) {
+      return {
+        ...blob,
+        column: 1,
+        top: COLUMN_TOPS[1] - 2, // 1열 기준에서 약간 위로
+        visible: false,
+        isNew: false,
+      };
+    }
+
+    return blob;
+  });
+}
+
+// 5열이 꽉 찼을 때 모든 열을 한 칸씩 위로 이동하는 함수
+// 5열→4열, 4열→3열, 3열→2열, 2열→1열, 1열은 위로 살짝 이동하며 fadeout
+// *주의*: left 값은 절대 변경하지 않고, top/column/visible 만 조정
+function shiftAllColumnsUp(prevBlobs) {
+  return prevBlobs.map(blob => {
+    const currentColumn = blob.column || 5;
+
+    // 1열: 위로 조금 올리면서 fadeout
+    if (currentColumn <= 1) {
+      return {
+        ...blob,
+        column: 1,
+        // 기존 1열 top 에서 살짝 위로 이동 (예: 2vw 정도)
+        top: COLUMN_TOPS[1] - 2,
+        visible: false,
+        isNew: false,
+      };
+    }
+
+    // 2열~5열: 한 칸씩 위 열로 이동 (top 은 각 열의 COLUMN_TOPS 를 사용)
+    const newColumn = currentColumn - 1;
+    return {
+      ...blob,
+      column: newColumn,
+      top: COLUMN_TOPS[newColumn],
+      visible: true,
+      isNew: false,
+    };
   });
 }
 
@@ -623,7 +782,59 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
         }
         
         // 새 블롭 위치 계산 (업데이트된 블롭 배열 기준)
-        const position = calculateNewBlobPosition(updatedBlobs, text, calculateBlobWidth, currentHour);
+        // 🔑 항상 5열(지금 this moment, BLOB_SPAWN_POINT.top)에서 시작하도록 강제
+        //    → 5열에 이미 있는 동적 블롭들만 기준으로, 같은 열 내에서 가로 배치/가득 참 여부 계산
+        const dynamicAfterShift = updatedBlobs.filter(blob => !blob.isFixed);
+        const blobsInColumn5AfterShift = dynamicAfterShift.filter(blob => blob.column === 5);
+        const basePosition = calculatePositionInColumn(5, blobsInColumn5AfterShift, text, calculateBlobWidth);
+        const position = {
+          ...basePosition,
+          column: 5, // 무조건 5열에서 스폰
+        };
+        
+        // 5열이 꽉 찼는지 체크
+        let finalUpdatedBlobs = updatedBlobs;
+        console.log('📺 TV1 Column check:', {
+          column: position.column,
+          isColumnFull: position.isColumnFull,
+          rowIndex: position.rowIndex,
+          existingBlobsIn5: updatedBlobs.filter(b => !b.isFixed && b.column === 5).length
+        });
+        
+        if (position.column === 5 && position.isColumnFull) {
+          console.log('📺 TV1 Column 5 is full! Shifting ONLY column 5 blobs up to column 4...');
+          // 5열이 우측으로 꽉 찼으면, 5열 동적 블롭들만 4열 위치로 올리고,
+          // 기존 4열→3열, 3열→2열, 2열→1열, 1열은 살짝 위로 이동+fadeout
+          finalUpdatedBlobs = shiftColumn5To4(updatedBlobs);
+          console.log('📺 TV1 After shiftColumn5To4:', {
+            blobsIn5: finalUpdatedBlobs.filter(b => !b.isFixed && b.column === 5).length,
+            blobsIn4: finalUpdatedBlobs.filter(b => !b.isFixed && b.column === 4).length,
+          });
+
+          // 동시에 상단 1열(짜증나, 맑아, 상쾌함) 블롭들도 fade-out 시켜서 타임라인과 동기화
+          try {
+            if (setVisibleBlobs) {
+              setVisibleBlobs(prev => ({
+                ...prev,
+                Annoyed: prev.Annoyed ? { ...prev.Annoyed, visible: false } : prev.Annoyed,
+                Interest: prev.Interest ? { ...prev.Interest, visible: false } : prev.Interest,
+                Playful: prev.Playful ? { ...prev.Playful, visible: false } : prev.Playful,
+              }));
+            }
+          } catch {}
+          // 새 블롭은 항상 Now 라인의 5열에서 시작하도록 강제
+          const newPosition = calculatePositionInColumn(
+            5,
+            [], // 시프트 후 5열에는 기존 블롭이 없으므로 빈 배열 전달 → spawn point에서 생성
+            text,
+            calculateBlobWidth
+          );
+          position.top = newPosition.top;
+          position.left = newPosition.left;
+          position.rowIndex = newPosition.rowIndex;
+          position.column = 5;
+        }
+        
         const newBlob = {
           id: currentTimestamp + Math.random(),
           blobType: blobType,
@@ -635,7 +846,9 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
           column: position.column,
           timestamp: currentTimestamp,
           hour: currentHour,
-          isFixed: false
+          isFixed: false,
+          visible: true, // 새로 생성된 블롭은 항상 보임
+          isNew: true // 새로 생성된 블롭 표시
         };
         
         console.log('📺 TV1 Creating new blob:', {
@@ -643,11 +856,16 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
           blobType: newBlob.blobType,
           column: newBlob.column,
           hour: newBlob.hour,
+          isColumnFull: position.isColumnFull,
           gradient: newBlob.gradient ? newBlob.gradient.substring(0, 80) + '...' : 'MISSING'
         });
         
         // 최종 업데이트된 블롭 배열
-        const finalBlobs = [...updatedBlobs, newBlob];
+        let finalBlobs = [...finalUpdatedBlobs, newBlob];
+
+        // 가장 오래된 맨 윗줄(1열) 세트를 완전히 제거하여 쌓이지 않도록 정리
+        // - column === 1 이면서 visible === false 인 블롭들은 실제 타임라인에서 사라진 것으로 간주하고 배열에서 제거
+        finalBlobs = finalBlobs.filter(b => !(b.column === 1 && b.visible === false && !b.isFixed));
         
         // 시간 표시 생성 체크
         if (setTimeMarkers && previousHour !== null && currentHour !== previousHour) {

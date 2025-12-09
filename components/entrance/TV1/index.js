@@ -5,6 +5,144 @@ import * as B from './blobtextbox/@boxes';
 import { calculateBlobWidth } from './blobtextbox/@boxes';
 import { createSocketHandlers, initializeFixedBlobs } from './logic';
 
+// 새로 생성된 블롭을 화면 밖(하단)에서 위로 슬라이딩하며 나타나게 하는 래퍼 컴포넌트
+// + 내용 단계: T1(빈 블롭, 감정 컬러, 최소 폭) 2초 → T2('...' 모션, 중립 컬러, 최소 폭 유지) 4초 → T3(감정 텍스트, 감정 컬러, 텍스트 길이에 맞게 오른쪽으로 확장)
+function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCount }) {
+  // visible이 false면 렌더링하지 않음 (fadeout)
+  if (blob.visible === false) {
+    return null;
+  }
+  
+  const targetTop = parseFloat(blob.top);
+  const isNewBlob = blob.isNew === true;
+  
+  // 새로 생성된 블롭만 하단에서 올라오는 애니메이션 적용
+  // 이미 존재하는 블롭이 이동할 때는 CSS transition만 사용
+  const [startTop, setStartTop] = useState(() => {
+    if (isNewBlob) {
+      // 새로 생성된 블롭: 화면 밖 하단에서 시작
+      return 100;
+    } else {
+      // 이미 존재하는 블롭: 현재 위치에서 시작
+      return targetTop;
+    }
+  });
+  const [isAnimating, setIsAnimating] = useState(!isNewBlob); // 새 블롭만 애니메이션 시작 대기
+
+  // 새 블롭 내용 단계: 'empty' → 'dots' → 'text'
+  const [contentPhase, setContentPhase] = useState(isNewBlob ? 'empty' : 'text');
+  
+  useEffect(() => {
+    // 새로 생성된 블롭만 하단에서 올라오는 애니메이션 적용
+    if (!isNewBlob) {
+      // 이미 존재하는 블롭은 현재 위치에서 새 위치로 이동 (CSS transition 사용)
+      setStartTop(targetTop);
+      return;
+    }
+    
+    // 화면의 실제 하단 위치 계산 (vw 단위)
+    const calculateStartTop = () => {
+      if (!canvasRef?.current) {
+        return 100;
+      }
+      
+      if (typeof window !== 'undefined' && window.innerWidth > 0) {
+        const canvas = canvasRef.current;
+        const canvasHeightPx = canvas.clientHeight;
+        const viewportWidth = window.innerWidth;
+        const canvasHeightVw = (canvasHeightPx / viewportWidth) * 100;
+        return canvasHeightVw + 5;
+      }
+      
+      return 100;
+    };
+    
+    const calculatedStartTop = calculateStartTop();
+    setStartTop(calculatedStartTop);
+    
+    // startTop이 설정된 후 다음 프레임에서 애니메이션 시작
+    const timeoutId = setTimeout(() => {
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+      });
+    }, 50);
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [canvasRef, targetTop, isNewBlob]);
+
+  // 새로 생성된 블롭의 내용 단계 전환 (T1/T2/T3 모션)
+  useEffect(() => {
+    if (!isNewBlob) {
+      setContentPhase('text');
+      return;
+    }
+
+    // T1: 0~2초 빈 블롭 (감정 컬러, 최소 폭)
+    const t3 = setTimeout(() => {
+      setContentPhase('dots');
+    }, 2000);
+
+    // T2: 2~6초 '...' 모션 (중립 컬러, 최소 폭 유지) → 이후 감정 텍스트
+    const t4 = setTimeout(() => {
+      setContentPhase('text');
+    }, 6000);
+
+    return () => {
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
+  }, [isNewBlob]);
+  
+  // 새 블롭: isAnimating이 true면 targetTop으로, false면 startTop 위치에 있음
+  // 기존 블롭: 항상 targetTop 위치 (CSS transition으로 이동)
+  const currentTop = isNewBlob ? (isAnimating ? targetTop : startTop) : targetTop;
+
+  // 단계별 width 제어를 위한 텍스트 (BlobBase는 $text 길이에 따라 width 계산)
+  // - 'empty' / 'dots' 단계에서는 고정 최소 폭(8vw)만 사용하도록 빈 문자열 전달
+  // - 'text' 단계에서만 실제 감정 키워드 길이에 맞게 오른쪽으로 확장
+  const widthTextForPhase = contentPhase === 'text' ? (blob.text || '') : '';
+
+  // 단계별 컬러 제어
+  // - T1(empty), T3(text): 감정 고유 그라데이션 사용 (blob.gradient)
+  // - T2(dots): 고유색을 제거한 중립 그라데이션 사용
+  const neutralGradient = 'linear-gradient(253deg, hsl(328, 95%, 77%) 0%, hsl(295, 84%, 97%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)';
+  const gradientForPhase =
+    contentPhase === 'dots'
+      ? neutralGradient
+      : (blob.gradient || neutralGradient);
+  
+  return (
+    <BlobComponent
+      $fontFamily={unifiedFont}
+      $visible={blob.visible !== false}
+      $gradient={gradientForPhase}
+      $text={widthTextForPhase}
+      $top={`${currentTop}vw`}
+      $left={`${blob.left}vw`}
+      $isAnimating={isAnimating || !isNewBlob} // 이동하는 블롭도 애니메이션 적용
+    >
+      {/* 내용 단계에 따라: 빈 블롭 → '...' 모션 → 감정 텍스트 */}
+      {contentPhase === 'empty' && (
+        <span style={{ opacity: 0, position: 'relative', zIndex: 100 }}>{'\u00A0'}</span>
+      )}
+      {contentPhase === 'dots' && (
+        <span style={{ position: 'relative', zIndex: 100, display: 'inline-flex', alignItems: 'center' }}>
+          <S.Dots aria-hidden="true">
+            <S.Dot $visible={dotCount >= 1}>.</S.Dot>
+            <S.Dot $visible={dotCount >= 2}>.</S.Dot>
+            <S.Dot $visible={dotCount >= 3}>.</S.Dot>
+          </S.Dots>
+        </span>
+      )}
+      {contentPhase === 'text' && (
+        <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{blob.text}</span>
+      )}
+    </BlobComponent>
+  );
+}
+
 export default function TV1Controls() {
   const [keywords, setKeywords] = useState([]);
   const [tv2Color, setTv2Color] = useState('#FFD166');
@@ -19,36 +157,36 @@ export default function TV1Controls() {
   const [visibleBlobs, setVisibleBlobs] = useState({
     Annoyed: {
       visible: true,
-      text: '짜증',
+      text: '짜증나',
       gradient: 'linear-gradient(220deg, hsl(328, 95%, 77%) 0%, hsl(0, 100%, 60%) 10%, hsl(328, 95%, 77%) 55%, hsl(297, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     Sad: {
-      visible: true,
+      visible: false,
       text: '무기력',
       gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(242, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     Happy: {
-      visible: true,
+      visible: false,
       text: '설렘',
       gradient: 'linear-gradient(249deg, hsl(328, 95%, 77%) 0%, hsl(302, 100%, 68.6%) 10%, hsl(328, 95%, 77%) 55%, hsl(262, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     Interest: {
       visible: true,
-      text: '맑음',
+      text: '지금 날씨 되게 맑아',
       gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(156, 75%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     Playful: {
       visible: true,
-      text: '상쾌함',
+      text: '여기 공기가 되게 상쾌함',
       gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(242, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
       timestamp: Date.now()
     },
     SelfConfident: {
-      visible: true,
+      visible: false,
       text: '자기확신',
       gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(86, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
       timestamp: Date.now()
@@ -91,6 +229,7 @@ export default function TV1Controls() {
   // LeftLineImage ref and dynamic height state
   const lineImageRef = useRef(null);
   const [lineImageHeight, setLineImageHeight] = useState(null); // null이면 기본 100%
+  const [canvasHeightVw, setCanvasHeightVw] = useState(56.25); // Canvas의 실제 높이 (vw 단위)
 
   // Scaling handled via CSS (viewport width) in styles.Canvas
 
@@ -101,55 +240,7 @@ export default function TV1Controls() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // 자동 스크롤 애니메이션: 상단→하단→상단 왕복 (17.5초)
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const duration = 17500; // 17.5초 (왕복 시간)
-    let startTime = null;
-    let animationFrameId = null;
-
-    // Easing function (ease-in-out)
-    const easeInOut = (t) => {
-      return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-    };
-
-    const animate = (currentTime) => {
-      if (!startTime) startTime = currentTime;
-      const elapsed = currentTime - startTime;
-      const progress = (elapsed % duration) / duration; // 0 to 1 반복
-
-      // 왕복: 0-0.5는 하강, 0.5-1은 상승
-      let scrollProgress;
-      if (progress < 0.5) {
-        // 하강: 0 → 1
-        scrollProgress = easeInOut(progress * 2);
-      } else {
-        // 상승: 1 → 0
-        scrollProgress = easeInOut(2 - progress * 2);
-      }
-
-      const maxScroll = canvas.scrollHeight - canvas.clientHeight;
-      if (maxScroll > 0) {
-        canvas.scrollTop = scrollProgress * maxScroll;
-      }
-
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    // 애니메이션 시작 (약간의 지연 후)
-    const timeoutId = setTimeout(() => {
-      animationFrameId = requestAnimationFrame(animate);
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }, [newBlobs]); // newBlobs가 변경되면 애니메이션 재시작
+  // 자동 스크롤 애니메이션 제거됨 - 화면은 고정된 채로 블롭만 움직임
 
   // Canvas 콘텐츠 높이에 맞춰 줄 이미지 높이 업데이트
   useEffect(() => {
@@ -166,6 +257,10 @@ export default function TV1Controls() {
       if (typeof window !== 'undefined' && window.innerWidth > 0) {
         const viewportWidth = window.innerWidth;
         const scrollHeightVw = (scrollHeightPx / viewportWidth) * 100;
+        const canvasHeightVwValue = (canvasHeightPx / viewportWidth) * 100;
+        
+        // Canvas의 실제 높이 저장 (mask-image 계산용)
+        setCanvasHeightVw(canvasHeightVwValue);
         
         // Canvas의 기본 높이 (56.25vw)보다 크면 동적 높이 적용
         const canvasBaseHeightVw = 56.25;
@@ -226,54 +321,65 @@ export default function TV1Controls() {
     onDeviceNewDecision: handlers.onDeviceNewDecision,
   });
 
-  // 6개 디폴트 블롭의 left 위치를 동적으로 계산 (모든 블롭 간 간격 동일하게, 짜증 블롭 기준)
+  // visible한 블롭들의 left 위치를 동적으로 계산 (블롭 간 간격 동일하게)
   const blobPositions = useMemo(() => {
     const startLeft = 19.610417; // Annoyed 시작 위치 (vw)
-    const endRight = 84; // 오른쪽 끝 위치 (vw) - 간격을 더 좁히기 위해 값 축소
+    const endRight = 84; // 오른쪽 끝 위치 (vw)
     const availableWidth = endRight - startLeft; // 사용 가능한 전체 너비
     
-    const annoyedText = visibleBlobs.Annoyed?.text || '';
-    const sadText = visibleBlobs.Sad?.text || '';
-    const interestText = visibleBlobs.Interest?.text || '';
-    const happyText = visibleBlobs.Happy?.text || '';
-    const playfulText = visibleBlobs.Playful?.text || '';
-    const selfConfidentText = visibleBlobs.SelfConfident?.text || '';
+    // visible한 블롭들만 필터링
+    const visibleBlobKeys = [
+      { key: 'Annoyed', text: visibleBlobs.Annoyed?.text || '' },
+      { key: 'Sad', text: visibleBlobs.Sad?.text || '' },
+      { key: 'Interest', text: visibleBlobs.Interest?.text || '' },
+      { key: 'Happy', text: visibleBlobs.Happy?.text || '' },
+      { key: 'Playful', text: visibleBlobs.Playful?.text || '' },
+      { key: 'SelfConfident', text: visibleBlobs.SelfConfident?.text || '' }
+    ].filter(item => visibleBlobs[item.key]?.visible === true);
     
-    const annoyedWidth = calculateBlobWidth(annoyedText);
-    const sadWidth = calculateBlobWidth(sadText);
-    const interestWidth = calculateBlobWidth(interestText);
-    const happyWidth = calculateBlobWidth(happyText);
-    const playfulWidth = calculateBlobWidth(playfulText);
-    const selfConfidentWidth = calculateBlobWidth(selfConfidentText);
+    // visible한 블롭들의 너비 계산
+    const blobWidths = visibleBlobKeys.map(item => ({
+      key: item.key,
+      width: calculateBlobWidth(item.text)
+    }));
     
-    // 6개 블롭의 총 너비
-    const totalBlobWidth = annoyedWidth + sadWidth + interestWidth + happyWidth + playfulWidth + selfConfidentWidth;
+    const totalBlobWidth = blobWidths.reduce((sum, item) => sum + item.width, 0);
     
-    // 6개 블롭 사이에는 5개의 간격이 있음 (동일한 간격)
-    const uniformSpacing = (availableWidth - totalBlobWidth) / 4.5;
+    // visible한 블롭 사이에는 (visible한 블롭 개수 - 1)개의 간격이 있음 (동일한 간격)
+    const gapCount = visibleBlobKeys.length - 1;
     
-    // 각 블롭의 left 위치 계산
-    const annoyedLeft = startLeft;
-    const sadLeft = annoyedLeft + annoyedWidth + uniformSpacing;
-    const interestLeft = sadLeft + sadWidth + uniformSpacing;
-    const happyLeft = interestLeft + interestWidth + uniformSpacing;
-    const playfulLeft = happyLeft + happyWidth + uniformSpacing;
-    const selfConfidentLeft = playfulLeft + playfulWidth + uniformSpacing;
+    // 최소 간격 보장 (1vw 이상)
+    const minSpacing = 1.0;
+    const remainingWidth = availableWidth - totalBlobWidth;
+    const calculatedSpacing = gapCount > 0 ? remainingWidth / gapCount : 0;
+    const uniformSpacing = Math.max(minSpacing, calculatedSpacing);
     
-    return {
-      Annoyed: `${annoyedLeft}vw`,
-      Sad: `${sadLeft}vw`,
-      Interest: `${interestLeft}vw`,
-      Happy: `${happyLeft}vw`,
-      Playful: `${playfulLeft}vw`,
-      SelfConfident: `${selfConfidentLeft}vw`,
-    };
-  }, [visibleBlobs.Annoyed?.text, visibleBlobs.Sad?.text, visibleBlobs.Interest?.text, visibleBlobs.Happy?.text, visibleBlobs.Playful?.text, visibleBlobs.SelfConfident?.text]);
+    // 각 블롭의 left 위치 계산 (블롭 너비 + 간격)
+    const positions = {};
+    let currentLeft = startLeft;
+    
+    visibleBlobKeys.forEach((item, index) => {
+      const blobWidth = blobWidths[index].width;
+      positions[item.key] = `${currentLeft}vw`;
+      // 현재 블롭의 오른쪽 끝 + 간격 = 다음 블롭의 시작 위치
+      currentLeft += blobWidth + (index < gapCount ? uniformSpacing : 0);
+    });
+    
+    // visible하지 않은 블롭들은 기본 위치 설정 (렌더링되지 않지만 에러 방지)
+    const allKeys = ['Annoyed', 'Sad', 'Interest', 'Happy', 'Playful', 'SelfConfident'];
+    allKeys.forEach(key => {
+      if (!positions[key]) {
+        positions[key] = `${startLeft}vw`;
+      }
+    });
+    
+    return positions;
+  }, [visibleBlobs.Annoyed?.text, visibleBlobs.Annoyed?.visible, visibleBlobs.Sad?.text, visibleBlobs.Sad?.visible, visibleBlobs.Interest?.text, visibleBlobs.Interest?.visible, visibleBlobs.Happy?.text, visibleBlobs.Happy?.visible, visibleBlobs.Playful?.text, visibleBlobs.Playful?.visible, visibleBlobs.SelfConfident?.text, visibleBlobs.SelfConfident?.visible]);
 
   return (
     <S.Root $fontFamily={unifiedFont}>
       <S.Canvas ref={canvasRef}>
-        <S.LeftLineImage ref={lineImageRef} $height={lineImageHeight} />
+        <S.LeftLineImage ref={lineImageRef} $height={lineImageHeight} $canvasHeight={canvasHeightVw} />
         <S.LeftNow>Now</S.LeftNow>
         <S.LeftShape />
         
@@ -323,18 +429,38 @@ export default function TV1Controls() {
         {/* 고정 블롭 + 동적 블롭 렌더링 */}
         {newBlobs.map((blob) => {
           const BlobComponent = getBlobComponent(blob.blobType);
+          // 고정 블롭은 애니메이션 없이 바로 렌더링,
+          // 단, shift 로직에서 visible=false 로 표시된 경우에는 페이드아웃/숨기기 위해 $visible 플래그를 반영
+          if (blob.isFixed) {
+            return (
+              <BlobComponent
+                key={blob.id}
+                $fontFamily={unifiedFont}
+                $visible={blob.visible !== false}
+                $gradient={blob.gradient}
+                $text={blob.text}
+                $top={`${blob.top}vw`}
+                $left={`${blob.left}vw`}
+              >
+                <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{blob.text}</span>
+              </BlobComponent>
+            );
+          }
+          // 동적 블롭: visible이 false면 fadeout (렌더링 안 함)
+          // 새로 생성된 블롭은 화면 하단에서 위로 슬라이드 애니메이션
+          // 이동하는 블롭은 top 값 변경 시 CSS transition으로 자동 애니메이션
+          if (blob.visible === false) {
+            return null; // fadeout된 블롭은 렌더링하지 않음
+          }
           return (
-            <BlobComponent
+            <BlobFadeInWrapper
               key={blob.id}
-              $fontFamily={unifiedFont}
-              $visible={true}
-              $gradient={blob.gradient}
-              $text={blob.text}
-              $top={`${blob.top}vw`}
-              $left={`${blob.left}vw`}
-            >
-              <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{blob.text}</span>
-            </BlobComponent>
+              blob={blob}
+              BlobComponent={BlobComponent}
+              unifiedFont={unifiedFont}
+              canvasRef={canvasRef}
+              dotCount={dotCount}
+            />
           );
         })}
         
