@@ -860,15 +860,16 @@ const Sw2BlobBase = styled.div`
   /* remove stroke to avoid gray edges on compositing */
   border: none;
 
-  /* z축이 살아 움직이는 것처럼 보이는 크기/깊이 펄스 */
+  /* z축이 계속 살아 움직이는 것처럼 보이도록
+     ease-in-out 대신 linear 로 바꿔, 중간에서 잠깐 멈춘 느낌을 줄인다. */
   animation: ${({ $depthLayer = 1 }) => {
     if ($depthLayer === 0) {
-      return css`${frontDepthPulse} 7s ease-in-out infinite`;
+      return css`${frontDepthPulse} 7s linear infinite`;
     }
     if ($depthLayer === 1) {
-      return css`${midDepthPulse} 9s ease-in-out infinite`;
+      return css`${midDepthPulse} 9s linear infinite`;
     }
-    return css`${backDepthPulse} 11s ease-in-out infinite`;
+    return css`${backDepthPulse} 11s linear infinite`;
   }};
 
   /* 키워드 텍스트는 항상 선명한 흰색으로 */
@@ -1027,9 +1028,9 @@ export const EntryCircle = styled(Sw2BlobBase)`
   background:
     radial-gradient(
       circle at 50% 50%,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(255, 255, 255, 0.96) 28%,
-      rgba(255, 255, 255, 0.60) 55%,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.88) 28%,
+      rgba(255, 255, 255, 0.52) 55%,
       rgba(255, 255, 255, 0.00) 88%
     ),
     var(--blob-bg, transparent);
@@ -1046,7 +1047,7 @@ export const EntryCircle = styled(Sw2BlobBase)`
     background: radial-gradient(
       circle,
       rgba(255, 255, 255, 0.0) 58%,
-      rgba(255, 255, 255, 0.98) 72%,
+      rgba(255, 255, 255, 0.82) 72%,
       rgba(255, 255, 255, 0.0) 90%
     );
     filter: blur(1.6vw);
@@ -1065,7 +1066,7 @@ export const EntryCircle = styled(Sw2BlobBase)`
     background: radial-gradient(
       circle,
       rgba(255, 255, 255, 0.0) 40%,
-      rgba(255, 255, 255, 0.7) 72%,
+      rgba(255, 255, 255, 0.55) 72%,
       rgba(255, 255, 255, 0.0) 100%
     );
     filter: blur(4vw);
