@@ -368,11 +368,12 @@ export default function SW1Controls() {
           <S.Sw1SmallOrbitDot2 data-stage={timelineState} />
           <S.Sw1SmallOrbitDot3 data-stage={timelineState} />
         </S.BlobRotator>
-        {/* 항상 흐릿하게 돌아다니는 자유 블롭 4개 (데이터 무관, 아주 부드럽고 은은) */}
-        <S.FreeBlur1 />
-        <S.FreeBlur2 />
-        <S.FreeBlur3 />
-        <S.FreeBlur4 />
+        {/* 항상 흐릿하게 돌아다니는 자유 블롭 4개 (데이터 무관, 아주 부드럽고 은은)
+            - T4에서는 중앙 집중 연출을 위해 잠시 투명 처리 (styles에서 data-stage 기반으로 제어) */}
+        <S.FreeBlur1 data-stage={timelineState} />
+        <S.FreeBlur2 data-stage={timelineState} />
+        <S.FreeBlur3 data-stage={timelineState} />
+        <S.FreeBlur4 data-stage={timelineState} />
         {/* Debug markers: center and intended entry (bottom center). Remove after verification. */}
         <S.DebugCenter />
         <S.DebugBottomStart />

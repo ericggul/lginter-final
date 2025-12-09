@@ -862,6 +862,25 @@ const entryRingGlow = keyframes`
   }
 `;
 
+/* T4: 중앙 합류 이후, 은은하게 퍼지며 사라지는 엔트리 블롭 페이드 아웃 */
+const newEntryFadeOut = keyframes`
+  0% {
+    opacity: 0.9;
+    filter: blur(0.8vw);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  45% {
+    opacity: 0.8;
+    filter: blur(1.1vw);
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(2.1vw);
+    transform: translate(-50%, -50%) scale(1.38);
+  }
+`;
+
 const BlobBase = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1349,6 +1368,12 @@ const FreeBlurBase = styled.div`
   opacity: 0.55;
   mix-blend-mode: screen;
   z-index: 2;
+  transition: opacity 2.4s ease-in-out;
+
+  /* T4: 중앙 집중 연출을 위해 자유 블롭은 잠시 완전히 숨김 */
+  &[data-stage='t4'] {
+    opacity: 0;
+  }
 `;
 
 /* transform-chain: 중심 기준 회전 → 반경 이동(펄스) */
@@ -1460,13 +1485,13 @@ export const NewEntryBlob = styled.div`
   }
   animation: ${newEntryRise} 4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 
-  /* T4는 최종 위치(중앙) 유지, T5에서 사라짐 */
+  /* T4: 중앙에서 잠시 머물렀다가, 은은하게 퍼지며 투명해지면서 사라지는 모션 */
   &[data-stage='t4'] {
-    animation: none !important;
+    /* T3의 up-rise 애니메이션을 멈추고, 페이드 아웃 전용 애니메이션만 적용 */
+    animation: ${newEntryFadeOut} 2.8s cubic-bezier(0.22, 1, 0.36, 1) 0.4s 1 forwards !important;
     top: 50vh !important;
-    opacity: 0.9 !important;
-    filter: blur(0.8vw) !important;
     transform: translate(-50%, -50%) scale(1) !important;
+    will-change: transform, opacity, filter !important;
   }
   &[data-stage='t5'] {
     display: none !important;
