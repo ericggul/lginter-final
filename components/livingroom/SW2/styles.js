@@ -881,33 +881,65 @@ export const EntryCircle = styled(Sw2BlobBase)`
   top: var(--entry-top, 78%);
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 5;
+  /* 앨범 카드(4), 캡션(6)보다 뒤에 위치시키기 위해 z-index를 낮춘다. */
+  z-index: 3;
   /* 엔트리 전용 모션을 쓰기 위해 기본 depth 펄스 애니메이션은 제거 */
   animation: none;
-  /* 상단 interest 블롭보다 훨씬 크게 – 중앙 메인 원처럼 보이도록 스케일 업 */
-  width: calc(var(--blob-size, 24vw) * 1.35);
-  height: calc(var(--blob-size, 24vw) * 1.35);
+  /* 상단 interest 블롭보다 더 크게 – 중앙 메인 원처럼 보이도록 스케일 업 */
+  width: calc(var(--blob-size, 24vw) * 1.55);
+  height: calc(var(--blob-size, 24vw) * 1.55);
 
-  /* 엔트리 블롭은 중심을 더 선명하게 보이도록 별도 코어를 갖는다. */
+  /* 엔트리 블롭은 중앙은 선명하고, 외곽으로 갈수록 부드럽게 블러링되는 그라디언트를 사용한다. */
   background:
     radial-gradient(
       circle at 50% 50%,
       rgba(255, 255, 255, 0.98) 0%,
-      rgba(255, 255, 255, 0.96) 32%,
-      rgba(255, 255, 255, 0.0) 70%
+      rgba(255, 255, 255, 0.96) 28%,
+      rgba(255, 255, 255, 0.60) 55%,
+      rgba(255, 255, 255, 0.00) 88%
     ),
     var(--blob-bg, transparent);
 
-  /* 외곽 halo를 약하게 줄여서 실제 크기가 더 또렷하게 보이도록 조정 */
+  /* 외곽 halo: 바깥쪽으로만 더 크게 퍼지는 블러를 얹어서
+     중심은 그대로 두고, 경계가 자연스럽게 흐려지도록 조정.
+     Sw2BlobBase 의 conic-gradient / pulse 애니메이션은 사용하지 않기 위해
+     background/animation 을 완전히 덮어쓴다. */
   &::before {
-    inset: -1.6vw;
-    filter: blur(1.2vw);
-    opacity: 0.85;
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.0) 58%,
+      rgba(255, 255, 255, 0.98) 72%,
+      rgba(255, 255, 255, 0.0) 90%
+    );
+    filter: blur(1.6vw);
+    opacity: 1;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    transform: none;
+    animation: none;
   }
 
   &::after {
-    filter: blur(1.6vw);
-    opacity: 0.8;
+    content: '';
+    position: absolute;
+    inset: -3.5vw;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.0) 40%,
+      rgba(255, 255, 255, 0.7) 72%,
+      rgba(255, 255, 255, 0.0) 100%
+    );
+    filter: blur(4vw);
+    opacity: 0.85;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    transform: none;
+    animation: none;
   }
 
   &[data-stage='t3'] {
