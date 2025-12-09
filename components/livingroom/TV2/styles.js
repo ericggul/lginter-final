@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 export const Viewport = styled.div`
   position: fixed; inset: 0;
@@ -35,6 +35,54 @@ const headerPush = keyframes`
   100% { background-position: 0% 0; opacity: 1; filter: blur(0px); }
 `;
 
+/* T4: Top gradient left-to-right animation (3 seconds) - 좌에서 우로 들어옴 */
+const t4HeaderSlide = keyframes`
+  0%   { background-position: -100% 0; opacity: 0.6; }
+  100% { background-position: 0% 0; opacity: 1; }
+`;
+
+/* T4: Left gradient fade-in */
+const t4LeftFadeIn = keyframes`
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+`;
+
+/* T4: Right blob slide right-to-left */
+const t4RightBlobSlide = keyframes`
+  0%   { transform: translateX(40%) rotate(-90deg); opacity: 0.4; }
+  100% { transform: translateX(0) rotate(-90deg); opacity: 1; }
+`;
+
+/* T5: Typography roulette slide left-to-right */
+const t5RouletteSlide = keyframes`
+  0%   { opacity: 0; transform: translateX(-80px) scale(0.95); }
+  40%  { opacity: 0.8; transform: translateX(8px) scale(1.02); }
+  70%  { opacity: 1; transform: translateX(-4px) scale(0.98); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+`;
+
+/* T5: Album appearance */
+const t5AlbumAppear = keyframes`
+  0%   { opacity: 0; transform: translateY(20px) scale(0.96); filter: blur(8px); }
+  50%  { opacity: 0.9; transform: translateY(-4px) scale(1.01); filter: blur(2px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+`;
+
+/* T5: Music indicator strong pulse */
+const t5WaveformPulse = keyframes`
+  0%, 100% { transform: translateX(-50%) scaleY(1); opacity: 0.85; }
+  25% { transform: translateX(-50%) scaleY(1.4); opacity: 1; }
+  50% { transform: translateX(-50%) scaleY(1.2); opacity: 0.95; }
+  75% { transform: translateX(-50%) scaleY(1.35); opacity: 1; }
+`;
+
+/* White border flash */
+const borderFlash = keyframes`
+  0%   { opacity: 0; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  20%  { opacity: 1; box-shadow: 0 0 0 8px rgba(255,255,255,0.6), 0 0 0 16px rgba(255,255,255,0.3); }
+  100% { opacity: 0; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+`;
+
 const emotionFlow = keyframes`
   0%   { transform: translateX(40%); opacity: 0; }
   15%  { opacity: 0.75; }
@@ -68,10 +116,16 @@ export const Header = styled.div`
     ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos ?? 10}%,
     ${props => props.$gradientEnd || '#ffffff'} ${props => props.$gradientEndPos ?? 90}%,
     ${props => props.$gradientEnd || '#ffffff'} 100%);
-  /* 컬러 영역을 넓혀 자연스럽게 */
-  background-size: 220% 100%;
-  background-position: 120% 0;
-  animation: ${headerPush} 1.9s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  /* 컬러 영역을 넓혀 자연스럽게 - 잘림 방지를 위해 더 크게 설정 */
+  background-size: 300% 100%;
+  /* T4: Left-to-right slide animation (3 seconds) - 좌에서 우로 들어옴 */
+  ${props => props.$isT4 && props.$triggerT4 ? css`
+    background-position: -100% 0;
+    animation: ${t4HeaderSlide} 3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  ` : css`
+    /* 기본 상태: T5 이후 위치 유지 또는 초기 위치 (왼쪽 밖) */
+    background-position: ${props => props.$isT5 ? '0% 0' : '-100% 0'};
+  `}
   /* Removed will-change to prevent potential flickering */
   box-shadow:
     0 10px 40px rgba(0,0,0,0.08) inset,
@@ -163,9 +217,9 @@ export const LeftPanel = styled.div`
   overflow: hidden;
   padding: 86.4px 153.6px;
   /* Base gradient and sweeping band per spec */
-  /* 앨범 카드 위치 (조금 더 오른쪽 & 상단으로) */
-  --album-x: 52%;
-  --album-y: 52%;
+  /* 앨범 카드 위치 (그라디언트 중심에 배치) */
+  --album-x: 50%;
+  --album-y: 50%;
   /* starting azimuth for angular sweep – 약간만 회전해서
      하얀 영역 경계가 거의 수평에 가깝게 보이도록 조정 */
   --sweep-start: 90deg;
@@ -193,8 +247,14 @@ export const LeftPanel = styled.div`
     will-change: transform, filter;
     pointer-events: none;
     z-index: 0;
-    transition: opacity 1.5s ease-in-out;
-    opacity: 1;
+    /* T4: Fade-in animation (3 seconds) */
+    ${props => props.$isT4 && props.$triggerT4 ? css`
+      animation: conicTurn 28s linear infinite, ${t4LeftFadeIn} 3s ease-in-out forwards;
+      opacity: 0;
+    ` : css`
+      transition: opacity 1.5s ease-in-out;
+      opacity: 1;
+    `}
   }
   @keyframes conicTurn{
     from{ transform: matrix(1, 0, 0, -1, 0, 0) rotate(0deg); }
@@ -428,6 +488,21 @@ export const AlbumCard = styled.div`
   overflow: hidden;
   display: grid; place-items: center;
   z-index: 5;
+  /* 컨테이너 전체가 블러리하게 들어왔다가 선명해지는 느낌 */
+  animation: ${keyframes`
+    0% {
+      opacity: 0.3;
+      filter: blur(24px);
+    }
+    60% {
+      opacity: 0.85;
+      filter: blur(12px);
+    }
+    100% {
+      opacity: 1;
+      filter: blur(0px);
+    }
+  `} 2s ease-in-out;
 
   /* 부드러운 글로우 추가 */
   &::after {
@@ -532,8 +607,9 @@ export const AlbumVisual = styled.div`
   height: 100%;
   display: grid;
   place-items: center;
-  animation: ${albumBlurIn} 0.9s ease;
-  will-change: opacity, transform;
+  /* 커버는 제자리에 고정된 채 블러만 점점 줄어들도록 */
+  animation: ${albumBlurIn} 2s ease-in-out;
+  will-change: opacity, transform, filter;
   position: relative;
   z-index: 1;
 `;
@@ -566,9 +642,18 @@ const textGlowPulse = keyframes`
 `;
 
 export const FadeSlideText = styled.div`
-  animation: ${props => props.$slideLR ? slideInLR : (props.$roulette ? rouletteIn : fadeSlideUp)} 0.6s ease;
+  /* T5: Roulette slide right-to-left animation */
+  ${props => props.$isT5 && props.$triggerT5 ? css`
+    animation: ${t5RouletteSlide} 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  ` : props.$slideLR ? css`
+    animation: ${slideInLR} 0.6s ease;
+  ` : props.$roulette ? css`
+    animation: ${rouletteIn} 0.6s ease;
+  ` : css`
+    animation: ${fadeSlideUp} 0.6s ease;
+  `}
   will-change: opacity, transform;
-  ${props => props.$shouldGlow ? `
+  ${props => props.$shouldGlow ? css`
     animation: ${fadeSlideUp} 0.6s ease, ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
   ` : ''}
 `;
@@ -605,8 +690,8 @@ export const TrackTitle = styled.div`
   font-weight: 500;
   color: ${props => props.$color || 'rgba(255,255,255,1)'};
   mix-blend-mode: normal;
-  animation: ${rouletteIn} 0.6s ease;
-  will-change: transform, opacity;
+  /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
+  will-change: opacity;
   text-shadow:
     0 0 10px rgba(0,0,0,0.18),
     0 0 16px rgba(255,255,255,0.32);
@@ -625,8 +710,8 @@ export const Artist = styled.div`
   font-weight: 500;
   color: ${props => props.$color || 'rgba(255,255,255,1)'};
   mix-blend-mode: normal;
-  animation: ${rouletteIn} 0.6s ease;
-  will-change: transform, opacity;
+  /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
+  will-change: opacity;
   text-shadow:
     0 0 10px rgba(0,0,0,0.18),
     0 0 16px rgba(255,255,255,0.32);
@@ -699,6 +784,13 @@ export const RightPanel = styled.div`
     ${props => props.$bgColor1 || 'rgba(255,235,235,0.95)'},
     ${props => props.$bgColor2 || 'rgba(253,210,210,0.78)'} ${props => props.$bgColor2Pos || 55}%,
     ${props => props.$bgColor3 || 'rgba(250,250,250,0.90)'} 100%);
+  /* T4: Fade-in animation for right panel background */
+  ${props => props.$isT4 && props.$triggerT4 ? css`
+    animation: ${t4LeftFadeIn} 3s ease-in-out forwards;
+    opacity: 0;
+  ` : css`
+    opacity: 1;
+  `}
   /* 왼쪽 경계 블러 효과 */
   &::before {
     content: '';
@@ -754,6 +846,10 @@ export const RightSw1Ellipse = styled.div`
   z-index: 1;
   pointer-events: none;
   opacity: ${props => props.$opacity || 1};
+  /* T4: Right-to-left slide animation (3 seconds) */
+  ${props => props.$isT4 && props.$triggerT4 ? css`
+    animation: ${t4RightBlobSlide} 3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  ` : ''}
 `;
 
 /* 우측 블롭은 중앙 글로우만 사용 (파동 제거) */
@@ -845,7 +941,7 @@ export const ClimateRow = styled.div`
 
 export const NoticeTyping = styled.div`
   margin-top: 8px;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 400;
   letter-spacing: 0.02em;
   color: rgba(255,255,255,0.9);
@@ -854,8 +950,22 @@ export const NoticeTyping = styled.div`
   animation: ${noticeTyping} 5s steps(32, end) infinite;
   pointer-events: none;
   text-shadow:
-    0 0 6px rgba(0,0,0,0.18),
-    0 0 12px rgba(255,255,255,0.28);
+    0 0 10px rgba(0,0,0,0.28),
+    0 0 18px rgba(255,255,255,0.45);
+`;
+
+// 선택 이유(감정 설명) 인라인 키워드 (값 우측에 작게 배치)
+export const ReasonCaption = styled.span`
+  display: inline-block;
+  margin-left: 20px;
+  padding-top: 6px;
+  font-size: 34px;
+  line-height: 1.2;
+  color: rgba(255,255,255,0.92);
+  opacity: 0.96;
+  text-shadow:
+    0 0 10px rgba(0,0,0,0.28),
+    0 0 18px rgba(255,255,255,0.35);
 `;
 
 export const ClimateIcon = styled.div`
@@ -942,6 +1052,18 @@ export const ThinkingDot = styled.span`
   animation: ${dotPulse} 1.2s ease-in-out infinite;
   &:nth-child(2) { animation-delay: .15s; }
   &:nth-child(3) { animation-delay: .30s; }
+`;
+
+/* White border flash for new decisions */
+export const BorderFlash = styled.div`
+  position: absolute;
+  inset: 0;
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 100;
+  animation: ${borderFlash} 0.4s ease-out forwards;
+  mix-blend-mode: screen;
 `;
 
 

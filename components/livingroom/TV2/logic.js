@@ -103,6 +103,7 @@ export function useTV2Logic() {
   const [coverSrc, setCoverSrc] = useState('');
   const [audioSrc, setAudioSrc] = useState('');
   const [reason, setReason] = useState('');
+  const [emotionKeyword, setEmotionKeyword] = useState('');
 
   useSocketTV2({
     onDeviceNewDecision: (msg) => {
@@ -129,9 +130,12 @@ export function useTV2Logic() {
         console.log('📺 TV2 env updated:', { temp: next.temp, humidity: next.humidity, lightColor: next.lightColor, music: next.music });
         return next;
       });
-      // 음악 선택 이유 저장
+      // 음악 선택 이유 & 감정 키워드 저장
       if (msg.reason && typeof msg.reason === 'string') {
         setReason(msg.reason);
+      }
+      if (msg.emotionKeyword && typeof msg.emotionKeyword === 'string') {
+        setEmotionKeyword(msg.emotionKeyword);
       }
     },
   });
@@ -171,15 +175,84 @@ export function useTV2Logic() {
     setAudioSrc(audioPath || '');
   }, [env?.music]);
 
-  return { env, title, artist, coverSrc, audioSrc, reason };
+  return { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword };
 }
 
-export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, reason, levaControls, audioRef }) {
+export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, reason, emotionKeyword, levaControls, audioRef }) {
   const hexColor = (env?.lightColor || '').toUpperCase();
   const friendlyName = useMemo(() => describeHexColor(hexColor), [hexColor]);
   const headerText = friendlyName || env.lightLabel || hexColor || '조명 색상';
   
   const isIdle = !title && !artist && !coverSrc && (!env || env.music === 'ambient');
+  
+  // T3/T4/T5 Motion State Management
+  // T3: Input exists but no decision yet (default waiting)
+  // T4: Decision triggered (3 seconds of parallel animations)
+  // T5: All decisions fully processed (all content appears)
+  const [motionState, setMotionState] = useState('T3'); // 'T3' | 'T4' | 'T5'
+  const [decisionKey, setDecisionKey] = useState(0); // Increments on new decision
+  const [showBorderFlash, setShowBorderFlash] = useState(false);
+  const prevEnvRef = useRef(null);
+  const motionStateRef = useRef('T3');
+  
+  // Detect new decision arrival
+  useEffect(() => {
+    const hasInput = !!(env?.music || env?.lightColor || typeof env?.temp === 'number' || typeof env?.humidity === 'number');
+    
+    // Initialize prevEnvRef if not set
+    if (!prevEnvRef.current) {
+      prevEnvRef.current = { ...env };
+      if (hasInput) {
+        // Initial state: if input exists, go to T5 directly (no T4 transition needed for initial load)
+        setMotionState('T5');
+        motionStateRef.current = 'T5';
+      } else {
+        setMotionState('T3');
+        motionStateRef.current = 'T3';
+      }
+      return;
+    }
+    
+    // Check if this is a new decision (env changed)
+    const envChanged = (
+      prevEnvRef.current.music !== env?.music ||
+      prevEnvRef.current.lightColor !== env?.lightColor ||
+      prevEnvRef.current.temp !== env?.temp ||
+      prevEnvRef.current.humidity !== env?.humidity
+    );
+    
+    if (envChanged && hasInput && motionStateRef.current !== 'T4') {
+      // New decision arrived - trigger T4
+      setMotionState('T4');
+      motionStateRef.current = 'T4';
+      setDecisionKey(prev => prev + 1);
+      
+      // Flash white border
+      setShowBorderFlash(true);
+      const flashTimer = setTimeout(() => setShowBorderFlash(false), 400);
+      
+      // After 3 seconds, transition to T5
+      const t5Timer = setTimeout(() => {
+        setMotionState('T5');
+        motionStateRef.current = 'T5';
+      }, 3000);
+      
+      prevEnvRef.current = { ...env };
+      
+      return () => {
+        clearTimeout(t5Timer);
+        clearTimeout(flashTimer);
+      };
+    } else if (!hasInput) {
+      // No input - stay in T3
+      setMotionState('T3');
+      motionStateRef.current = 'T3';
+      prevEnvRef.current = { ...env };
+    } else if (!envChanged) {
+      // Input exists but no change - maintain current state
+      prevEnvRef.current = { ...env };
+    }
+  }, [env]);
   
   // Loading states
   const [showTitleLoading, setShowTitleLoading] = useState(true);
@@ -193,6 +266,9 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   const [displayTemp, setDisplayTemp] = useState('');
   const [displayHumidity, setDisplayHumidity] = useState('');
   const [displayHeaderText, setDisplayHeaderText] = useState('');
+  // 선택 이유(감정 설명) 표시용
+  const [displayReason, setDisplayReason] = useState('');
+  const [showReasonLoading, setShowReasonLoading] = useState(true);
   
   const titleChangeRef = useRef('');
   const artistChangeRef = useRef('');
@@ -200,6 +276,7 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   const tempChangeRef = useRef(typeof env?.temp === 'number' ? env.temp : null);
   const humidityChangeRef = useRef(typeof env?.humidity === 'number' ? env.humidity : null);
   const headerChangeRef = useRef(headerText || '');
+  const reasonChangeRef = useRef(reason || '');
   
   const [showChangeMessage, setShowChangeMessage] = useState(false);
   
@@ -226,7 +303,7 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     return () => { cancelled = true; };
   }, [coverSrc]);
   
-  // Title/Artist/Cover loading logic
+  // Title/Artist/Cover loading logic (respects T4 state)
   useEffect(() => {
     const newTitle = title || '';
     const newArtist = artist || '';
@@ -252,16 +329,34 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
       artistChangeRef.current = newArtist;
       coverChangeRef.current = newCover;
       
-      const timer = setTimeout(() => {
-        setShowTitleLoading(false);
-        setShowArtistLoading(false);
-        setShowAlbumCover(true);
-        setDisplayTitle(newTitle);
-        setDisplayArtist(newArtist);
-      }, 3000);
+      // Wait for T5 state before showing content (T4 keeps '...' for 3 seconds)
+      const checkT5 = () => {
+        if (motionStateRef.current === 'T5') {
+          setShowTitleLoading(false);
+          setShowArtistLoading(false);
+          setShowAlbumCover(true);
+          setDisplayTitle(newTitle);
+          setDisplayArtist(newArtist);
+        } else {
+          // If still in T4, wait a bit more
+          setTimeout(checkT5, 100);
+        }
+      };
+      
+      // If already in T5, show immediately. Otherwise wait 3 seconds for T4->T5 transition
+      if (motionStateRef.current === 'T5') {
+        // Already in T5, show immediately
+        checkT5();
+      } else {
+        // Start checking after 3 seconds (T4 duration)
+        const timer = setTimeout(checkT5, 3000);
+        return () => {
+          clearTimeout(timer);
+          clearTimeout(messageTimer);
+        };
+      }
       
       return () => {
-        clearTimeout(timer);
         clearTimeout(messageTimer);
       };
     } else if (!newTitle && !newArtist && !newCover) {
@@ -272,8 +367,45 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
       setDisplayArtist('');
     }
   }, [title, artist, coverSrc]);
+
+  // Reason (감정/선택 이유) 로딩 로직 – emotionKeyword만 사용, 3글자 감정 키워드로 축약
+  useEffect(() => {
+    const base = (emotionKeyword || '').trim();
+    if (!base) {
+      setShowReasonLoading(false);
+      setDisplayReason('');
+      return;
+    }
+    const newReason = base.length > 3 ? base.slice(0, 3) : base;
+    const changed = newReason !== reasonChangeRef.current;
+
+    if (changed) {
+      reasonChangeRef.current = newReason;
+      setShowReasonLoading(true);
+      setDisplayReason('');
+
+      const checkT5 = () => {
+        if (motionStateRef.current === 'T5') {
+          setShowReasonLoading(false);
+          setDisplayReason(newReason);
+        } else {
+          setTimeout(checkT5, 100);
+        }
+      };
+
+      if (motionStateRef.current === 'T5') {
+        checkT5();
+      } else {
+        const timer = setTimeout(checkT5, 3000);
+        return () => clearTimeout(timer);
+      }
+    } else if (!newReason) {
+      setShowReasonLoading(true);
+      setDisplayReason('');
+    }
+  }, [reason]);
   
-  // Temperature loading logic
+  // Temperature loading logic (respects T4 state)
   useEffect(() => {
     const newTemp = typeof env?.temp === 'number' ? env.temp : null;
     const tempChanged = newTemp !== null && newTemp !== tempChangeRef.current;
@@ -288,10 +420,16 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
         setShowChangeMessage(false);
       }, 3000);
       
-      const timer = setTimeout(() => {
-        setShowTempLoading(false);
-        setDisplayTemp(newTemp !== null ? `${newTemp}°C` : '');
-      }, 3000);
+      const checkT5 = () => {
+        if (motionStateRef.current === 'T5') {
+          setShowTempLoading(false);
+          setDisplayTemp(newTemp !== null ? `${newTemp}°C` : '');
+        } else {
+          setTimeout(checkT5, 100);
+        }
+      };
+      
+      const timer = setTimeout(checkT5, 3000);
       
       return () => {
         clearTimeout(timer);
@@ -300,7 +438,7 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     }
   }, [env?.temp]);
   
-  // Humidity loading logic
+  // Humidity loading logic (respects T4 state)
   useEffect(() => {
     const newHumidity = typeof env?.humidity === 'number' ? env.humidity : null;
     const humidityChanged = newHumidity !== null && newHumidity !== humidityChangeRef.current;
@@ -315,10 +453,16 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
         setShowChangeMessage(false);
       }, 3000);
       
-      const timer = setTimeout(() => {
-        setShowHumidityLoading(false);
-        setDisplayHumidity(newHumidity !== null ? `${newHumidity}%` : '');
-      }, 3000);
+      const checkT5 = () => {
+        if (motionStateRef.current === 'T5') {
+          setShowHumidityLoading(false);
+          setDisplayHumidity(newHumidity !== null ? `${newHumidity}%` : '');
+        } else {
+          setTimeout(checkT5, 100);
+        }
+      };
+      
+      const timer = setTimeout(checkT5, 3000);
       
       return () => {
         clearTimeout(timer);
@@ -327,7 +471,7 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     }
   }, [env?.humidity]);
   
-  // Header loading logic
+  // Header loading logic (respects T4 state)
   useEffect(() => {
     const newHeaderText = headerText || '';
     const headerChanged = newHeaderText !== headerChangeRef.current;
@@ -342,10 +486,16 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
         setShowChangeMessage(false);
       }, 3000);
       
-      const timer = setTimeout(() => {
-        setShowHeaderLoading(false);
-        setDisplayHeaderText(newHeaderText);
-      }, 3000);
+      const checkT5 = () => {
+        if (motionStateRef.current === 'T5') {
+          setShowHeaderLoading(false);
+          setDisplayHeaderText(newHeaderText);
+        } else {
+          setTimeout(checkT5, 100);
+        }
+      };
+      
+      const timer = setTimeout(checkT5, 3000);
       
       return () => {
         clearTimeout(timer);
@@ -432,33 +582,46 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
           if (analyser) {
             const updateWaveform = () => {
               if (!analyser) return;
-              const dataArray = new Uint8Array(analyser.frequencyBinCount);
-              analyser.getByteFrequencyData(dataArray);
-              const bars = 32;
-              const newWaveformData = [];
-              
-              // 로그 스케일로 샘플링하여 저주파수와 고주파수를 모두 포함
-              for (let i = 0; i < bars; i++) {
-                // 로그 스케일 인덱스 계산
-                const ratio = i / (bars - 1);
-                const logIndex = Math.floor(
-                  Math.pow(dataArray.length, ratio) - 1
-                );
-                const nextRatio = (i + 1) / (bars - 1);
-                const nextLogIndex = i < bars - 1 
-                  ? Math.floor(Math.pow(dataArray.length, nextRatio) - 1)
-                  : dataArray.length;
-                
-                // 해당 범위의 최대값 사용 (더 역동적인 시각화)
-                let max = 0;
-                for (let j = Math.max(0, logIndex); j < Math.min(nextLogIndex, dataArray.length); j++) {
-                  max = Math.max(max, dataArray[j] || 0);
-                }
-                // 높이를 4px~120px 범위로 매핑 (더 적극적인 움직임)
-                const height = Math.max(4, Math.min(120, (max / 255) * 120));
-                newWaveformData.push(height);
-              }
-              setWaveformData(newWaveformData);
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(dataArray);
+          const bars = 32;
+          const newWaveformData = [];
+          let globalMax = 0;
+          
+          // 로그 스케일로 샘플링하여 저주파수와 고주파수를 모두 포함
+          for (let i = 0; i < bars; i++) {
+            // 로그 스케일 인덱스 계산
+            const ratio = i / (bars - 1);
+            const logIndex = Math.floor(
+              Math.pow(dataArray.length, ratio) - 1
+            );
+            const nextRatio = (i + 1) / (bars - 1);
+            const nextLogIndex = i < bars - 1 
+              ? Math.floor(Math.pow(dataArray.length, nextRatio) - 1)
+              : dataArray.length;
+            
+            // 해당 범위의 최대값 사용 (더 역동적인 시각화)
+            let max = 0;
+            for (let j = Math.max(0, logIndex); j < Math.min(nextLogIndex, dataArray.length); j++) {
+              max = Math.max(max, dataArray[j] || 0);
+            }
+            globalMax = Math.max(globalMax, max);
+            newWaveformData.push(max);
+          }
+
+          const minHeight = 8;
+          const maxHeight = 160;
+          const normGlobal = globalMax / 255 || 0.0001;
+          const gain = normGlobal < 0.4 ? 0.4 / normGlobal : 1;
+
+          const scaled = newWaveformData.map(raw => {
+            const norm = (raw / 255) * gain;
+            const clamped = Math.max(0, Math.min(1, norm));
+            const gamma = Math.pow(clamped, 0.7);
+            return Math.max(minHeight, Math.min(maxHeight, gamma * maxHeight));
+          });
+
+          setWaveformData(scaled);
               waveformRafRef.current = requestAnimationFrame(updateWaveform);
             };
             updateWaveform();
@@ -478,7 +641,10 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
         
         analyser = audioContext.createAnalyser();
         analyser.fftSize = 512; // 더 많은 주파수 데이터를 얻기 위해 증가
-        analyser.smoothingTimeConstant = 0.3; // 더 민감하게 반응하도록 감소
+        // 음악 변화에 더 민감하게 반응하도록 설정
+        analyser.smoothingTimeConstant = 0.15;
+        analyser.minDecibels = -90;
+        analyser.maxDecibels = -10;
         analyserRef.current = analyser;
         
         source = audioContext.createMediaElementSource(audioRef.current);
@@ -505,6 +671,7 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
           analyser.getByteFrequencyData(dataArray);
           const bars = 32;
           const newWaveformData = [];
+          let globalMax = 0;
           
           // 로그 스케일로 샘플링하여 저주파수와 고주파수를 모두 포함
           for (let i = 0; i < bars; i++) {
@@ -523,11 +690,26 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
             for (let j = Math.max(0, logIndex); j < Math.min(nextLogIndex, dataArray.length); j++) {
               max = Math.max(max, dataArray[j] || 0);
             }
-                // 높이를 6px~140px 범위로 매핑 (더 적극적인 움직임)
-                const height = Math.max(6, Math.min(140, (max / 255) * 140));
-            newWaveformData.push(height);
+            globalMax = Math.max(globalMax, max);
+            newWaveformData.push(max);
           }
-          setWaveformData(newWaveformData);
+
+          // 글로벌 레벨에 따라 자동 게인 걸어서 좀 더 적극적으로 움직이도록
+          const minHeight = 8;
+          const maxHeight = 160;
+          const normGlobal = globalMax / 255 || 0.0001;
+          // 신호가 작으면 증폭, 크면 그대로
+          const gain = normGlobal < 0.4 ? 0.4 / normGlobal : 1;
+
+          const scaled = newWaveformData.map(raw => {
+            const norm = (raw / 255) * gain;
+            const clamped = Math.max(0, Math.min(1, norm));
+            // 살짝 감마를 줘서 작은 변화도 잘 보이게
+            const gamma = Math.pow(clamped, 0.7);
+            return Math.max(minHeight, Math.min(maxHeight, gamma * maxHeight));
+          });
+
+          setWaveformData(scaled);
           waveformRafRef.current = requestAnimationFrame(updateWaveform);
         };
         
@@ -703,6 +885,20 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   // Reason 표시: 타이핑 없이 바로 나타났다 페이드아웃
   // Reason 표시 제거 (좌측 문장 비표시)
   
+  // Animation flags for T4 and T5
+  const isT4 = motionState === 'T4';
+  const isT5 = motionState === 'T5';
+  const isT3 = motionState === 'T3';
+  
+  // T4: Parallel animations trigger
+  const triggerT4Animations = isT4 && decisionKey > 0;
+  
+  // T5: All content appears with roulette motion
+  const triggerT5Animations = isT5 && decisionKey > 0;
+  
+  // Music indicator pulse intensity (stronger in T5)
+  const waveformPulseIntensity = isT5 ? 1.4 : 1.0;
+  
   return {
     // Display states
     isIdle,
@@ -712,6 +908,8 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     displayTemp,
     displayHumidity,
     displayHeaderText,
+    displayReason,
+    showReasonLoading,
     showTitleLoading,
     showArtistLoading,
     showAlbumCover,
@@ -720,6 +918,17 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     showHeaderLoading,
     showChangeMessage,
     albumVisualKey,
+    
+    // Motion states
+    motionState,
+    decisionKey,
+    showBorderFlash,
+    isT3,
+    isT4,
+    isT5,
+    triggerT4Animations,
+    triggerT5Animations,
+    waveformPulseIntensity,
     
     // Visual states
     albumTone,
