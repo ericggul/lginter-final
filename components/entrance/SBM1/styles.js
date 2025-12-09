@@ -1,4 +1,4 @@
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 
 export const Container = styled.div`
   min-height: 100vh;
@@ -176,7 +176,8 @@ export const BlobTR = styled(Blob)`
   --p1x: 40%; --p1y: 68%;
   /* flip vertical orientation without rotating */
   transform: scaleY(-1) scale(var(--sbm-blob-zoom, 1));
-  transition: --sbm-blob-zoom 2000ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* blobZoom 변경 시 실제 스케일이 부드럽게 변하도록 transform 자체를 트랜지션 */
+  transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
   @keyframes bobFloatTR { 0%{ transform: scaleY(-1) translate3d(0,0,0);} 50%{ transform: scaleY(-1) translate3d(-0.6vmin,-0.8vmin,0);} 100%{ transform: scaleY(-1) translate3d(0,0,0);} }
   /* include pop scale in keyframes */
   @keyframes bobFloatTR { 
@@ -199,7 +200,7 @@ export const BlobBL = styled(Blob)`
   left: calc(-1 * var(--kiss)); top: auto; bottom: calc(-1 * var(--kiss)); width: 134vmin; height: 134vmin; /* bigger */
   /* orient pink lobe toward center (QR side) */
   --p1x: 66%; --p1y: 36%;
-  transition: --sbm-blob-zoom 2000ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
   @keyframes bobFloatBL { 
     0%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0,0,0);} 
     50%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0.8vmin,0.8vmin,0);} 
@@ -230,8 +231,8 @@ export const BlobTinyTL = styled(Blob)`
     radial-gradient(farthest-side at 68% 32%, rgba(239, 144, 218, 0.95) 0%, rgba(239, 144, 218, 0.55) 32%, rgba(239,144,218,0.00) 72%),
     radial-gradient(farthest-side at 26% 74%, rgba(190, 190, 255, 0.85) 0%, rgba(190,190,255,0.00) 68%),
     radial-gradient(farthest-side at 42% 40%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.72) 52%, rgba(255, 255, 255, 0.00) 78%);
-  /* 공통 스케일 변수 반영 (Idle: 1, Active: 0.55) + 천천히 둥둥 떠다니는 모션 */
-  transition: --sbm-blob-zoom 650ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* 공통 스케일 변수 반영 (Idle: 1) + 천천히 둥둥 떠다니는 모션 */
+  transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
   @keyframes bobFloatTiny { 
     0%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0,0,0);} 
     50%{ transform: scale(var(--sbm-blob-zoom,1)) translate3d(0.9vmin,0.6vmin,0);} 
@@ -263,8 +264,8 @@ export const TopMessageBase = styled.h2`
   /* 기본 문구: tip 활성화 여부에 따라 위로 사라지거나 다시 내려오며 나타남 */
   opacity: ${(p) => (p.$active ? 1 : 0)};
   transform: translate(-50%, ${(p) => (p.$active ? '0' : '-18px')});
+  /* opacity는 즉시 전환해 공백 구간을 없애고, 위치 변화만 부드럽게 처리 */
   transition:
-    opacity 600ms cubic-bezier(0.19, 1, 0.22, 1),
     transform 600ms cubic-bezier(0.19, 1, 0.22, 1);
 `;
 

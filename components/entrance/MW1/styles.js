@@ -28,25 +28,27 @@ export const LayerVideo = styled.video`
 
 export const CenterTip = styled.div`
   position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  /* 화면 완전 중앙이 아니라 좌측 상단 쪽으로 살짝 이동 */
+  left: 8vw;
+  top: 8vh;
+  transform: translate(0, 0);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 600;
-  font-size: clamp(16px, 3.6vw, 36px); /* smaller */
+  font-weight: 400;
+  /* 폰트 살짝 더 작게 (기본은 레귤러, 일부만 <strong>으로 강조) */
+  font-size: clamp(14px, 2.6vw, 30px);
   color: #FFFFFF; /* white text only */
   background: transparent; /* no modal */
   border: 0;
   border-radius: 0;
   padding: 0;
   box-shadow: none;
-  text-align: center;
-  white-space: nowrap; /* single line, no wrapping/indent */
+  text-align: left;
+  white-space: pre-line; /* 줄바꿈(\n) 허용 */
   text-indent: 0;
   pointer-events: none;
   opacity: ${(p) => (p.$show ? 1 : 0)};
-  transform-origin: 50% 50%;
+  transform-origin: 0 0;
   transition: opacity 600ms ease, transform 600ms ease;
-  ${(p) => p.$show ? 'transform: translate(-50%, -50%) scale(1);' : 'transform: translate(-50%, -50%) scale(0.98);'}
+  ${(p) => p.$show ? 'transform: translate(0, 0) scale(1);' : 'transform: translate(0, 0) scale(0.98);'}
 `;
 

@@ -3,7 +3,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import * as S from './styles';
 import { DEFAULT_TOP_MESSAGE } from './logic';
 
-export function BlobBackground({ active }) {
+// 블롭 3개가 항상 둥실둥실 떠 있는 기본 배경
+export function BlobBackground() {
   return (
     <S.BlobLayer>
       <S.BlobTinyTL />

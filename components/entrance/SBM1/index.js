@@ -7,7 +7,7 @@ export default function SBM1Controls() {
 
   return (
     <S.Container style={vars}>
-      <BlobBackground active={tip} />
+      <BlobBackground />
       <S.BGFlash />
       <TopMsg text={topMessage} tip={tip} />
       <QrFloat value={qrUrl} />

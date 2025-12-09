@@ -32,7 +32,9 @@ export function useSbm1() {
   const [boost, setBoost] = useState(false);
   const [tip, setTip] = useState(false);
   const [flash, setFlash] = useState(false);
-  const [blobZoom, setBlobZoom] = useState(1);
+  const boostTimeoutRef = useRef(null);
+  const flashTimeoutRef = useRef(null);
+  const tipTimeoutRef = useRef(null);
 
   useSocketSBM1({
     onEntranceNewUser: (payload) => {
@@ -44,19 +46,29 @@ export function useSbm1() {
           seen.add(uid);
           setUserCount((c) => c + 1);
         }
-        // 순간 채도/대비 부스트
+        // 순간 채도/대비 부스트 (중복 이벤트 시 타이머 재설정으로 과도한 setState 방지)
         setBoost(true);
-        setTimeout(() => setBoost(false), 2000);
+        if (boostTimeoutRef.current) clearTimeout(boostTimeoutRef.current);
+        boostTimeoutRef.current = setTimeout(() => {
+          setBoost(false);
+          boostTimeoutRef.current = null;
+        }, 2000);
         // 연핑크 배경 플래시 (서서히 들어왔다 나감)
         setFlash(true);
-        setTimeout(() => setFlash(false), 2000);
-        // 블롭들 잠깐 작아졌다 다시 커지는 펄스
-        setBlobZoom(0.55);
-        setTimeout(() => setBlobZoom(1), 750);
+        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+        flashTimeoutRef.current = setTimeout(() => {
+          setFlash(false);
+          flashTimeoutRef.current = null;
+        }, 2000);
         // Tip 문구 7초 표시 (애니메이션 길이와 정확히 맞춤)
-        setTopMessage(TIP_TEXT);
+        setTopMessage((prev) => (prev === TIP_TEXT ? prev : TIP_TEXT));
         setTip(true);
-        setTimeout(() => { setTip(false); setTopMessage(DEFAULT_TOP_MESSAGE); }, 7000);
+        if (tipTimeoutRef.current) clearTimeout(tipTimeoutRef.current);
+        tipTimeoutRef.current = setTimeout(() => {
+          setTip(false);
+          setTopMessage((prev) => (prev === DEFAULT_TOP_MESSAGE ? prev : DEFAULT_TOP_MESSAGE));
+          tipTimeoutRef.current = null;
+        }, 7000);
       } catch {}
     },
     onEntranceNewName: (payload) => {
@@ -68,19 +80,29 @@ export function useSbm1() {
           seen.add(uid);
           setUserCount((c) => c + 1);
         }
-        // 이름 들어와도 동일하게 부스트
+        // 이름 들어와도 동일하게 부스트 (타이머 재사용)
         setBoost(true);
-        setTimeout(() => setBoost(false), 2000);
+        if (boostTimeoutRef.current) clearTimeout(boostTimeoutRef.current);
+        boostTimeoutRef.current = setTimeout(() => {
+          setBoost(false);
+          boostTimeoutRef.current = null;
+        }, 2000);
         // 연핑크 배경 플래시
         setFlash(true);
-        setTimeout(() => setFlash(false), 2000);
-        // 블롭들 잠깐 작아졌다 다시 커지는 펄스
-        setBlobZoom(0.55);
-        setTimeout(() => setBlobZoom(1), 750);
+        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+        flashTimeoutRef.current = setTimeout(() => {
+          setFlash(false);
+          flashTimeoutRef.current = null;
+        }, 2000);
         // Tip 문구 7초 표시 (애니메이션 길이와 정확히 맞춤)
-        setTopMessage(TIP_TEXT);
+        setTopMessage((prev) => (prev === TIP_TEXT ? prev : TIP_TEXT));
         setTip(true);
-        setTimeout(() => { setTip(false); setTopMessage(DEFAULT_TOP_MESSAGE); }, 7000);
+        if (tipTimeoutRef.current) clearTimeout(tipTimeoutRef.current);
+        tipTimeoutRef.current = setTimeout(() => {
+          setTip(false);
+          setTopMessage((prev) => (prev === DEFAULT_TOP_MESSAGE ? prev : DEFAULT_TOP_MESSAGE));
+          tipTimeoutRef.current = null;
+        }, 7000);
       } catch {}
     },
   });
@@ -89,13 +111,26 @@ export function useSbm1() {
   const styleVars = useMemo(() => ({
     ...vars,
     '--sbm-boost-filter': boost ? 'saturate(1.22) contrast(1.12) brightness(1.04)' : 'none',
-    // Idle: 1.0, Active 이벤트 시 잠시 0.55까지 줄어들었다 다시 1로 복귀
-    '--sbm-blob-zoom': blobZoom,
-    '--sbm-bgflash-opacity': flash ? 1 : 0,
+    // 블롭 스케일은 항상 1로 고정 (아이들/액티브 동일 크기)
+    '--sbm-blob-zoom': 1,
+    // 액티브(tip=true) 동안에는 배경 워시를 강한 마젠타로 유지
+    '--sbm-bgflash-opacity': tip ? 1 : 0,
     '--sbm-border-glow-opacity': tip ? 1 : 0,
-  }), [vars, boost, flash, tip, blobZoom]);
+  }), [vars, boost, tip]);
 
-  return useMemo(() => ({ vars: styleVars, qrUrl, topMessage, furonPath, userCount, tip }), [styleVars, qrUrl, topMessage, userCount, tip]);
+  // 언마운트 시 타이머 정리로 메모리/불필요한 setState 방지
+  useEffect(() => {
+    return () => {
+      if (boostTimeoutRef.current) clearTimeout(boostTimeoutRef.current);
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+      if (tipTimeoutRef.current) clearTimeout(tipTimeoutRef.current);
+    };
+  }, []);
+
+  return useMemo(
+    () => ({ vars: styleVars, qrUrl, topMessage, furonPath, userCount, tip }),
+    [styleVars, qrUrl, topMessage, userCount, tip]
+  );
 }
 
 
