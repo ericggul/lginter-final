@@ -637,6 +637,29 @@ const orbitRadiusPulse = keyframes`
   100% { --orbit-radius-mod: 1; }
 `;
 
+/* T5 전용: 중앙 블롭 뒤에서 바깥 궤도로 한 바퀴 그리며 서서히 퍼져 나오는 나선형 모션
+   - CSS 변수 대신 transform 자체를 애니메이션해서 실제 이동 궤적이 보이도록 한다. */
+const spiralRadiusAppear = keyframes`
+  from {
+    /* 중앙 코어 바로 뒤, 안쪽 반경(≈0.26)에서 시작 */
+    transform:
+      translate(-50%, -50%)
+      rotate(var(--orbit-angle))
+      translateX(calc(var(--R) * var(--orbit-radius-factor) * 0.26))
+      rotate(calc(-1 * var(--orbit-angle)));
+    opacity: 0;
+  }
+  to {
+    /* 원래 궤도 반경(1.0)까지 밖으로 퍼져 나감 */
+    transform:
+      translate(-50%, -50%)
+      rotate(var(--orbit-angle))
+      translateX(calc(var(--R) * var(--orbit-radius-factor) * 1))
+      rotate(calc(-1 * var(--orbit-angle)));
+    opacity: var(--z-opacity-base);
+  }
+`;
+
 /* 내부 그라데이션이 살짝 흐르듯이 움직이면서 입체감이 느껴지도록 하는 패럴럭스 모션 */
 const blobInnerParallax = keyframes`
   0% {
@@ -968,8 +991,10 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     `;
   }}
 
-  /* 기본 transform/opacity/transition (T3 신규 블롭 제외) */
-  &:not([data-stage='t3'][data-new='true']) {
+  /* 기본 transform/opacity/transition
+     - T3 신규 블롭에는 적용하지 않음
+     - T5에서는 별도의 나선형 등장 애니메이션(spiralRadiusAppear)을 사용하므로 제외 */
+  &:not([data-stage='t3'][data-new='true']):not([data-stage='t5']) {
     transform: translate(-50%, -50%) var(--orbit-transform)
                translate(calc(var(--float-x) * 1.0vw), calc(var(--float-y) * 1.0vw))
                scale(calc(var(--z-scale-base) * var(--size-boost, 1) * var(--new-scale, 1) * var(--pull-scale)));
@@ -994,8 +1019,9 @@ export const Sw1OrbitBlob = styled(BlobBase)`
 
   /* 내부 컬러 패럴럭스 + z축 펄스 + 공전 반경 호흡을 동시에 적용
      - zSeed에 따라 duration/딜레이를 달리 줘서 랜덤하게 보이게 함
-     - T3에서는 적용 안 함 (T3 규칙에서 오버라이드) */
-  &:not([data-stage='t3'][data-new='true']) {
+     - T3에서는 적용 안 함 (T3 규칙에서 오버라이드)
+     - T5에서는 spiralRadiusAppear로 transform을 직접 애니메이션하므로 제외 */
+  &:not([data-stage='t3'][data-new='true']):not([data-stage='t5']) {
     animation:
       /* 내부 컬러 패럴럭스는 아주 느리게 */
       ${blobInnerParallax} 48s ease-in-out infinite,
@@ -1012,24 +1038,40 @@ export const Sw1OrbitBlob = styled(BlobBase)`
       ${({ $zSeed = 0 }) => `${1 + Math.round($zSeed * 7)}s`};
   }
 
-  /* T3~T4 동안 기존 오빗 블롭은 살짝 투명화 (완전 사라지지 않도록) */
+  /* T3~T4 동안 기존 오빗 블롭은 점점 중앙으로 모였다가 사라지고,
+     T5에서 다시 바깥으로 퍼지면서 순차적으로 등장하는 느낌을 준다. */
   &[data-stage='t3']:not([data-new='true']) {
     opacity: calc(var(--z-opacity-base) * 0.6);
   }
   &[data-stage='t4']:not([data-new='true']) {
     --orbit-radius-mod: 0.26;
     --pull-scale: 0.62;
-    --pull-opacity: 0.42;
+    /* T4에서는 거의 보이지 않도록 완전히 투명하게 */
+    --pull-opacity: 0;
     --pull-blur: 1.6;
   }
 
-  /* T5에서 투명도 복구 */
+  /* T5에서 나선형 순차 등장:
+     - T4에서 중앙 근처(반경 0.26) + opacity 0 상태로 숨어 있다가
+     - 각 블롭 index($order)에 따라 animation-delay를 주어
+       중앙 블롭 뒤에서 바깥 궤도까지 한 바퀴 그리며 차례대로 퍼져 나오는 모션 */
   &[data-stage='t5'] {
-    --orbit-radius-mod: 1;
     --pull-scale: 1;
     --pull-opacity: 1;
     --pull-blur: 1;
     opacity: calc(var(--z-opacity-base) * var(--pull-opacity));
+
+    /* T5에서는 orbitRadiusPulse / zPulse / floatDrift 대신
+       transform 자체를 애니메이션하는 spiralRadiusAppear만 사용한다.
+       BlobRotator가 계속 회전하고 있기 때문에,
+       반경이 커지는 동안 실제 궤도는 나선형으로 보인다. */
+    animation:
+      ${blobInnerParallax} 48s ease-in-out infinite,
+      ${spiralRadiusAppear} 3200ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+
+    animation-delay:
+      0s,
+      ${({ $order = 0 }) => `${0.6 * $order}s`};
   }
 
   /* BlobBase에서 정의한 before/after를 오빗 블롭 전용 값으로 살짝 재조정:
@@ -1209,24 +1251,37 @@ const SmallOrbitDotBase = styled.div`
     opacity: 0.78;
     filter: blur(0.24vw);
     z-index: 4;
-    transition-duration: 2.8s, 2.4s, 2.4s;
+    /* 작은 원들도 꽤 느리게 바깥으로 퍼져 나오도록 */
+    transition-duration: 3.2s, 2.6s, 2.6s;
   }
 `;
 
 export const Sw1SmallOrbitDot1 = styled(SmallOrbitDotBase)`
   /* 큰 블롭들보다 살짝 안쪽 링에서 회전 - 좌상단 */
   --small-angle: -60deg;
+  /* T5: 가장 먼저 등장 */
+  &[data-stage='t5'] {
+    transition-delay: 0.0s;
+  }
 `;
 
 export const Sw1SmallOrbitDot2 = styled(SmallOrbitDotBase)`
   /* 우상단 */
   --small-angle: 60deg;
+  /* T5: 두 번째로 등장 (약간 느리게) */
+  &[data-stage='t5'] {
+    transition-delay: 0.7s;
+  }
 `;
 
 export const Sw1SmallOrbitDot3 = styled(SmallOrbitDotBase)`
   /* 하단 중앙 */
   --small-angle: 180deg;
   --small-r: 1.18;
+  /* T5: 세 번째로 등장 (가장 늦게) */
+  &[data-stage='t5'] {
+    transition-delay: 1.4s;
+  }
 `;
 /* Read-only display for center glow colors in RGB */
 export const ColorDebug = styled.div`
