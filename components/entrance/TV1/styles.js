@@ -67,20 +67,59 @@ export const LeftLineImage = styled.img.attrs({
   transition: height 300ms ease-out;
   
   /* 상단/하단 그라데이션 fade out (mask-image 사용) */
-  -webkit-mask-image: 
-    linear-gradient(to bottom, 
-      rgba(0,0,0,0) 0%, 
-      rgba(0,0,0,1) 12%, 
-      rgba(0,0,0,1) 88%, 
-      rgba(0,0,0,0) 100%
-    );
-  mask-image: 
-    linear-gradient(to bottom, 
-      rgba(0,0,0,0) 0%, 
-      rgba(0,0,0,1) 12%, 
-      rgba(0,0,0,1) 88%, 
-      rgba(0,0,0,0) 100%
-    );
+  /* Canvas 높이에 맞춰 하단 fade out 영역을 동적으로 계산 */
+  ${(p) => {
+    const lineHeight = p.$height ? parseFloat(p.$height) : (p.$canvasHeight || 56.25);
+    const canvasHeight = p.$canvasHeight || 56.25;
+    
+    // 상단 fade in 영역 (0-12%)
+    const fadeInEnd = 12;
+    
+    // Canvas 높이에 맞춰 하단 fade out 영역 계산
+    // line 이미지의 전체 높이를 기준으로 Canvas 하단 위치 계산
+    const canvasBottomPercent = (canvasHeight / lineHeight) * 100;
+    
+    // 하단 fade out 영역: Canvas 하단에서 12% 위부터 fade out 시작
+    const fadeOutStart = Math.max(fadeInEnd, canvasBottomPercent - 12);
+    const fadeOutEnd = Math.min(100, canvasBottomPercent);
+    
+    // fadeOutStart가 fadeInEnd보다 작거나 같으면 기본값 사용
+    if (fadeOutStart <= fadeInEnd || fadeOutEnd <= fadeInEnd) {
+      return `
+        -webkit-mask-image: 
+          linear-gradient(to bottom, 
+            rgba(0,0,0,0) 0%, 
+            rgba(0,0,0,1) ${fadeInEnd}%, 
+            rgba(0,0,0,1) 88%, 
+            rgba(0,0,0,0) 100%
+          );
+        mask-image: 
+          linear-gradient(to bottom, 
+            rgba(0,0,0,0) 0%, 
+            rgba(0,0,0,1) ${fadeInEnd}%, 
+            rgba(0,0,0,1) 88%, 
+            rgba(0,0,0,0) 100%
+          );
+      `;
+    }
+    
+    return `
+      -webkit-mask-image: 
+        linear-gradient(to bottom, 
+          rgba(0,0,0,0) 0%, 
+          rgba(0,0,0,1) ${fadeInEnd}%, 
+          rgba(0,0,0,1) ${fadeOutStart}%, 
+          rgba(0,0,0,0) ${fadeOutEnd}%
+        );
+      mask-image: 
+        linear-gradient(to bottom, 
+          rgba(0,0,0,0) 0%, 
+          rgba(0,0,0,1) ${fadeInEnd}%, 
+          rgba(0,0,0,1) ${fadeOutStart}%, 
+          rgba(0,0,0,0) ${fadeOutEnd}%
+        );
+    `;
+  }}
 `;
 
 /* subtle pulse animations */

@@ -71,7 +71,7 @@ export default function HeroText({ isModal = false, onFinalPhase, forceFinal }) 
       return { line1: '오늘도', line2: '수고하셨어요.', subText: null };
     }
     if (phase === 'final') {
-      return { line1: '오늘 하루는', line2: '어땠나요?', subText: '아래 퓨론을 1초간 길게 눌러 말해주세요.' };
+      return { line1: '오늘 하루는', line2: '어땠나요?', subText: '아래 중앙의 원을 1초간 길게 눌러 말해주세요.' };
     }
     // hidden
     return { line1: '', line2: '', subText: null };
