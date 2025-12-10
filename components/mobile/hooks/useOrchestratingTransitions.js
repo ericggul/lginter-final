@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { playMobileOrchestratingStart } from '@/utils/data/soundeffect';
 
 export default function useOrchestratingTransitions({ loading, orchestratingLock, setOrchestratingLock, orchestrateMinMs = 5500 }) {
   const startAtRef = useRef(null);
@@ -8,6 +9,8 @@ export default function useOrchestratingTransitions({ loading, orchestratingLock
     if (typeof window === 'undefined') return;
     if (loading) {
       console.log('[Orchestrating] loading started – fade blob in and lock orchestrating');
+      // Mobile ORCHESTRATING 텍스트 시퀀스가 시작되는 시점에 효과음 1회 재생
+      playMobileOrchestratingStart();
       window.blobOpacityMs = 2000;
       window.blobOpacity = 1;
       window.showOrbits = true;

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSocketSBM1 from '@/utils/hooks/useSocketSBM1';
-
 import useResize from '@/utils/hooks/useResize';
+import { playSbm1QrTipStart } from '@/utils/data/soundeffect';
 
 export const DEFAULT_TOP_MESSAGE = 'QR코드 스캔을 통해\n전시 관람을 시작하세요!';
 const TIP_TEXT = '오늘의 기분을 모바일을 통해 알려주세요!';
@@ -35,6 +35,7 @@ export function useSbm1() {
   const boostTimeoutRef = useRef(null);
   const flashTimeoutRef = useRef(null);
   const tipTimeoutRef = useRef(null);
+  const prevTipRef = useRef(false);
 
   useSocketSBM1({
     onEntranceNewUser: (payload) => {
@@ -117,6 +118,16 @@ export function useSbm1() {
     '--sbm-bgflash-opacity': tip ? 1 : 0,
     '--sbm-border-glow-opacity': tip ? 1 : 0,
   }), [vars, boost, tip]);
+
+  // 모바일 QR 스캔으로 상단 TIP 시퀀스가 시작될 때마다 1회만 효과음 재생
+  useEffect(() => {
+    const prev = prevTipRef.current;
+    if (!prev && tip) {
+      // TIP false → true 전환 시에만 재생
+      playSbm1QrTipStart();
+    }
+    prevTipRef.current = tip;
+  }, [tip]);
 
   // 언마운트 시 타이머 정리로 메모리/불필요한 setState 방지
   useEffect(() => {

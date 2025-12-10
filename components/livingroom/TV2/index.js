@@ -5,11 +5,13 @@ import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { useTV2Logic, useTV2DisplayLogic } from './logic';
+import { playTv2Transition } from '@/utils/data/soundeffect';
 
 export default function TV2Controls() {
   const { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword } = useTV2Logic();
   const scalerRef = useRef(null);
   const audioRef = useRef(null);
+  const lastTransitionKeyRef = useRef(null);
 
   const cssVars = useBlobVars(env);
 
@@ -21,6 +23,7 @@ export default function TV2Controls() {
     // 2. 상단 헤더 그라데이션
     headerGradientStart,
     headerGradientMid,
+    
     headerGradientEnd,
     headerGradientMidPos,
     headerGradientEndPos,
@@ -259,6 +262,19 @@ export default function TV2Controls() {
     waveformPulseIntensity,
   } = displayLogic;
 
+  // TV2: 새로운 모바일 input으로 env가 바뀌어 T4 전체 화면 전환이 시작될 때 효과음 1회 재생
+  useEffect(() => {
+    try {
+      if (triggerT4Animations && isT4) {
+        const lastKey = lastTransitionKeyRef.current;
+        if (lastKey !== decisionKey) {
+          playTv2Transition();
+          lastTransitionKeyRef.current = decisionKey;
+        }
+      }
+    } catch {}
+  }, [triggerT4Animations, isT4, decisionKey]);
+
   // 곡명 컬러는 항상 화이트로 고정
   const titleColor = 'rgba(255,255,255,1)';
 
@@ -331,6 +347,14 @@ export default function TV2Controls() {
     <S.Viewport>
       <S.Scaler ref={scalerRef} style={{ '--tv2-scale': scale }}>
         <S.Root>
+          {/* TV2 전역 페이지 트랜지션 레이어
+              - logic.js의 motionState / isIdle 플래그만 읽어서
+                진입/결정 시각 효과만 추가 (로직/소켓은 전혀 수정하지 않음) */}
+          <S.PageOverlay
+            key={`tv2-page-overlay-${decisionKey}-${motionState}`}
+            $isIdle={isIdle}
+            $triggerT4={triggerT4Animations}
+          />
           <S.Header
             key={`header-${decisionKey}-${isT4}`}
             $gradientStart={headerGradientStartRgba}
