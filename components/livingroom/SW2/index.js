@@ -68,6 +68,7 @@ export default function SW2Controls() {
     participantCount,
     blobRefs,
     timelineState,
+    tempo,
   } = useSW2Logic();
 
   const prevTimelineRef = useRef(timelineState);
@@ -80,6 +81,15 @@ export default function SW2Controls() {
 
   // 렌딩(초기) 상태: 아직 실제 사용자 감정 키워드가 한 번도 들어오지 않은 상태
   const isLanding = !hasRealKeywords;
+
+  // 음악 템포(BPM)에 따른 파동 속도 조절 (보다 드라마틱하게)
+  const baseTempo = 100;
+  const rawFactor = tempo ? tempo / baseTempo : 1;
+  // 너무 느리거나 빠른 극단값을 제한하면서도 차이를 크게 느끼도록 비선형 스케일 적용
+  const clamped = clamp(rawFactor, 0.6, 1.8);           // 60% ~ 180% 범위
+  const speedFactor = Math.pow(clamped, 1.5);          // 속도 차이를 증폭
+  const radialDuration = 12 / speedFactor;             // 기본 12초 기준, 대략 6~24초 범위
+  const linearDuration = 9 / speedFactor;              // 기본 9초 기준, 대략 4.5~18초 범위
 
   const animation = useControls('SW2 Animation', {
     rotationDuration: { value: 15, min: 0, max: 120, step: 1 },
@@ -325,13 +335,13 @@ export default function SW2Controls() {
       {/* 상단에서부터 번져 나가는 핑크 파동 레이어 (백엔드와 무관한 순수 프론트 효과) */}
       <S.TopWaveLayer aria-hidden="true">
         {/* 서로 다른 딜레이를 줘서 연속적인 리플 느낌 생성 */}
-        <S.TopWaveCircle $variant={1} $delay={0} />
-        <S.TopWaveCircle $variant={2} $delay={5} />
-        <S.TopWaveCircle $variant={3} $delay={9} />
+        <S.TopWaveCircle $variant={1} $delay={0} $duration={radialDuration} />
+        <S.TopWaveCircle $variant={2} $delay={5} $duration={radialDuration} />
+        <S.TopWaveCircle $variant={3} $delay={9} $duration={radialDuration} />
         {/* 기존 SW2 선형(화이트 링) 파동을 중앙 상단에 오버레이 */}
-        <S.TopLinearWaveCircle $delay={0} />
-        <S.TopLinearWaveCircle $delay={4.5} />
-        <S.TopLinearWaveCircle $delay={9} />
+        <S.TopLinearWaveCircle $delay={0} $duration={linearDuration} />
+        <S.TopLinearWaveCircle $delay={4.5} $duration={linearDuration} />
+        <S.TopLinearWaveCircle $delay={9} $duration={linearDuration} />
       </S.TopWaveLayer>
 
       {/* 가운데 원형 핑크 그라디언트 (SW1 스타일 응용, 인풋 이후에도 항상 동일한 메인 블롭 유지) */}

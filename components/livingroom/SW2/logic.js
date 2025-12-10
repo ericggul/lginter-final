@@ -121,6 +121,7 @@ export function useSW2Logic() {
   const [artist, setArtist] = useState('');
   const [coverSrc, setCoverSrc] = useState('');
   const [audioSrc, setAudioSrc] = useState('');
+  const [tempo, setTempo] = useState(100);
   const audioRef = useRef(null);
   const [activeUsers, setActiveUsers] = useState(new Set());
   const switchTimerRef = useRef(null);
@@ -278,21 +279,29 @@ export function useSW2Logic() {
       setArtist('');
       setCoverSrc('');
       setAudioSrc('');
+      setTempo(100);
       return;
     }
-    
+
     // Parse using albumData utility
     const parsed = parseMusicString(songStr);
     let t = parsed.title;
     let a = parsed.artist;
-    
-    // Try to get album data for display title/artist
+
+    // Try to get album data for display title/artist and tempo (BPM)
     const albumData = getAlbumData(songStr);
     if (albumData) {
       t = albumData.displayTitle || t;
       a = albumData.displayArtist || a;
+      if (typeof albumData.bpm === 'number' && Number.isFinite(albumData.bpm) && albumData.bpm > 0) {
+        setTempo(albumData.bpm);
+      } else {
+        setTempo(100);
+      }
+    } else {
+      setTempo(100);
     }
-    
+
     // 초기엔 즉시 적용
     if (!title && t) {
       setTitle(t);
@@ -360,5 +369,6 @@ export function useSW2Logic() {
     blobRefs,
     timelineState,
     lightColor,
+    tempo,
   };
 }

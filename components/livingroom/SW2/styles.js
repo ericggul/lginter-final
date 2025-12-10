@@ -126,8 +126,8 @@ export const TopWaveCircle = styled.div`
   transform-origin: 50% 50%;
   mix-blend-mode: screen;
   /* 속도 변화 없이 일정한 파동 흐름을 위해 linear 타이밍 사용
-     - 전체 시간을 조금 늘려서 파동 간 간격이 넉넉해지도록 조정 */
-  animation: ${topRadialWave} 12s linear infinite;
+     - duration 은 $duration prop 으로 조정 (기본 12초) */
+  animation: ${topRadialWave} ${({ $duration = 12 }) => `${$duration}s`} linear infinite;
 
   /* 각 파동 인스턴스 간의 시간차를 주어 연속적인 리플 느낌을 만든다. */
   animation-delay: ${({ $delay = 0 }) => `${$delay}s`};
@@ -179,7 +179,7 @@ export const TopLinearWaveCircle = styled.div`
   opacity: 0;
   transform-origin: 50% 45%;
   mix-blend-mode: screen;
-  animation: ${topLinearWave} 9s ease-in-out infinite;
+  animation: ${topLinearWave} ${({ $duration = 9 }) => `${$duration}s`} ease-in-out infinite;
 
   /* 같은 링 안에서도 위로 갈수록 더 퍼져 보이도록,
      상단 방향으로만 추가 블러/광이 번지는 오버레이 */
