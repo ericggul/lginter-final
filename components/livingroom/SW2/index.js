@@ -325,9 +325,9 @@ export default function SW2Controls() {
       {/* 상단에서부터 번져 나가는 핑크 파동 레이어 (백엔드와 무관한 순수 프론트 효과) */}
       <S.TopWaveLayer aria-hidden="true">
         {/* 서로 다른 딜레이를 줘서 연속적인 리플 느낌 생성 */}
-        <S.TopWaveCircle $delay={0} />
-        <S.TopWaveCircle $delay={3} />
-        <S.TopWaveCircle $delay={6} />
+        <S.TopWaveCircle $variant={1} $delay={0} />
+        <S.TopWaveCircle $variant={2} $delay={4} />
+        <S.TopWaveCircle $variant={3} $delay={8} />
       </S.TopWaveLayer>
 
       {/* 가운데 원형 핑크 그라디언트 (SW1 스타일 응용, 인풋 이후에도 항상 동일한 메인 블롭 유지) */}

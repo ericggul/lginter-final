@@ -18,25 +18,30 @@ export const ContentRotator = styled(SharedContentRotator)`
   animation: none;
 `;
 
-/** 상단 파동(리플) 애니메이션 – SW2 전용
- *  앨범 커버 뒤에서 얇은 흰 링이 생겨서,
- *  점점 커지면서 살짝 위쪽으로 떠오르는 느낌
+/**
+ * 상단 원형 파동 애니메이션 – Figma "SUNNY SIDE UP" 스타일
+ *
+ * - 앨범 커버 정중앙에서 시작해, 위쪽으로 부드럽게 퍼져 나가는 원형 파동.
+ * - 중간에 멈추는 구간 없이, 처음부터 끝까지 일정하게 흐르는 모션으로 구성.
  */
-const topRipple = keyframes`
+const topRadialWave = keyframes`
   0% {
-    transform: translate(-50%, -50%) scale(0.3);
+    /* 앨범 카드 중심에서 조금만 위로 시작 */
+    transform: translate(-50%, -52%) scale(0.55);
     opacity: 0;
   }
-  20% {
-    transform: translate(-50%, -52%) scale(0.6);
-    opacity: 0.9; /* 앨범 커버 가장자리를 막 벗어날 즈음에 가장 밝게 보이도록 */
+  12% {
+    /* 초반에만 서서히 나타난 뒤 바로 최대 밝기 도달 */
+    opacity: 0.95;
   }
   70% {
-    opacity: 0.75; /* 상당히 위까지 올라가도 링이 또렷하게 유지되도록 */
+    /* 위로 올라가며 부드럽게 확대 */
+    transform: translate(-50%, -72%) scale(1.55);
+    opacity: 0.8;
   }
   100% {
-    /* 위쪽으로 더 멀리, 더 넓게 퍼지도록 최종 스케일/위치 조정 */
-    transform: translate(-50%, -90%) scale(2.6);
+    /* 더 위쪽에서 크게 퍼지며 사라짐 */
+    transform: translate(-50%, -86%) scale(1.9);
     opacity: 0;
   }
 `;
@@ -72,48 +77,58 @@ export const TopWaveLayer = styled.div`
 
 export const TopWaveCircle = styled.div`
   position: absolute;
-  /* 앨범 카드와 같은 중심 위치에서 시작 */
-  top: 40%;
+  /* 앨범 카드 정중앙을 기준으로 파동이 시작되도록 정렬 */
+  top: 50%;
   left: 50%;
-  /* 기본 크기는 앨범 카드보다 약간 작은 원.
-     실제 화면에서는 scale 애니메이션으로 크게 확장되면서
-     커버 뒤에서 자연스럽게 빠져나오는 느낌이 난다. */
-  width: 20vw;
-  height: 20vw;
+  /* Figma 스펙 기준 비율을 뷰포트 너비에 맞춰 스케일링
+     1) width: 1169.201px / 3840px ≈ 30.4vw
+     2) width: 1564px    / 3840px ≈ 40.7vw
+     3) width: 2833.319px/ 3840px ≈ 73.8vw */
+  ${({ $variant = 1 }) => {
+    if ($variant === 2) {
+      return css`
+        width: 40.7vw;
+        height: 40.7vw;
+        background: radial-gradient(
+          62.72% 62.73% at 50% 50%,
+          rgba(253, 255, 225, 0.05) 22.43%,
+          rgba(210, 226, 244, 0.50) 87.02%,
+          #FED9FF 100%
+        );
+      `;
+    }
+    if ($variant === 3) {
+      return css`
+        width: 73.8vw;
+        height: 73.8vw;
+        background: radial-gradient(
+          62.46% 62.47% at 50% 50%,
+          rgba(217, 217, 217, 0.00) 43.91%,
+          #ECF5ED 100%
+        );
+      `;
+    }
+    return css`
+      width: 30.4vw;
+      height: 30.4vw;
+      background: radial-gradient(
+        51.97% 51.98% at 50% 50%,
+        rgba(217, 217, 217, 0.00) 55%,
+        #E6D2E4 100%
+      );
+    `;
+  }}
   border-radius: 50%;
-  /* 모바일 ListeningOverlay 의 얇은 링 파동을 참고한 순수 흰색 링 */
-  background: radial-gradient(
-    closest-side,
-    rgba(255, 255, 255, 0) 82%,
-    rgba(255, 255, 255, 0.98) 86%,
-    rgba(255, 255, 255, 0.6) 90%,
-    rgba(255, 255, 255, 0.0) 100%
-  );
-  filter: blur(0.35vw); /* 살짝 더 얇고 선명하게 */
+  /* 블러 강도를 줄여 Figma 디자인처럼 더 또렷한 링 느낌으로 */
+  filter: blur(0.25vw);
   opacity: 0;
-  transform-origin: 50% 45%;
+  transform-origin: 50% 50%;
   mix-blend-mode: screen;
-  animation: ${topRipple} 9s ease-in-out infinite;
+  /* 속도 변화 없이 일정한 파동 흐름을 위해 linear 타이밍 사용
+     - 전체 시간을 조금 늘려서 파동 간 간격이 넉넉해지도록 조정 */
+  animation: ${topRadialWave} 12s linear infinite;
 
-  /* 같은 링 안에서도 위로 갈수록 더 퍼져 보이도록,
-     상단 방향으로만 추가 블러/광이 번지는 오버레이 */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -12%;
-    border-radius: inherit;
-    background: radial-gradient(
-      closest-side,
-      rgba(255, 255, 255, 0) 70%,
-      rgba(255, 255, 255, 0.7) 86%,
-      rgba(255, 255, 255, 0.0) 100%
-    );
-    filter: blur(1.4vw);
-    opacity: 0.85;
-    transform: translateY(-10%);
-    pointer-events: none;
-    mix-blend-mode: screen;
-  }
+  /* 각 파동 인스턴스 간의 시간차를 주어 연속적인 리플 느낌을 만든다. */
   animation-delay: ${({ $delay = 0 }) => `${$delay}s`};
 `;
 
