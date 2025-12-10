@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import * as S from './styles';
 import { useSW2Logic } from './logic/mainlogic';
 import { getEmotionEntry } from './logic/emotionDB';
