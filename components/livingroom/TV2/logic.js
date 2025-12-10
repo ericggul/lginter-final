@@ -85,8 +85,10 @@ function hexToRgba(hex, opacity = 1) {
   return `rgba(${r},${g},${b},${opacity})`;
 }
 
-// Zoom-invariant cover scale for a fixed 3840x2160 canvas
-// Math.min을 사용하여 전체 콘텐츠가 화면에 맞도록 스케일링
+// Zoom-invariant scale for a fixed 3840x2160 canvas
+// SW1/SW2와 마찬가지로, 기준 캔버스(3840x2160)를 유지한 채
+// 전체가 잘리지 않고 화면 안에 "비율 그대로" 들어오도록 스케일링한다.
+// → contain 방식: Math.min(vw/baseW, vh/baseH)
 function computeCoverScale() {
   if (typeof window === 'undefined') return 1;
   const baseWidth = 3840;

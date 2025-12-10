@@ -859,18 +859,19 @@ export const RightSw1Ellipse = styled.div`
 
 /* 우측 블롭은 중앙 글로우만 사용 (파동 제거) */
 
-/* 우측 패널 회전 엘립스 마크 (SW1 CenterMark와 동일한 스핀) */
+/* 우측 패널 회전 엘립스 마크 (우측 원의 중앙에서 회전) */
 const rightEllipseSpin = keyframes`
-  0%   { transform: translate(-300px, 300px) rotate(0deg); }
-  100% { transform: translate(-300px, 300px) rotate(360deg); }
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 `;
 
 export const RightEllipseMark = styled.img`
   position: absolute;
   right: ${props => props.$right || -2}%;
   top: ${props => props.$top || 18}%;
-  width: 1400px;
-  height: 1400px;
+  /* 우측 원 크기에 맞춰 링 크기 조정 (기본 1400 유지) */
+  width: ${props => props.$size || 1400}px;
+  height: ${props => props.$size || 1400}px;
   transform-origin: 50% 50%;
   animation: ${rightEllipseSpin} 6s linear infinite;
   pointer-events: none;
