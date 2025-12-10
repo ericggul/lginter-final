@@ -6,18 +6,15 @@ export const toHsla = (h, s, l, a = 1) =>
 export const computeComplementHue = (h) => ((Math.round(h) + 180) % 360);
 
 // Build CSS variable bag for a mini-blob.
-// - 외곽: 앨범 커버 컬러(루트 CSS 변수 --album-h/s/l)에서 결정 (styles 쪽에서 직접 사용)
-// - 내부: 감정 파라미터에서 온 hue 하나만 사용하고, S/L 은 고정된 값으로 통일
+// NOTE: SW2 컬러 로직 임시 비활성화
+//  - 감정/앨범 컬러와 무관하게, 모든 미니 블롭을 동일한 고정 그라디언트로 렌더한다.
+//  - 나중에 다시 감정 기반 색을 살릴 때는 entry.center.h 를 사용하는 이전 버전으로 되돌리면 된다.
 export function buildMiniVars(entry) {
-  const center = entry?.center || { h: 302, s: 100, l: 60 };
-  const h = center.h ?? 302;
-  // 내부/중간/외곽의 대비를 더 키워서 두 겹이 확실히 느껴지도록 조정
-  // - inner: 살짝 더 진한 코어
-  // - mid: inner 와 outer 사이 브릿지
-  // - outer: 훨씬 밝은 링
-  const inner   = toHsla(h, 68, 70, 1);
-  const midCol  = toHsla(h, 58, 78, 0.96);
-  const outerCol= toHsla(h, 46, 90, 0.92);
+  // entry는 현재 사용하지 않음 (고정 색상)
+  const h = 302; // SW1 기본 설렘 계열 핑크톤
+  const inner   = toHsla(h, 62, 72, 1);
+  const midCol  = toHsla(h, 52, 80, 0.94);
+  const outerCol= toHsla(h, 40, 90, 0.88);
   const blobBg = `radial-gradient(
     84.47% 61.21% at 66.09% 54.37%,
     ${inner} 0%,

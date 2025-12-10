@@ -1,8 +1,8 @@
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import * as S from './styles';
 import { useSW2Logic } from './logic/mainlogic';
 import { getEmotionEntry } from './logic/emotionDB';
-import { buildMiniVars, backgroundFromEmotion } from './logic/color';
+import { backgroundFromEmotion } from './logic/color';
 import { getDominantColorFromImage } from '@/utils/color/albumColor';
 import { useControls } from 'leva';
 import { playSw12BlobAppearance } from '@/utils/data/soundeffect';
@@ -68,7 +68,6 @@ export default function SW2Controls() {
     participantCount,
     blobRefs,
     timelineState,
-    lightColor,
   } = useSW2Logic();
 
   const prevTimelineRef = useRef(timelineState);
@@ -219,10 +218,11 @@ export default function SW2Controls() {
   );
   // Leva 스펙(기본 핑크)과 앨범 컬러 기반 내부 채움 중 선택
   const levaPinkBackground = `radial-gradient(${centerRing.radius}% ${centerRing.radius}% at ${centerRing.focusX}% ${centerRing.focusY}%, ${centerRing.color1} ${centerRing.stop1}%, ${centerRing.color2} ${centerRing.stop2}%, ${centerRing.color3} ${centerRing.stop3}%)`;
-  // 앨범 기반: 안쪽은 앨범 컬러, 바깥은 기존 핑크 계열을 유지
+  // 앨범 기반: 안쪽은 "기본 블롭"과 동일한 S/L 을 가진 컬러이고, Hue 만 앨범 컬러에 맞춰 회전
   const albumInnerBackground =
     'radial-gradient(65% 65% at 50% 50%,' +
-    ' hsla(var(--album-h, 340), var(--album-s, 60%), var(--album-l, 60%), 0.96) 0%,' +
+    // S/L 은 기본 블롭과 동일한 값으로 고정하고, Hue(var(--album-h))만 변경
+    ' hsla(var(--album-h, 340), 78%, 70%, 0.96) 0%,' +
     ' hsla(340, 86%, 86%, 0.55) 58%,' +
     ' hsla(340, 90%, 88%, 1.0) 100%' +
     ')';
@@ -239,17 +239,17 @@ export default function SW2Controls() {
   const baseEmotion = getEmotionEntry(firstKeywordText || '설렘');
   const baseHue = baseEmotion.center?.h ?? 340;
 
+  // SW2 배경 하단은 조명(lightColor) 대신 앨범 컬러를 베이스로 사용
+  // - 상단: 거의 흰색
+  // - 중단/하단: 앨범 컬러를 아주 옅은 파스텔로만, 화면 하단 일부 구간에만 살짝 섞어서 유지
   const bgColors = useMemo(() => {
-    const hsl = lightColor ? hexToHsl(lightColor) : null;
-    const bottomH = hsl ? hsl.h : baseHue;
-    const bottomS = hsl ? clamp(hsl.s + 5, 30, 90) : 68;
-    const bottomL = hsl ? clamp(hsl.l, 66, 92) : 86;
-
-    const top = 'hsla(0, 0%, 100%, 1)'; // 거의 순백 상단
-    const mid = `hsla(${baseHue}, 32%, 96%, 1)`; // SW1처럼 은은한 중단 톤
-    const bottom = `hsla(${bottomH}, ${bottomS}%, ${bottomL}%, 1)`; // 조명 기반 하단 컬러
+    const top = 'hsla(0, 0%, 100%, 1)';
+    const mid =
+      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.18), calc(var(--album-l, 82%) + 12%), 1)';
+    const bottom =
+      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.28), calc(var(--album-l, 78%) + 16%), 0.76)';
     return { top, mid, bottom };
-  }, [lightColor, baseHue]);
+  }, [coverSrc, baseHue]);
 
   // SW2: timeline t3 진입 시, 화면 밖 하단에서 상단으로 올라오는 EntryCircle 애니메이션 시작에 맞춰 효과음 1회 재생
   useEffect(() => {
@@ -269,9 +269,17 @@ export default function SW2Controls() {
         if (coverSrc) {
           const c = await getDominantColorFromImage(coverSrc);
           const root = document.documentElement;
-          root.style.setProperty('--album-h', String(Math.round(c.h)));
-          root.style.setProperty('--album-s', `${Math.round(c.s)}%`);
-          root.style.setProperty('--album-l', `${Math.round(c.l)}%`);
+          // 기본 앨범 컬러 HSL
+          let h = Math.round(c?.h ?? 340);
+          const s = Math.round(c?.s ?? 70);
+          const l = Math.round(c?.l ?? 70);
+          // 대략 90~150도(연두~그린~청록) 구간이면, 명/채도는 그대로 두고 hue만 블루 계열로 스냅
+          if (h >= 90 && h <= 150) {
+            h = 210; // 시안~블루 계열 대표 값
+          }
+          root.style.setProperty('--album-h', String(h));
+          root.style.setProperty('--album-s', `${s}%`);
+          root.style.setProperty('--album-l', `${l}%`);
           // 중앙 곡명/가수 텍스트용 그림자 컬러: 앨범 컬러보다 훨씬 어두운 톤
           const shadowL = Math.max(0, Math.round((c.l ?? 40) - 32));
           const shadowColor = `hsla(${Math.round(c.h)}, ${Math.round(c.s)}%, ${shadowL}%, 0.9)`;
@@ -298,204 +306,18 @@ export default function SW2Controls() {
   const musicTitle = useMemo(() => title || '', [title]);
   const musicArtist = useMemo(() => artist || '', [artist]);
 
-  // TV2와 동일한 오디오 비주얼라이저 로직을 SW2 오디오에 연결
-  const [waveformData, setWaveformData] = useState(new Array(32).fill(0));
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const waveformRafRef = useRef(null);
-  const sourceRef = useRef(null);
-
-  useEffect(() => {
-    if (!audioSrc || !audioRef?.current) {
-      setWaveformData(new Array(32).fill(0));
-      if (sourceRef.current) {
-        try {
-          sourceRef.current.disconnect();
-          sourceRef.current = null;
-        } catch {}
-      }
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close().catch(() => {});
-        audioContextRef.current = null;
-      }
-      if (waveformRafRef.current) {
-        cancelAnimationFrame(waveformRafRef.current);
-        waveformRafRef.current = null;
-      }
-      return;
-    }
-
-    let audioContext = null;
-    let analyser = null;
-    let source = null;
-    let handleLoadedData = null;
-
-    const initAudio = async () => {
-      try {
-        if (sourceRef.current) {
-          analyser = analyserRef.current;
-          if (analyser) {
-            const updateWaveform = () => {
-              if (!analyser) return;
-              const dataArray = new Uint8Array(analyser.frequencyBinCount);
-              analyser.getByteFrequencyData(dataArray);
-              const bars = 32;
-              const newWaveformData = [];
-              let globalMax = 0;
-
-              for (let i = 0; i < bars; i++) {
-                const ratio = i / (bars - 1);
-                const logIndex = Math.floor(Math.pow(dataArray.length, ratio) - 1);
-                const nextRatio = (i + 1) / (bars - 1);
-                const nextLogIndex =
-                  i < bars - 1
-                    ? Math.floor(Math.pow(dataArray.length, nextRatio) - 1)
-                    : dataArray.length;
-
-                let max = 0;
-                for (let j = Math.max(0, logIndex); j < Math.min(nextLogIndex, dataArray.length); j++) {
-                  max = Math.max(max, dataArray[j] || 0);
-                }
-                globalMax = Math.max(globalMax, max);
-                newWaveformData.push(max);
-              }
-
-              const minHeight = 8;
-              const maxHeight = 160;
-              const normGlobal = globalMax / 255 || 0.0001;
-              const gain = normGlobal < 0.4 ? 0.4 / normGlobal : 1;
-
-              const scaled = newWaveformData.map((raw) => {
-                const norm = (raw / 255) * gain;
-                const clamped = Math.max(0, Math.min(1, norm));
-                const gamma = Math.pow(clamped, 0.7);
-                return Math.max(minHeight, Math.min(maxHeight, gamma * maxHeight));
-              });
-
-              setWaveformData(scaled);
-              waveformRafRef.current = requestAnimationFrame(updateWaveform);
-            };
-            updateWaveform();
-          }
-          return;
-        }
-
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-
-        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-          audioContext = audioContextRef.current;
-        } else {
-          audioContext = new AudioContextClass();
-          audioContextRef.current = audioContext;
-        }
-
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.15;
-        analyser.minDecibels = -90;
-        analyser.maxDecibels = -10;
-        analyserRef.current = analyser;
-
-        source = audioContext.createMediaElementSource(audioRef.current);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        sourceRef.current = source;
-
-        try {
-          await audioRef.current.play();
-        } catch {
-          const resume = () => {
-            try {
-              audioRef.current?.play();
-            } catch {}
-          };
-          window.addEventListener('pointerdown', resume, { once: true });
-          window.addEventListener('keydown', resume, { once: true });
-          window.addEventListener('touchstart', resume, { once: true, passive: true });
-        }
-
-        const updateWaveform = () => {
-          if (!analyser) return;
-          const dataArray = new Uint8Array(analyser.frequencyBinCount);
-          analyser.getByteFrequencyData(dataArray);
-          const bars = 32;
-          const newWaveformData = [];
-          let globalMax = 0;
-
-          for (let i = 0; i < bars; i++) {
-            const ratio = i / (bars - 1);
-            const logIndex = Math.floor(Math.pow(dataArray.length, ratio) - 1);
-            const nextRatio = (i + 1) / (bars - 1);
-            const nextLogIndex =
-              i < bars - 1
-                ? Math.floor(Math.pow(dataArray.length, nextRatio) - 1)
-                : dataArray.length;
-
-            let max = 0;
-            for (let j = Math.max(0, logIndex); j < Math.min(nextLogIndex, dataArray.length); j++) {
-              max = Math.max(max, dataArray[j] || 0);
-            }
-            globalMax = Math.max(globalMax, max);
-            newWaveformData.push(max);
-          }
-
-          const minHeight = 8;
-          const maxHeight = 160;
-          const normGlobal = globalMax / 255 || 0.0001;
-          const gain = normGlobal < 0.4 ? 0.4 / normGlobal : 1;
-
-          const scaled = newWaveformData.map((raw) => {
-            const norm = (raw / 255) * gain;
-            const clamped = Math.max(0, Math.min(1, norm));
-            const gamma = Math.pow(clamped, 0.7);
-            return Math.max(minHeight, Math.min(maxHeight, gamma * maxHeight));
-          });
-
-          setWaveformData(scaled);
-          waveformRafRef.current = requestAnimationFrame(updateWaveform);
-        };
-
-        updateWaveform();
-      } catch (err) {
-        console.error('SW2 audio visualization error:', err);
-        if (sourceRef.current) {
-          try {
-            sourceRef.current.disconnect();
-          } catch {}
-          sourceRef.current = null;
-        }
-      }
-    };
-
-    handleLoadedData = () => {
-      initAudio();
-    };
-
-    const audioElement = audioRef?.current;
-    if (audioElement) {
-      audioElement.addEventListener('loadeddata', handleLoadedData);
-      if (audioElement.readyState >= 2) {
-        initAudio();
-      }
-    }
-
-    return () => {
-      if (waveformRafRef.current) {
-        cancelAnimationFrame(waveformRafRef.current);
-        waveformRafRef.current = null;
-      }
-      if (audioElement && handleLoadedData) {
-        audioElement.removeEventListener('loadeddata', handleLoadedData);
-      }
-    };
-  }, [audioSrc, audioRef]);
-
   return (
     <S.Root
       data-stage={timelineState}
       style={{
-          backgroundImage: `linear-gradient(to bottom, ${bgColors.top} 0%, ${bgColors.mid} 55%, ${bgColors.bottom} 100%)`,
+          // 상단 0~70%는 거의 흰색, 하단 70~100% 구간에만 옅은 앨범 컬러가 퍼지도록 범위 축소
+          backgroundImage: `linear-gradient(
+            to bottom,
+            ${bgColors.top} 0%,
+            ${bgColors.top} 70%,
+            ${bgColors.mid} 88%,
+            ${bgColors.bottom} 100%
+          )`,
         // CenterGlow / EntryCircle 가 동일한 스케일을 쓰도록 공유 CSS 변수 설정
         '--center-scale': centerRing.sizeScale,
       }}
@@ -508,7 +330,7 @@ export default function SW2Controls() {
         <S.TopWaveCircle $delay={6} />
       </S.TopWaveLayer>
 
-      {/* 가운데 원형 핑크 그라디언트 (SW1 스타일 응용) */}
+      {/* 가운데 원형 핑크 그라디언트 (SW1 스타일 응용, 인풋 이후에도 항상 동일한 메인 블롭 유지) */}
       <S.CenterGlow
         data-stage={timelineState}
         $topPercent={centerRing.topPercent}
@@ -518,8 +340,7 @@ export default function SW2Controls() {
         $background={centerGlowBackground}
       />
 
-      {/* t3: 중앙 하단에서 등장해 상단 블롭과 같은 디자인으로 이동
-          t4: 상단 블롭 속으로 말려 들어가는 엔트리 블롭 */}
+      {/* t3/t4: 화면 하단에서 올라와 메인 블롭으로 합쳐지는 엔트리 서클 (컬러는 메인 블롭과 동일하게 고정) */}
       {interestBlob && (timelineState === 't3' || timelineState === 't4') && (
         <S.EntryCircle
           data-stage={timelineState}
@@ -527,7 +348,7 @@ export default function SW2Controls() {
           $depthLayer={interestBlob.depthLayer}
           style={{
             '--blob-size': `${interestBlob.size.base}vw`,
-            ...(interestBlob.emotionEntry ? buildMiniVars(interestBlob.emotionEntry) : {}),
+            '--blob-bg': centerGlowBackground,
           }}
         />
       )}
@@ -553,11 +374,8 @@ export default function SW2Controls() {
                 '--blob-top': `${blob.anchor.y}vw`,
                 '--blob-left': `${blob.anchor.x}vw`,
                 '--blob-size': `${blob.size.base}vw`,
-                ...(isLanding
-                  ? { '--blob-bg': centerGlowBackground }
-                  : blob.emotionEntry
-                    ? buildMiniVars(blob.emotionEntry)
-                    : {}),
+                // 컬러 로직을 잠시 비활성화하고, 랜딩 때의 메인 블롭 그라디언트를 항상 사용
+                '--blob-bg': centerGlowBackground,
               }}
             >
               <S.ContentRotator $duration={animation.rotationDuration}>
@@ -573,12 +391,9 @@ export default function SW2Controls() {
                   </>
                 ) : (
                   <>
-                    {/* 위: 감정 키워드(사용자 인풋), 아래: 음악 제목 / 가수명 */}
+                    {/* 위: 감정 키워드(사용자 인풋), 아래: 곡명만 한 줄 노출 (가수명 제거) */}
                     <S.MiniKeywordLine>{rawKeyword}</S.MiniKeywordLine>
-                    <S.MiniMusicLine>
-                      {musicTitle}
-                      {musicArtist ? ` · ${musicArtist}` : ''}
-                    </S.MiniMusicLine>
+                    <S.MiniMusicLine>{musicTitle}</S.MiniMusicLine>
                   </>
                 )}
               </S.ContentRotator>
@@ -631,22 +446,12 @@ export default function SW2Controls() {
           </>
         ) : (
           <>
-            {/* 상단: 감정 키워드(헤더 역할), 하단: 곡명 / 가수명 두 줄 */}
-            <S.HeadText>{emotionHeader || displayTitle}</S.HeadText>
-            <S.SubText>
-              <S.SubTitle>{displayTitle}</S.SubTitle>
-              {displayArtist ? <S.SubArtist>{displayArtist}</S.SubArtist> : null}
-            </S.SubText>
+            {/* 상단: 곡명, 하단: 가수명 – 감정 인풋(키워드)은 메인 캡션에 노출하지 않는다 */}
+            <S.HeadText>{displayTitle}</S.HeadText>
+            <S.SubText>{displayArtist}</S.SubText>
           </>
         )}
       </S.CaptionWrap>
-
-      {/* 하단 중앙 오디오 비주얼라이저 (TV2 오디오 인디케이터를 SW2로 이동) */}
-      <S.Sw2Waveform>
-        {waveformData.map((height, i) => (
-          <S.Sw2WaveformBar key={i} $height={height} />
-        ))}
-      </S.Sw2Waveform>
 
       {/* Hidden audio element */}
       {audioSrc ? <audio ref={audioRef} src={audioSrc} autoPlay loop playsInline preload="auto" /> : null}

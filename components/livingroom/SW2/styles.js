@@ -710,7 +710,8 @@ const miniHaloPulse = keyframes`
 export const AlbumCard = styled.div`
   --album-size: min(60vmin, 18.5vw);
   position: absolute;
-  top: 40%;
+  /* SW1처럼 화면 정중앙에 오도록 정확히 중앙 정렬 */
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: var(--album-size);
@@ -946,37 +947,24 @@ const Sw2BlobBase = styled.div`
       0 0.35vw 0.75vw rgba(255, 193, 218, 0.85),
       0 0.70vw 1.40vw rgba(255, 193, 218, 0.55);
   }
-  /* 원보다 살짝 큰 레이어에 blur를 적용해서 외곽이 부드럽게 퍼지도록 처리 (halo) */
+  /* 원보다 살짝 큰 레이어에 blur를 적용해서 외곽이 부드럽게 퍼지도록 처리 (halo)
+     앨범 컬러와 무관하게 항상 같은 따뜻한 오프화이트 톤을 사용한다. */
   &::before {
     content: '';
     position: absolute;
-    /* 중앙 원 주변에 아주 부드럽게 깔리는 큰 광원 느낌을 위해 더 크게 확장 */
-    inset: -4.4vw;            /* 원보다 훨씬 더 크게 (halo) */
+    inset: -2.2vw;            /* 원보다 약간만 크게 (halo) */
     border-radius: inherit;
-    /* warm 톤 외곽 링 (SW1 미니 블롭 느낌)
-       - 채도는 살짝 낮추고
-       - 명도는 조금 더 올려서, 진한 색 대신 부드러운 파스텔 링이 되도록 조정 */
     background: radial-gradient(
       circle at 50% 50%,
       rgba(255, 255, 255, 0.0) 0%,
-      hsla(
-        var(--album-h, 340),
-        calc(var(--album-s, 68%) - 18%),
-        calc(var(--album-l, 82%) + 8%),
-        0.82
-      ) 48%,
-      hsla(
-        var(--album-h, 340),
-        calc(var(--album-s, 68%) - 8%),
-        calc(var(--album-l, 88%) + 12%),
-        0.0
-      ) 100%
+      rgba(255, 230, 220, 0.85) 55%,
+      rgba(255, 245, 240, 0.0) 96%
     );
-  filter: blur(4.4vw);
-  opacity: 0.55;
+    filter: blur(2.2vw);
+    opacity: 0.4;
     z-index: 0;
     pointer-events: none;
-    animation: ${miniHaloPulse} 9s.ease-in-out infinite;
+    animation: ${miniHaloPulse} 9s ease-in-out infinite;
   }
   /* 내부 입체감을 위한 그라데이션 원 (가장자리는 마스크로 부드럽게 페이드) */
   &::after {

@@ -668,16 +668,17 @@ const slideInLR = keyframes`
   100% { opacity: 1; transform: translateX(0); }
 `;
 
+/* 앨범 변경 시에도 카드 자체는 고정된 상태에서 커버 이미지에만 부드러운 블러 인 적용 */
 export const AlbumVisual = styled.div`
   width: 100%;
   height: 100%;
   display: grid;
   place-items: center;
+  position: relative;
+  z-index: 1;
   /* 커버는 제자리에 고정된 채 블러만 점점 줄어들도록 */
   animation: ${albumBlurIn} 2s ease-in-out;
   will-change: opacity, transform, filter;
-  position: relative;
-  z-index: 1;
 `;
 
 const albumBgFade = keyframes`
