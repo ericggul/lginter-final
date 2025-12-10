@@ -710,7 +710,8 @@ const miniHaloPulse = keyframes`
 export const AlbumCard = styled.div`
   --album-size: min(60vmin, 18.5vw);
   position: absolute;
-  top: 40%;
+  /* SW1처럼 화면 정중앙에 오도록 정확히 중앙 정렬 */
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: var(--album-size);
