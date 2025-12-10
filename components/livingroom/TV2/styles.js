@@ -607,19 +607,7 @@ const slideInLR = keyframes`
   100% { opacity: 1; transform: translateX(0); }
 `;
 
-// 앨범 변경 시 입체적인 Z축 플립 인 애니메이션 (카드 전체 회전)
-const albumFlipIn = keyframes`
-  0% {
-    transform: translate(-50%, -50%) rotateY(0deg) scale(1);
-  }
-  50% {
-    transform: translate(-50%, -50%) rotateY(90deg) scale(0.94);
-  }
-  100% {
-    transform: translate(-50%, -50%) rotateY(0deg) scale(1);
-  }
-`;
-
+/* 앨범 변경 시에도 카드 자체는 고정된 상태에서 커버 이미지에만 부드러운 블러 인 적용 */
 export const AlbumVisual = styled.div`
   width: 100%;
   height: 100%;
@@ -627,17 +615,9 @@ export const AlbumVisual = styled.div`
   place-items: center;
   position: relative;
   z-index: 1;
-  transform-style: preserve-3d;
-  transform-origin: center;
+  /* 커버는 제자리에 고정된 채 블러만 점점 줄어들도록 */
+  animation: ${albumBlurIn} 2s ease-in-out;
   will-change: opacity, transform, filter;
-
-  /* T5(새 앨범 확정) 시에는 입체적인 Z축 플립 인 효과,
-     그 외에는 기존의 부드러운 블러 인 효과 사용 */
-  ${props => props.$isT5 && props.$triggerT5 ? css`
-    animation: ${albumFlipIn} 0.7s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-  ` : css`
-    animation: ${albumBlurIn} 2s ease-in-out forwards;
-  `}
 `;
 
 const albumBgFade = keyframes`
