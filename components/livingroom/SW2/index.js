@@ -251,13 +251,16 @@ export default function SW2Controls() {
 
   // SW2 배경 하단은 조명(lightColor) 대신 앨범 컬러를 베이스로 사용
   // - 상단: 거의 흰색
-  // - 중단/하단: 앨범 컬러를 아주 옅은 파스텔로만, 화면 하단 일부 구간에만 살짝 섞어서 유지
+  // - 하단: 화면 가장 아래쪽에서부터 앨범 컬러가 부드러운 안개처럼 올라왔다가
+  //         위로 갈수록 자연스럽게 사라지도록, 아래쪽에 큰 radial glow 를 둔다.
   const bgColors = useMemo(() => {
     const top = 'hsla(0, 0%, 100%, 1)';
+    // 하단 중심 컬러: 앨범 컬러가 더 뚜렷하게 느껴지도록 채도/밝기와 불투명도를 높인다
     const mid =
-      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.18), calc(var(--album-l, 82%) + 12%), 1)';
+      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.60), calc(var(--album-l, 76%) + 2%), 0.95)';
+    // 가장 아래쪽은 살짝 남겨서 바닥이 너무 하얗게 끊기지 않도록 한다
     const bottom =
-      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.28), calc(var(--album-l, 78%) + 16%), 0.76)';
+      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.50), calc(var(--album-l, 80%) + 6%), 0.35)';
     return { top, mid, bottom };
   }, [coverSrc, baseHue]);
 
@@ -320,14 +323,23 @@ export default function SW2Controls() {
     <S.Root
       data-stage={timelineState}
       style={{
-          // 상단 0~70%는 거의 흰색, 하단 70~100% 구간에만 옅은 앨범 컬러가 퍼지도록 범위 축소
-          backgroundImage: `linear-gradient(
-            to bottom,
-            ${bgColors.top} 0%,
-            ${bgColors.top} 70%,
-            ${bgColors.mid} 88%,
-            ${bgColors.bottom} 100%
-          )`,
+          // 상단 0~55%는 거의 흰색(콘텐츠를 방해하지 않도록 유지)
+          // 하단은 큰 radial-gradient 를 사용해, 화면 가장 아래에서부터
+          // 앨범 컬러 안개가 자연스럽게 퍼져 올라오는 느낌을 만든다.
+          backgroundImage: `
+            linear-gradient(
+              to bottom,
+              ${bgColors.top} 0%,
+              ${bgColors.top} 55%,
+              transparent 100%
+            ),
+            radial-gradient(
+              130% 130% at 50% 115%,
+              ${bgColors.bottom} 0%,
+              ${bgColors.mid} 45%,
+              transparent 100%
+            )
+          `,
         // CenterGlow / EntryCircle 가 동일한 스케일을 쓰도록 공유 CSS 변수 설정
         '--center-scale': centerRing.sizeScale,
       }}
