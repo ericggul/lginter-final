@@ -173,42 +173,21 @@ export function useSW2Logic() {
     }
   }, [timelineState, clearStageTimers, requestStage]);
 
-  const sanitizeKeyword = (raw) => {
-    const s = String(raw || '').trim();
-    if (!s) return '';
-    const low = s.toLowerCase();
-    // profanity/abusive → '불쾌함'
-    const bad = /(fuck|shit|bitch|asshole|nigger|fag|cunt|좆|씨발|좇|병신|새끼|꺼져|욕)/i;
-    if (bad.test(low)) return '불쾌해';
-    // neutral → drop
-    const neutral = /(중립|보통|무난|쏘쏘|그냥|괜|괜찮|보통임|평범)/;
-    if (neutral.test(s)) return '';
-    // mapping to 3-char colloquial
-    const map = [
-      [/기쁨|행복|좋음|좋다|신남|설렘|설레|즐거|해피|흥겨|신나|좋아/i, '즐거워'],
-      [/우울|슬픔|슬퍼|침잠|허무|공허/i, '우울해'],
-      [/분노|화남|화나|짜증|혐오|역겨|싫다|불쾌|짜증나/i, '불쾌해'],
-      [/긴장|불안|초조|걱정/i, '긴장돼'],
-      [/차분|평온|고요|잔잔|안정|편안/i, '차분해'],
-      [/설레|기대|두근/i, '기대돼'],
-      [/상쾌|시원|청량/i, '상쾌해'],
-      [/집중|몰입|명료|선명/i, '집중해'],
-    ];
-    for (const [re, out] of map) {
-      if (re.test(s)) return out;
-    }
-    // fallback: 3~5자 추출
-    const three = s.replace(/\s+/g, '').slice(0, 3);
-    return three || '';
-  };
-
   const pushKeyword = useCallback((raw) => {
-    const kw = sanitizeKeyword(raw);
-    if (!kw) return;
+    const original = String(raw || '').trim();
+    if (!original) return;
     setKeywords((prev) => {
-      const tail = prev[prev.length - 1]?.text || '';
-      if (tail === kw) return prev;
-      const next = [...prev, { text: kw, isNew: true, id: Date.now() }];
+      const tail = prev[prev.length - 1]?.raw || prev[prev.length - 1]?.text || '';
+      if (tail === original) return prev;
+      const next = [
+        ...prev,
+        {
+          text: original,      // 화면에 그대로 노출할 사용자 인풋
+          raw: original,
+          isNew: true,
+          id: Date.now(),
+        },
+      ];
       while (next.length > BLOB_CONFIGS.length) next.shift();
       return next;
     });
@@ -239,7 +218,7 @@ export function useSW2Logic() {
   useSocketSW2({
     onDeviceNewDecision: (msg) => {
       // Orchestrated only
-      // 컨트롤러에서 emotionKeyword/mergedFrom 전달 시 반영(있으면)
+      // 컨트롤러에서 mergedFrom 전달 시 반영(있으면)
       if (msg?.mergedFrom && Array.isArray(msg.mergedFrom)) {
         setActiveUsers((prev) => {
           const next = new Set(prev);
@@ -248,9 +227,6 @@ export function useSW2Logic() {
           });
           return next;
         });
-      }
-      if (msg?.emotionKeyword) {
-        pushKeyword(msg.emotionKeyword);
       }
       // Apply ambience update
       const env = msg?.env || {};

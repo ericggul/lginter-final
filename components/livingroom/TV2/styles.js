@@ -262,11 +262,16 @@ export const LeftPanel = styled.div`
   }
   /* 오른쪽 경계 블러 효과를 위한 wrapper */
   &::after{
-    /* soft horizontal blur band near the bottom like the mock */
-    content:''; position:absolute; left:8%; right:6%; bottom:7%;
-    height: 345.6px; border-radius: 24px;
-    filter: blur(18px); opacity:.25;
-    background: linear-gradient(180deg, rgba(255,255,255,0.0), rgba(255,255,255,0.25), rgba(255,255,255,0.0));
+    /* soft horizontal blur band near the bottom – 범위를 더 넓게 확장 */
+    content:''; position:absolute; left:6%; right:4%; bottom:6%;
+    height: 480px; border-radius: 32px;
+    filter: blur(22px); opacity:.28;
+    background: linear-gradient(
+      180deg,
+      rgba(255,255,255,0.00) 0%,
+      rgba(255,255,255,0.30) 40%,
+      rgba(255,255,255,0.00) 100%
+    );
     pointer-events: none;
     z-index: 1;
   }

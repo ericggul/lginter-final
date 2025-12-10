@@ -329,21 +329,41 @@ export const HeadText = styled.div`
   font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
   color: #FFFFFF;
   letter-spacing: 0.02em;
+  /* TV2 TrackTitle 느낌에 맞춘 글로우 / 섀도우 */
   text-shadow:
-    0 0.08vw 0.32vw rgba(0, 0, 0, 0.55),
-    0 0.26vw 0.78vw rgba(0, 0, 0, 0.45);
+    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
 `;
 
 export const SubText = styled.div`
   margin-top: 0.375vw; /* more space between head and sub text */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.10vw;
+`;
+
+/* SW2 중앙 곡명/가수 타이포 – TV2 TrackTitle / Artist 스타일을 축소해서 사용 */
+export const SubTitle = styled.div`
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 500; /* TV2 TrackTitle 과 유사한 두께 */
+  font-size: clamp(0.520833vw, 3.0vmin, 1.666667vw);
+  color: rgba(255, 255, 255, 0.96);
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 0.20vw 0.72vw rgba(0, 0, 0, 0.7),
+    0 0.42vw 1.36vw rgba(255, 255, 255, 0.82);
+`;
+
+export const SubArtist = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400; /* Regular */
-  font-size: clamp(0.416667vw, 2.6vmin, 1.458333vw);
+  font-size: clamp(0.416667vw, 2.4vmin, 1.458333vw);
   color: rgba(255, 255, 255, 0.92);
   letter-spacing: 0.02em;
   text-shadow:
-    0 0.06vw 0.28vw rgba(0, 0, 0, 0.5),
-    0 0.20vw 0.72vw rgba(0, 0, 0, 0.4);
+    0 0.16vw 0.60vw rgba(0, 0, 0, 0.7),
+    0 0.36vw 1.22vw rgba(255, 255, 255, 0.78);
 `;
 
 export const Column = styled.div`
@@ -652,16 +672,22 @@ export const MiniEllipsis = styled.span`
 export const MiniKeywordLine = styled.span`
   display: block;
   font-weight: 600;
-  font-size: 0.9vw;
-  letter-spacing: 0.06em;
+  font-size: 0.72vw;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 `;
 
 export const MiniMusicLine = styled.span`
   display: block;
-  margin-top: 0.08vw;
+  margin-top: 0.04vw;
   font-weight: 400;
-  font-size: 0.62vw;
+  font-size: 0.56vw;
   opacity: 0.9;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 `;
 
 /* 미니 블롭 외곽에 아주 연한 파동(halo) 애니메이션 */
@@ -899,8 +925,10 @@ const Sw2BlobBase = styled.div`
   font-size: 2.083333vw;
   letter-spacing: 0.01em;
   z-index: 2;
-  will-change: background-position, transform;
+  will-change: background-position, transform, background;
   isolation: isolate;
+  /* 색이 바뀔 때 기존 블롭 위에서 부드럽게 그라디언트만 변경되는 느낌을 위해 */
+  transition: background 900ms ease-in-out;
   & > * {
     position: relative;
     z-index: 1;
@@ -925,15 +953,27 @@ const Sw2BlobBase = styled.div`
     /* 중앙 원 주변에 아주 부드럽게 깔리는 큰 광원 느낌을 위해 더 크게 확장 */
     inset: -4.4vw;            /* 원보다 훨씬 더 크게 (halo) */
     border-radius: inherit;
-    /* warm 톤 외곽 링 (SW1 미니 블롭 느낌) */
+    /* warm 톤 외곽 링 (SW1 미니 블롭 느낌)
+       - 채도는 살짝 낮추고
+       - 명도는 조금 더 올려서, 진한 색 대신 부드러운 파스텔 링이 되도록 조정 */
     background: radial-gradient(
       circle at 50% 50%,
       rgba(255, 255, 255, 0.0) 0%,
-      hsla(var(--mini-outer-h, 45), var(--mini-outer-s, 96%), var(--mini-outer-l, 90%), 0.70) 55%,
-      hsla(var(--mini-outer-h, 45), var(--mini-outer-s, 96%), var(--mini-outer-l, 90%), 0.0) 100%
+      hsla(
+        var(--album-h, 340),
+        calc(var(--album-s, 68%) - 18%),
+        calc(var(--album-l, 82%) + 8%),
+        0.82
+      ) 48%,
+      hsla(
+        var(--album-h, 340),
+        calc(var(--album-s, 68%) - 8%),
+        calc(var(--album-l, 88%) + 12%),
+        0.0
+      ) 100%
     );
-    filter: blur(6.4vw);
-    opacity: 0.3;
+  filter: blur(4.4vw);
+  opacity: 0.55;
     z-index: 0;
     pointer-events: none;
     animation: ${miniHaloPulse} 9s.ease-in-out infinite;

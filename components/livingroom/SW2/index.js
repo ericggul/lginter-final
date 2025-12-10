@@ -76,13 +76,8 @@ export default function SW2Controls() {
     [keywords]
   );
 
-  // 렌딩(초기) 상태: 백엔드에서 곡 정보/키워드가 아직 안 들어온 상태
-  const isLanding =
-    !hasRealKeywords &&
-    !title &&
-    !artist &&
-    !coverSrc &&
-    !audioSrc;
+  // 렌딩(초기) 상태: 아직 실제 사용자 감정 키워드가 한 번도 들어오지 않은 상태
+  const isLanding = !hasRealKeywords;
 
   const animation = useControls('SW2 Animation', {
     rotationDuration: { value: 15, min: 0, max: 120, step: 1 },
@@ -131,15 +126,19 @@ export default function SW2Controls() {
         const pick = (i) => {
           const k = keywords?.[i];
           if (!k) return null;
-          return typeof k === 'string' ? { text: k, isNew: false } : k;
+          return typeof k === 'string' ? { text: k, raw: k, isNew: false } : k;
         };
         const kwObj =
           blob.id === 'interest' ? (pick(0) || { text: '', isNew: false }) :
-          blob.id === 'happy'    ? (pick(1) || pick(0) || { text: '', isNew: false }) :
-          blob.id === 'wonder'   ? (pick(2) || pick(0) || { text: '', isNew: false }) :
+          blob.id === 'happy'    ? (pick(1) || { text: '', isNew: false }) :
+          blob.id === 'wonder'   ? (pick(2) || { text: '', isNew: false }) :
+          blob.id === 'calm'     ? (pick(3) || pick(1) || { text: '', isNew: false }) :
+          blob.id === 'vivid'    ? (pick(4) || pick(2) || { text: '', isNew: false }) :
           { text: '', isNew: false };
+        // 컬러 매핑용 키: 화면에 보이는 텍스트 그대로 사용 (매핑 실패 시 EmotionDB 가 설렘으로 fallback)
+        const keyForColor = kwObj.text;
         // 렌딩 상태에서는 모든 미니 블롭이 동일한 메인 감정 컬러(설렘 계열)를 공유하도록 통일
-        const baseEntry = getEmotionEntry(kwObj.text || '설렘');
+        const baseEntry = getEmotionEntry(keyForColor || '설렘');
         const entry = hasRealKeywords ? baseEntry : getEmotionEntry('설렘');
         if (blob.id === 'interest') {
           return {
@@ -192,6 +191,14 @@ export default function SW2Controls() {
             isNew: !!kwObj.isNew,
           };
         }
+        // calm / vivid 도 동일한 colorEntry 를 공유해서 항상 컬러가 존재하도록
+        if (blob.id === 'calm' || blob.id === 'vivid') {
+          return {
+            ...blob,
+            emotionEntry: entry,
+            isNew: !!kwObj.isNew,
+          };
+        }
         return blob;
       }),
     [blobConfigs, blobTuning, keywords]
@@ -202,6 +209,11 @@ export default function SW2Controls() {
     [tunedBlobConfigs]
   );
 
+  // 감정 키워드를 따로 표시하기 위해, 원본 사용자 인풋 텍스트를 그대로 씀
+  const emotionKeywords = useMemo(
+    () => (Array.isArray(keywords) ? keywords.map((k) => (typeof k === 'string' ? k : k?.text || '')) : []),
+    [keywords]
+  );
   // Leva 스펙(기본 핑크)과 앨범 컬러 기반 내부 채움 중 선택
   const levaPinkBackground = `radial-gradient(${centerRing.radius}% ${centerRing.radius}% at ${centerRing.focusX}% ${centerRing.focusY}%, ${centerRing.color1} ${centerRing.stop1}%, ${centerRing.color2} ${centerRing.stop2}%, ${centerRing.color3} ${centerRing.stop3}%)`;
   // 앨범 기반: 안쪽은 앨범 컬러, 바깥은 기존 핑크 계열을 유지
@@ -246,6 +258,10 @@ export default function SW2Controls() {
           root.style.setProperty('--album-h', String(Math.round(c.h)));
           root.style.setProperty('--album-s', `${Math.round(c.s)}%`);
           root.style.setProperty('--album-l', `${Math.round(c.l)}%`);
+          // 중앙 곡명/가수 텍스트용 그림자 컬러: 앨범 컬러보다 훨씬 어두운 톤
+          const shadowL = Math.max(0, Math.round((c.l ?? 40) - 32));
+          const shadowColor = `hsla(${Math.round(c.h)}, ${Math.round(c.s)}%, ${shadowL}%, 0.9)`;
+          root.style.setProperty('--sw2-caption-shadow', shadowColor);
         }
       } catch {}
     })();
@@ -256,11 +272,17 @@ export default function SW2Controls() {
   const displayTitle = title || '';
   const displayArtist = artist || '';
 
-  // 각 감정 키워드에 매치된 음악명을 키워드 바로 아래에 노출
-  const musicLabel = useMemo(() => {
-    if (title && artist) return `${title} · ${artist}`;
-    return title || artist || '';
-  }, [title, artist]);
+  // 감정 헤더: 가장 최신 키워드를 그대로 사용 (필터링 없이)
+  const emotionHeader = useMemo(() => {
+    if (!Array.isArray(keywords) || keywords.length === 0) return '';
+    const last = keywords[keywords.length - 1];
+    if (typeof last === 'string') return last;
+    return last?.text || last?.raw || '';
+  }, [keywords]);
+
+  // 각 미니 블롭에 공통으로 곡명/가수명을 노출
+  const musicTitle = useMemo(() => title || '', [title]);
+  const musicArtist = useMemo(() => artist || '', [artist]);
 
   // TV2와 동일한 오디오 비주얼라이저 로직을 SW2 오디오에 연결
   const [waveformData, setWaveformData] = useState(new Array(32).fill(0));
@@ -460,9 +482,9 @@ export default function SW2Controls() {
       data-stage={timelineState}
       style={{
           backgroundImage: `linear-gradient(to bottom, ${bgColors.top} 0%, ${bgColors.mid} 55%, ${bgColors.bottom} 100%)`,
-          // CenterGlow / EntryCircle 가 동일한 스케일을 쓰도록 공유 CSS 변수 설정
-          '--center-scale': centerRing.sizeScale,
-        }}
+        // CenterGlow / EntryCircle 가 동일한 스케일을 쓰도록 공유 CSS 변수 설정
+        '--center-scale': centerRing.sizeScale,
+      }}
     >
       {/* 상단에서부터 번져 나가는 핑크 파동 레이어 (백엔드와 무관한 순수 프론트 효과) */}
       <S.TopWaveLayer aria-hidden="true">
@@ -507,7 +529,7 @@ export default function SW2Controls() {
         {tunedBlobConfigs.map((blob, idx) => {
           const Component = S[blob.componentKey];
           const kwItem = keywords[idx];
-          const keyword = (typeof kwItem === 'string' ? kwItem : kwItem?.text) || blob.labelBottom;
+          const rawKeyword = (typeof kwItem === 'string' ? kwItem : kwItem?.text) || blob.labelBottom;
           return (
             <Component
               key={blob.id}
@@ -524,7 +546,6 @@ export default function SW2Controls() {
                     : {}),
               }}
             >
-              {blob.isNew ? <S.NewKeywordOverlay /> : null}
               <S.ContentRotator $duration={animation.rotationDuration}>
                 {/* 렌딩 상태에서는 실제 키워드/음악 대신 '...' 애니메이션만 보여준다 */}
                 {isLanding ? (
@@ -538,8 +559,12 @@ export default function SW2Controls() {
                   </>
                 ) : (
                   <>
-                    <S.MiniKeywordLine>{keyword}</S.MiniKeywordLine>
-                    {musicLabel ? <S.MiniMusicLine>{musicLabel}</S.MiniMusicLine> : null}
+                    {/* 위: 감정 키워드(사용자 인풋), 아래: 음악 제목 / 가수명 */}
+                    <S.MiniKeywordLine>{rawKeyword}</S.MiniKeywordLine>
+                    <S.MiniMusicLine>
+                      {musicTitle}
+                      {musicArtist ? ` · ${musicArtist}` : ''}
+                    </S.MiniMusicLine>
                   </>
                 )}
               </S.ContentRotator>
@@ -547,11 +572,6 @@ export default function SW2Controls() {
           );
         })}
       </S.BlobRotator>
-      {/* t5: 배경(프레임) 자체의 채도만 살짝 올라갔다가 복귀하는 펄스는
-          FrameBg 에서 처리하므로, 별도 오버레이는 사용하지 않는다. */}
-      {/* If background frame image is unavailable, pass empty to avoid 404.
-          t5에서 배경 자체의 채도 펄스를 주기 위해 timelineState 를 data-stage 로 전달. */}
-      <S.FrameBg $url="" data-stage={timelineState} />
       <S.TopStatus>
         <span>사용자 {participantCount}명을 위한 조율중</span>
         <S.Dots aria-hidden="true">
@@ -597,8 +617,12 @@ export default function SW2Controls() {
           </>
         ) : (
           <>
-            <S.HeadText>{displayTitle}</S.HeadText>
-            <S.SubText>{displayArtist}</S.SubText>
+            {/* 상단: 감정 키워드(헤더 역할), 하단: 곡명 / 가수명 두 줄 */}
+            <S.HeadText>{emotionHeader || displayTitle}</S.HeadText>
+            <S.SubText>
+              <S.SubTitle>{displayTitle}</S.SubTitle>
+              {displayArtist ? <S.SubArtist>{displayArtist}</S.SubArtist> : null}
+            </S.SubText>
           </>
         )}
       </S.CaptionWrap>

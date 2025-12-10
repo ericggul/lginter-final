@@ -262,9 +262,9 @@ export const EdgeBlurLayer = styled.div`
     /* 아래쪽 가장자리 */
     radial-gradient(
       circle at 50% 110%,
-      rgba(255, 255, 255, 0.75) 0%,
-      rgba(255, 255, 255, 0.55) 16%,
-      rgba(255, 255, 255, 0.0) 52%
+      rgba(255, 255, 255, 0.80) 0%,
+      rgba(255, 255, 255, 0.65) 24%,
+      rgba(255, 255, 255, 0.0) 72%
     );
 
   filter: ${({ $strength = 1.4 }) => `blur(${$strength}vw)`};
