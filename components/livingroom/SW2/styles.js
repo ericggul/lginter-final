@@ -77,8 +77,9 @@ export const TopWaveLayer = styled.div`
 
 export const TopWaveCircle = styled.div`
   position: absolute;
-  /* 앨범 카드 정중앙을 기준으로 파동이 시작되도록 정렬 */
-  top: 50%;
+  /* 앨범 카드보다 조금 더 위쪽에서 파동이 시작되도록 조정
+     (선형 화이트 링의 중심 높이와 시각적으로 맞추기 위해 50% → 42%) */
+  top: 42%;
   left: 50%;
   /* Figma 스펙 기준 비율을 뷰포트 너비에 맞춰 스케일링
      1) width: 1169.201px / 3840px ≈ 30.4vw
@@ -403,11 +404,9 @@ export const CaptionWrap = styled.div`
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  /* 앨범 카드를 완전히 지난 뒤, 아래쪽 여백을 두고 배치
-     - AlbumCard 는 top: 50%, 높이: var(--album-size)
-     - 따라서 카드의 하단은 대략 50% + var(--album-size) / 2 부근
-     - 그 아래에 3vh 정도의 여백을 추가하여 겹치지 않도록 한다. */
-  top: calc(50% + (var(--album-size) / 2) + 3vh);
+  /* 앨범 카드를 조금 더 위로 올렸으므로, 텍스트도 함께 위로 당겨
+     카드 하단으로부터의 간격을 유지한다. */
+  top: calc(46% + (var(--album-size) / 2) + 2vh);
   text-align: center;
   pointer-events: none;
   z-index: 6;
@@ -806,8 +805,8 @@ const miniHaloPulse = keyframes`
 export const AlbumCard = styled.div`
   --album-size: min(60vmin, 18.5vw);
   position: absolute;
-  /* SW1처럼 화면 정중앙에 오도록 정확히 중앙 정렬 */
-  top: 50%;
+  /* SW1 기본 위치보다 살짝 위로 올려서 상단 파동과의 중심 정렬을 맞춤 */
+  top: 46%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: var(--album-size);
