@@ -27,6 +27,67 @@ export const Root = styled.div`
   font-family: 'Inter', 'Pretendard', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 `;
 
+/* TV2 전체 페이지용 전역 트랜지션 레이어
+   - 로직/소켓에는 전혀 관여하지 않고, motionState 플래그만 받아서 UI 모션만 담당 */
+const pageDecisionSweep = keyframes`
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+    backdrop-filter: blur(0px);
+  }
+  25% {
+    opacity: 0.85;
+    transform: scale(1.01);
+    backdrop-filter: blur(8px);
+  }
+  60% {
+    opacity: 0.55;
+    transform: scale(1);
+    backdrop-filter: blur(4px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+    backdrop-filter: blur(0px);
+  }
+`;
+
+const pageIdleBreath = keyframes`
+  0%, 100% {
+    opacity: 0.0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.02);
+  }
+`;
+
+export const PageOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  mix-blend-mode: soft-light;
+  background:
+    radial-gradient(140% 120% at 50% 0%,
+      rgba(255,255,255,0.0) 0%,
+      rgba(255,255,255,0.55) 40%,
+      rgba(255,255,255,0.0) 80%);
+  opacity: 0;
+  will-change: opacity, transform, backdrop-filter;
+
+  /* Idle(T3) 상태에서 아주 약한 숨쉬기 모션 */
+  ${props => props.$isIdle && css`
+    animation: ${pageIdleBreath} 3.4s ease-in-out infinite;
+  `}
+
+  /* 새로운 결정(T4) 도착 시, 1회성 스윕 트랜지션 */
+  ${props => props.$triggerT4 && css`
+    animation: ${pageDecisionSweep} 0.9s ease-in-out;
+  `}
+`;
+
 /* 조명 컬러가 우측에서 좌측으로 밀고 들어온 뒤 멈춤 */
 const headerPush = keyframes`
   /* 우측에서 좌측으로 부드럽게 밀려와 정지 */

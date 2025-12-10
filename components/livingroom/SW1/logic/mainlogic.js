@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import useSocketSW1 from '@/utils/hooks/useSocketSW1';
-import { playSfx } from '@/utils/hooks/useSound';
+import { playSwBlobBurstForNewUsers, playSw12BlobAppearance } from '@/utils/data/soundeffect';
 import { ensureBlobCount, computeAgeSizeBoost, computeSimilarityRadiusScale } from './moving';
 
 // 최대 슬롯 개수 (화면에 표현할 수 있는 사용자 수)
@@ -348,6 +348,8 @@ export function useSW1Logic() {
     if (timelineState === 't3') {
       // 기존 오빗 블롭은 그대로 두고, 진입용 블롭만 별도 상태에 생성
       setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));
+      // 화면 밖 하단에서 중앙으로 올라오는 엔트리 블롭 애니메이션 시작 시 효과음 1회 재생
+      playSw12BlobAppearance();
       setEntryBlob({
         id: `entry-${Date.now()}`,
         temp: nextClimate.temp,
@@ -518,10 +520,8 @@ export function useSW1Logic() {
         if (!prev.has(id)) newCount += 1;
       });
       if (newCount > 0) {
-        // Play once per new blob; lightly throttle by chaining micro-delays
-        for (let i = 0; i < newCount; i += 1) {
-          setTimeout(() => { playSfx('blobsw12', { volume: 0.6 }); }, i * 80);
-        }
+        // Play once per new blob; lightly throttle by chaining micro-delays (centralized in soundeffect helpers)
+        playSwBlobBurstForNewUsers(newCount, 0.6, 80);
       }
       prevRealUsersRef.current = curr;
     } catch {}

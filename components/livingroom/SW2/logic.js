@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import useSocketSW2 from "@/utils/hooks/useSocketSW2";
-import { playSfx } from "@/utils/hooks/useSound";
+import { playSwBlobOnce } from "@/utils/data/soundeffect";
 import { parseMusicString, getAlbumCoverPath, getAlbumSongPath, getAlbumData } from "@/utils/data/albumData";
 import { TIMELINE_STATES } from "./logic/moving";
 
@@ -265,7 +265,7 @@ export function useSW2Logic() {
     try {
       const tail = keywords[keywords.length - 1]?.text || '';
       if (tail && tail !== prevTailRef.current) {
-        playSfx('blobsw12', { volume: 0.5 });
+        playSwBlobOnce(0.5);
       }
       prevTailRef.current = tail;
     } catch {}

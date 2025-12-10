@@ -5,6 +5,7 @@ import { getEmotionEntry } from './logic/emotionDB';
 import { buildMiniVars, backgroundFromEmotion } from './logic/color';
 import { getDominantColorFromImage } from '@/utils/color/albumColor';
 import { useControls } from 'leva';
+import { playSw12BlobAppearance } from '@/utils/data/soundeffect';
 
 // lightColor(hex) → hsl 변환 유틸 (SW2 하단 배경용)
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -69,6 +70,8 @@ export default function SW2Controls() {
     timelineState,
     lightColor,
   } = useSW2Logic();
+
+  const prevTimelineRef = useRef(timelineState);
 
   // 인풋(실제 사용자 감정 키워드) 유무 판단
   const hasRealKeywords = useMemo(
@@ -247,6 +250,17 @@ export default function SW2Controls() {
     const bottom = `hsla(${bottomH}, ${bottomS}%, ${bottomL}%, 1)`; // 조명 기반 하단 컬러
     return { top, mid, bottom };
   }, [lightColor, baseHue]);
+
+  // SW2: timeline t3 진입 시, 화면 밖 하단에서 상단으로 올라오는 EntryCircle 애니메이션 시작에 맞춰 효과음 1회 재생
+  useEffect(() => {
+    try {
+      const prev = prevTimelineRef.current;
+      if (timelineState === 't3' && prev !== 't3' && hasRealKeywords) {
+        playSw12BlobAppearance();
+      }
+      prevTimelineRef.current = timelineState;
+    } catch {}
+  }, [timelineState, hasRealKeywords]);
 
   // Album dominant color → root-level CSS vars (non-blocking)
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
