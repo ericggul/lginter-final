@@ -1,10 +1,58 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import * as S from './styles';
 import { useSW2Logic } from './logic/mainlogic';
 import { getEmotionEntry } from './logic/emotionDB';
 import { buildMiniVars, backgroundFromEmotion } from './logic/color';
 import { getDominantColorFromImage } from '@/utils/color/albumColor';
 import { useControls } from 'leva';
+
+// lightColor(hex) → hsl 변환 유틸 (SW2 하단 배경용)
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return null;
+  const v = m[1];
+  return {
+    r: parseInt(v.slice(0, 2), 16),
+    g: parseInt(v.slice(2, 4), 16),
+    b: parseInt(v.slice(4, 6), 16),
+  };
+}
+
+function rgbToHsl(r, g, b) {
+  const R = r / 255;
+  const G = g / 255;
+  const B = b / 255;
+  const max = Math.max(R, G, B);
+  const min = Math.min(R, G, B);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d !== 0) {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case R:
+        h = (G - B) / d + (G < B ? 6 : 0);
+        break;
+      case G:
+        h = (B - R) / d + 2;
+        break;
+      default:
+        h = (R - G) / d + 4;
+        break;
+    }
+    h /= 6;
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function hexToHsl(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  return rgbToHsl(rgb.r, rgb.g, rgb.b);
+}
 
 export default function SW2Controls() {
   const {
@@ -19,7 +67,17 @@ export default function SW2Controls() {
     participantCount,
     blobRefs,
     timelineState,
+    lightColor,
   } = useSW2Logic();
+
+  // 인풋(실제 사용자 감정 키워드) 유무 판단
+  const hasRealKeywords = useMemo(
+    () => Array.isArray(keywords) && keywords.some((k) => k && typeof k === 'object' && k.isNew),
+    [keywords]
+  );
+
+  // 렌딩(초기) 상태: 아직 실제 사용자 감정 키워드가 한 번도 들어오지 않은 상태
+  const isLanding = !hasRealKeywords;
 
   const animation = useControls('SW2 Animation', {
     rotationDuration: { value: 15, min: 0, max: 120, step: 1 },
@@ -68,14 +126,20 @@ export default function SW2Controls() {
         const pick = (i) => {
           const k = keywords?.[i];
           if (!k) return null;
-          return typeof k === 'string' ? { text: k, isNew: false } : k;
+          return typeof k === 'string' ? { text: k, raw: k, isNew: false } : k;
         };
         const kwObj =
           blob.id === 'interest' ? (pick(0) || { text: '', isNew: false }) :
-          blob.id === 'happy'    ? (pick(1) || pick(0) || { text: '', isNew: false }) :
-          blob.id === 'wonder'   ? (pick(2) || pick(0) || { text: '', isNew: false }) :
+          blob.id === 'happy'    ? (pick(1) || { text: '', isNew: false }) :
+          blob.id === 'wonder'   ? (pick(2) || { text: '', isNew: false }) :
+          blob.id === 'calm'     ? (pick(3) || pick(1) || { text: '', isNew: false }) :
+          blob.id === 'vivid'    ? (pick(4) || pick(2) || { text: '', isNew: false }) :
           { text: '', isNew: false };
-        const entry = kwObj.text ? getEmotionEntry(kwObj.text) : null; // no input → keep default colors
+        // 컬러 매핑용 키: 화면에 보이는 텍스트 그대로 사용 (매핑 실패 시 EmotionDB 가 설렘으로 fallback)
+        const keyForColor = kwObj.text;
+        // 렌딩 상태에서는 모든 미니 블롭이 동일한 메인 감정 컬러(설렘 계열)를 공유하도록 통일
+        const baseEntry = getEmotionEntry(keyForColor || '설렘');
+        const entry = hasRealKeywords ? baseEntry : getEmotionEntry('설렘');
         if (blob.id === 'interest') {
           return {
             ...blob,
@@ -127,6 +191,14 @@ export default function SW2Controls() {
             isNew: !!kwObj.isNew,
           };
         }
+        // calm / vivid 도 동일한 colorEntry 를 공유해서 항상 컬러가 존재하도록
+        if (blob.id === 'calm' || blob.id === 'vivid') {
+          return {
+            ...blob,
+            emotionEntry: entry,
+            isNew: !!kwObj.isNew,
+          };
+        }
         return blob;
       }),
     [blobConfigs, blobTuning, keywords]
@@ -137,6 +209,11 @@ export default function SW2Controls() {
     [tunedBlobConfigs]
   );
 
+  // 감정 키워드를 따로 표시하기 위해, 원본 사용자 인풋 텍스트를 그대로 씀
+  const emotionKeywords = useMemo(
+    () => (Array.isArray(keywords) ? keywords.map((k) => (typeof k === 'string' ? k : k?.text || '')) : []),
+    [keywords]
+  );
   // Leva 스펙(기본 핑크)과 앨범 컬러 기반 내부 채움 중 선택
   const levaPinkBackground = `radial-gradient(${centerRing.radius}% ${centerRing.radius}% at ${centerRing.focusX}% ${centerRing.focusY}%, ${centerRing.color1} ${centerRing.stop1}%, ${centerRing.color2} ${centerRing.stop2}%, ${centerRing.color3} ${centerRing.stop3}%)`;
   // 앨범 기반: 안쪽은 앨범 컬러, 바깥은 기존 핑크 계열을 유지
@@ -148,6 +225,29 @@ export default function SW2Controls() {
     ')';
   const centerGlowBackground = coverSrc ? albumInnerBackground : levaPinkBackground;
 
+  // 하단 배경 그라디언트: 상단은 고정 화이트, 중단은 감정(설렘) 계열,
+  // 하단은 오케스트레이션된 조명(lightColor)을 반영해서 색이 바뀌도록 설정
+  const firstKeywordText = useMemo(() => {
+    if (!Array.isArray(keywords) || !keywords[0]) return '설렘';
+    const k0 = keywords[0];
+    return typeof k0 === 'string' ? k0 : (k0.text || '설렘');
+  }, [keywords]);
+
+  const baseEmotion = getEmotionEntry(firstKeywordText || '설렘');
+  const baseHue = baseEmotion.center?.h ?? 340;
+
+  const bgColors = useMemo(() => {
+    const hsl = lightColor ? hexToHsl(lightColor) : null;
+    const bottomH = hsl ? hsl.h : baseHue;
+    const bottomS = hsl ? clamp(hsl.s + 5, 30, 90) : 68;
+    const bottomL = hsl ? clamp(hsl.l, 66, 92) : 86;
+
+    const top = 'hsla(0, 0%, 100%, 1)'; // 거의 순백 상단
+    const mid = `hsla(${baseHue}, 32%, 96%, 1)`; // SW1처럼 은은한 중단 톤
+    const bottom = `hsla(${bottomH}, ${bottomS}%, ${bottomL}%, 1)`; // 조명 기반 하단 컬러
+    return { top, mid, bottom };
+  }, [lightColor, baseHue]);
+
   // Album dominant color → root-level CSS vars (non-blocking)
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     (async () => {
@@ -158,21 +258,230 @@ export default function SW2Controls() {
           root.style.setProperty('--album-h', String(Math.round(c.h)));
           root.style.setProperty('--album-s', `${Math.round(c.s)}%`);
           root.style.setProperty('--album-l', `${Math.round(c.l)}%`);
+          // 중앙 곡명/가수 텍스트용 그림자 컬러: 앨범 컬러보다 훨씬 어두운 톤
+          const shadowL = Math.max(0, Math.round((c.l ?? 40) - 32));
+          const shadowColor = `hsla(${Math.round(c.h)}, ${Math.round(c.s)}%, ${shadowL}%, 0.9)`;
+          root.style.setProperty('--sw2-caption-shadow', shadowColor);
         }
       } catch {}
     })();
   }
 
-  // SW2 백엔드에서 아직 곡 정보가 안 온 초기 상태에서도
-  // 기본 데모 이미지를 보기 좋게 보여주기 위한 fallback 텍스트
-  const displayTitle = title || 'Happy Alley';
-  const displayArtist = artist || 'Kevin MacLeod';
+  // 백엔드에서 곡 정보가 안 온 초기 상태에서는
+  // 실제 곡명/가수명 대신 '...' 플레이스홀더만 애니메이션으로 노출
+  const displayTitle = title || '';
+  const displayArtist = artist || '';
+
+  // 감정 헤더: 가장 최신 키워드를 그대로 사용 (필터링 없이)
+  const emotionHeader = useMemo(() => {
+    if (!Array.isArray(keywords) || keywords.length === 0) return '';
+    const last = keywords[keywords.length - 1];
+    if (typeof last === 'string') return last;
+    return last?.text || last?.raw || '';
+  }, [keywords]);
+
+  // 각 미니 블롭에 공통으로 곡명/가수명을 노출
+  const musicTitle = useMemo(() => title || '', [title]);
+  const musicArtist = useMemo(() => artist || '', [artist]);
+
+  // TV2와 동일한 오디오 비주얼라이저 로직을 SW2 오디오에 연결
+  const [waveformData, setWaveformData] = useState(new Array(32).fill(0));
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const waveformRafRef = useRef(null);
+  const sourceRef = useRef(null);
+
+  useEffect(() => {
+    if (!audioSrc || !audioRef?.current) {
+      setWaveformData(new Array(32).fill(0));
+      if (sourceRef.current) {
+        try {
+          sourceRef.current.disconnect();
+          sourceRef.current = null;
+        } catch {}
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+      if (waveformRafRef.current) {
+        cancelAnimationFrame(waveformRafRef.current);
+        waveformRafRef.current = null;
+      }
+      return;
+    }
+
+    let audioContext = null;
+    let analyser = null;
+    let source = null;
+    let handleLoadedData = null;
+
+    const initAudio = async () => {
+      try {
+        if (sourceRef.current) {
+          analyser = analyserRef.current;
+          if (analyser) {
+            const updateWaveform = () => {
+              if (!analyser) return;
+              const dataArray = new Uint8Array(analyser.frequencyBinCount);
+              analyser.getByteFrequencyData(dataArray);
+              const bars = 32;
+              const newWaveformData = [];
+              let globalMax = 0;
+
+              for (let i = 0; i < bars; i++) {
+                const ratio = i / (bars - 1);
+                const logIndex = Math.floor(Math.pow(dataArray.length, ratio) - 1);
+                const nextRatio = (i + 1) / (bars - 1);
+                const nextLogIndex =
+                  i < bars - 1
+                    ? Math.floor(Math.pow(dataArray.length, nextRatio) - 1)
+                    : dataArray.length;
+
+                let max = 0;
+                for (let j = Math.max(0, logIndex); j < Math.min(nextLogIndex, dataArray.length); j++) {
+                  max = Math.max(max, dataArray[j] || 0);
+                }
+                globalMax = Math.max(globalMax, max);
+                newWaveformData.push(max);
+              }
+
+              const minHeight = 8;
+              const maxHeight = 160;
+              const normGlobal = globalMax / 255 || 0.0001;
+              const gain = normGlobal < 0.4 ? 0.4 / normGlobal : 1;
+
+              const scaled = newWaveformData.map((raw) => {
+                const norm = (raw / 255) * gain;
+                const clamped = Math.max(0, Math.min(1, norm));
+                const gamma = Math.pow(clamped, 0.7);
+                return Math.max(minHeight, Math.min(maxHeight, gamma * maxHeight));
+              });
+
+              setWaveformData(scaled);
+              waveformRafRef.current = requestAnimationFrame(updateWaveform);
+            };
+            updateWaveform();
+          }
+          return;
+        }
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContext = audioContextRef.current;
+        } else {
+          audioContext = new AudioContextClass();
+          audioContextRef.current = audioContext;
+        }
+
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.15;
+        analyser.minDecibels = -90;
+        analyser.maxDecibels = -10;
+        analyserRef.current = analyser;
+
+        source = audioContext.createMediaElementSource(audioRef.current);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        sourceRef.current = source;
+
+        try {
+          await audioRef.current.play();
+        } catch {
+          const resume = () => {
+            try {
+              audioRef.current?.play();
+            } catch {}
+          };
+          window.addEventListener('pointerdown', resume, { once: true });
+          window.addEventListener('keydown', resume, { once: true });
+          window.addEventListener('touchstart', resume, { once: true, passive: true });
+        }
+
+        const updateWaveform = () => {
+          if (!analyser) return;
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(dataArray);
+          const bars = 32;
+          const newWaveformData = [];
+          let globalMax = 0;
+
+          for (let i = 0; i < bars; i++) {
+            const ratio = i / (bars - 1);
+            const logIndex = Math.floor(Math.pow(dataArray.length, ratio) - 1);
+            const nextRatio = (i + 1) / (bars - 1);
+            const nextLogIndex =
+              i < bars - 1
+                ? Math.floor(Math.pow(dataArray.length, nextRatio) - 1)
+                : dataArray.length;
+
+            let max = 0;
+            for (let j = Math.max(0, logIndex); j < Math.min(nextLogIndex, dataArray.length); j++) {
+              max = Math.max(max, dataArray[j] || 0);
+            }
+            globalMax = Math.max(globalMax, max);
+            newWaveformData.push(max);
+          }
+
+          const minHeight = 8;
+          const maxHeight = 160;
+          const normGlobal = globalMax / 255 || 0.0001;
+          const gain = normGlobal < 0.4 ? 0.4 / normGlobal : 1;
+
+          const scaled = newWaveformData.map((raw) => {
+            const norm = (raw / 255) * gain;
+            const clamped = Math.max(0, Math.min(1, norm));
+            const gamma = Math.pow(clamped, 0.7);
+            return Math.max(minHeight, Math.min(maxHeight, gamma * maxHeight));
+          });
+
+          setWaveformData(scaled);
+          waveformRafRef.current = requestAnimationFrame(updateWaveform);
+        };
+
+        updateWaveform();
+      } catch (err) {
+        console.error('SW2 audio visualization error:', err);
+        if (sourceRef.current) {
+          try {
+            sourceRef.current.disconnect();
+          } catch {}
+          sourceRef.current = null;
+        }
+      }
+    };
+
+    handleLoadedData = () => {
+      initAudio();
+    };
+
+    const audioElement = audioRef?.current;
+    if (audioElement) {
+      audioElement.addEventListener('loadeddata', handleLoadedData);
+      if (audioElement.readyState >= 2) {
+        initAudio();
+      }
+    }
+
+    return () => {
+      if (waveformRafRef.current) {
+        cancelAnimationFrame(waveformRafRef.current);
+        waveformRafRef.current = null;
+      }
+      if (audioElement && handleLoadedData) {
+        audioElement.removeEventListener('loadeddata', handleLoadedData);
+      }
+    };
+  }, [audioSrc, audioRef]);
 
   return (
     <S.Root
       data-stage={timelineState}
       style={{
-        backgroundColor: `hsla(var(--album-h, ${getEmotionEntry(keywords?.[0] || '설렘').center.h}), 35%, 90%, 0.22)`,
+          backgroundImage: `linear-gradient(to bottom, ${bgColors.top} 0%, ${bgColors.mid} 55%, ${bgColors.bottom} 100%)`,
         // CenterGlow / EntryCircle 가 동일한 스케일을 쓰도록 공유 CSS 변수 설정
         '--center-scale': centerRing.sizeScale,
       }}
@@ -220,7 +529,7 @@ export default function SW2Controls() {
         {tunedBlobConfigs.map((blob, idx) => {
           const Component = S[blob.componentKey];
           const kwItem = keywords[idx];
-          const keyword = (typeof kwItem === 'string' ? kwItem : kwItem?.text) || blob.labelBottom;
+          const rawKeyword = (typeof kwItem === 'string' ? kwItem : kwItem?.text) || blob.labelBottom;
           return (
             <Component
               key={blob.id}
@@ -230,23 +539,39 @@ export default function SW2Controls() {
                 '--blob-top': `${blob.anchor.y}vw`,
                 '--blob-left': `${blob.anchor.x}vw`,
                 '--blob-size': `${blob.size.base}vw`,
-                ...(blob.emotionEntry ? buildMiniVars(blob.emotionEntry) : {}),
+                ...(isLanding
+                  ? { '--blob-bg': centerGlowBackground }
+                  : blob.emotionEntry
+                    ? buildMiniVars(blob.emotionEntry)
+                    : {}),
               }}
             >
-              {blob.isNew ? <S.NewKeywordOverlay /> : null}
               <S.ContentRotator $duration={animation.rotationDuration}>
-                {/* SW2 로직과 연결된 사용자 키워드만 중앙에 표시 (백엔드와 로직은 그대로) */}
-                <span>{keyword}</span>
+                {/* 렌딩 상태에서는 실제 키워드/음악 대신 '...' 애니메이션만 보여준다 */}
+                {isLanding ? (
+                  <>
+                    <S.MiniKeywordLine>
+                      <S.MiniEllipsis>...</S.MiniEllipsis>
+                    </S.MiniKeywordLine>
+                    <S.MiniMusicLine>
+                      <S.MiniEllipsis>...</S.MiniEllipsis>
+                    </S.MiniMusicLine>
+                  </>
+                ) : (
+                  <>
+                    {/* 위: 감정 키워드(사용자 인풋), 아래: 음악 제목 / 가수명 */}
+                    <S.MiniKeywordLine>{rawKeyword}</S.MiniKeywordLine>
+                    <S.MiniMusicLine>
+                      {musicTitle}
+                      {musicArtist ? ` · ${musicArtist}` : ''}
+                    </S.MiniMusicLine>
+                  </>
+                )}
               </S.ContentRotator>
             </Component>
           );
         })}
       </S.BlobRotator>
-      {/* t5: 배경(프레임) 자체의 채도만 살짝 올라갔다가 복귀하는 펄스는
-          FrameBg 에서 처리하므로, 별도 오버레이는 사용하지 않는다. */}
-      {/* If background frame image is unavailable, pass empty to avoid 404.
-          t5에서 배경 자체의 채도 펄스를 주기 위해 timelineState 를 data-stage 로 전달. */}
-      <S.FrameBg $url="" data-stage={timelineState} />
       <S.TopStatus>
         <span>사용자 {participantCount}명을 위한 조율중</span>
         <S.Dots aria-hidden="true">
@@ -285,9 +610,29 @@ export default function SW2Controls() {
         )}
       </S.AlbumCard>
       <S.CaptionWrap>
-        <S.HeadText>{displayTitle}</S.HeadText>
-        <S.SubText>{displayArtist}</S.SubText>
+        {isLanding ? (
+          <>
+            <S.HeadText><S.MiniEllipsis>...</S.MiniEllipsis></S.HeadText>
+            <S.SubText><S.MiniEllipsis>...</S.MiniEllipsis></S.SubText>
+          </>
+        ) : (
+          <>
+            {/* 상단: 감정 키워드(헤더 역할), 하단: 곡명 / 가수명 두 줄 */}
+            <S.HeadText>{emotionHeader || displayTitle}</S.HeadText>
+            <S.SubText>
+              <S.SubTitle>{displayTitle}</S.SubTitle>
+              {displayArtist ? <S.SubArtist>{displayArtist}</S.SubArtist> : null}
+            </S.SubText>
+          </>
+        )}
       </S.CaptionWrap>
+
+      {/* 하단 중앙 오디오 비주얼라이저 (TV2 오디오 인디케이터를 SW2로 이동) */}
+      <S.Sw2Waveform>
+        {waveformData.map((height, i) => (
+          <S.Sw2WaveformBar key={i} $height={height} />
+        ))}
+      </S.Sw2Waveform>
 
       {/* Hidden audio element */}
       {audioSrc ? <audio ref={audioRef} src={audioSrc} autoPlay loop playsInline preload="auto" /> : null}

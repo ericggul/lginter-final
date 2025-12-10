@@ -3,6 +3,7 @@ import {
   BlobRotator as SharedBlobRotator,
   ContentRotator as SharedContentRotator,
 } from '../shared/rotationStyles';
+import { Sw1MiniBlobBase } from '../SW1/multiblob/styles';
 
 export const BlobRotator = styled(SharedBlobRotator)`
   /* SW2에서는 블롭이 회전하지 않고 고정된 위치에 머무르도록 애니메이션 제거 */
@@ -326,17 +327,43 @@ export const HeadText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 600; /* Semi Bold */
   font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
-  color: #111827;
+  color: #FFFFFF;
   letter-spacing: 0.02em;
+  /* TV2 TrackTitle 느낌에 맞춘 글로우 / 섀도우 */
+  text-shadow:
+    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
 `;
 
 export const SubText = styled.div`
   margin-top: 0.375vw; /* more space between head and sub text */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.10vw;
+`;
+
+/* SW2 중앙 곡명/가수 타이포 – TV2 TrackTitle / Artist 스타일을 축소해서 사용 */
+export const SubTitle = styled.div`
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 500; /* TV2 TrackTitle 과 유사한 두께 */
+  font-size: clamp(0.520833vw, 3.0vmin, 1.666667vw);
+  color: rgba(255, 255, 255, 0.96);
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 0.20vw 0.72vw rgba(0, 0, 0, 0.7),
+    0 0.42vw 1.36vw rgba(255, 255, 255, 0.82);
+`;
+
+export const SubArtist = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400; /* Regular */
-  font-size: clamp(0.416667vw, 2.6vmin, 1.458333vw);
-  color: #374151;
+  font-size: clamp(0.416667vw, 2.4vmin, 1.458333vw);
+  color: rgba(255, 255, 255, 0.92);
   letter-spacing: 0.02em;
+  text-shadow:
+    0 0.16vw 0.60vw rgba(0, 0, 0, 0.7),
+    0 0.36vw 1.22vw rgba(255, 255, 255, 0.78);
 `;
 
 export const Column = styled.div`
@@ -623,6 +650,62 @@ export const EmptyText = styled.p`
   opacity: 0.6;
 `;
 
+/* SW2 전용 미니 텍스트 플레이스홀더: '...' 에 가벼운 호흡 애니메이션 */
+const ellipsisPulse = keyframes`
+  0%, 100% {
+    opacity: 0.25;
+    transform: translateY(0.12vw);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+export const MiniEllipsis = styled.span`
+  display: inline-block;
+  letter-spacing: 0.24em;
+  font-weight: 500;
+  animation: ${ellipsisPulse} 1.2s ease-in-out infinite;
+`;
+
+export const MiniKeywordLine = styled.span`
+  display: block;
+  font-weight: 600;
+  font-size: 0.72vw;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+`;
+
+export const MiniMusicLine = styled.span`
+  display: block;
+  margin-top: 0.04vw;
+  font-weight: 400;
+  font-size: 0.56vw;
+  opacity: 0.9;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+`;
+
+/* 미니 블롭 외곽에 아주 연한 파동(halo) 애니메이션 */
+const miniHaloPulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.22;
+  }
+  45% {
+    transform: scale(1.08);
+    opacity: 0.33;
+  }
+  70% {
+    transform: scale(0.97);
+    opacity: 0.18;
+  }
+`;
+
 /* === Compact album card (square) ========================================= */
 export const AlbumCard = styled.div`
   --album-size: min(60vmin, 18.5vw);
@@ -639,15 +722,35 @@ export const AlbumCard = styled.div`
   overflow: hidden;
 `;
 
+const albumImageBlurIn = keyframes`
+  0% {
+    opacity: 0;
+    filter: blur(26px);
+    transform: scale(1.04);
+  }
+  60% {
+    opacity: 0.9;
+    filter: blur(10px);
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+`;
+
 export const AlbumImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  /* 새 앨범 커버가 로드될 때 서서히 페이드인 */
+  /* 새 앨범 커버가 설정될 때 컨테이너 전체가 강하게 블러리했다가 2초 뒤 선명해지도록 */
   opacity: 0;
+  filter: blur(26px);
   transition: opacity 1600ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity;
+  animation: ${albumImageBlurIn} 2s ease-out forwards;
+  will-change: opacity, filter, transform;
 `;
 
 export const AlbumPlaceholder = styled.div`
@@ -793,167 +896,111 @@ export const Sw2CenterSaturationPulse = styled.div`
   }
 `;
 
-/* 공통 SW2 블롭 베이스: SW2 회전 원을 Figma 스펙 느낌으로 단순화한 버전 */
-/* 중앙에서 밖으로 퍼지는 링 파동용 keyframes (각 블롭 외곽에서 나가는 은은한 파동) */
-const miniRingPulse = keyframes`
-  0% {
-    transform: translate(-50%, -50%) scale(0.2);
-    opacity: 0.45;
-  }
-  65% {
-    transform: translate(-50%, -50%) scale(1.9);
-    opacity: 0.26;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(2.4);
-    opacity: 0.0;
-  }
-`;
-
+/* 공통 SW2 블롭 베이스: SW2 전용 미니 블롭 (이전 버전으로 복원) */
 const Sw2BlobBase = styled.div`
   position: absolute;
-  /* 중앙 기준 위치만 맞추고, 회전 각도는 halo(::before)에만 적용.
-     depthLayer(0: 앞, 1: 중간, 2: 뒤)에 따라 크기 펄스 애니메이션을 다르게 준다. */
   transform: translate(-50%, -50%);
-
-  /**
-   * 크기: 백엔드에서 내려오는 blob.size.base 를 그대로 활용하되,
-   *      SW1 대비 한 단계 더 작은 미니 블롭 느낌으로 축소
-   */
-  width: calc(var(--blob-size, 16vw) * 0.45);
-  height: calc(var(--blob-size, 16vw) * 0.45);
+  /* 주변 원 크기 - 전체적으로 한 단계 더 작게 축소 */
+  width: 22vw;
+  height: 22vw;
   border-radius: 50%;
+  /* 테두리를 제거해서 외곽 블러가 더 자연스럽게 보이도록 처리 */
   border: none;
+  /* box-shadow 대신 별도 레이어에 실제 blur를 적용하기 위해 overflow를 노출 */
   box-shadow: none;
   overflow: visible;
+  /* 기본 원은 투명, 실제 색/그라데이션은 ::before/::after 레이어에서만 렌더 */
   background: transparent;
-  /* Emotion 3-tone gradient by CSS vars:
-     center = emotion color; mid = warm yellow; outer = pink.
-     Defaults keep previous look if no vars provided. */
-  --blob-bg: radial-gradient(
-    84.47% 61.21% at 66.09% 54.37%,
-    hsla(var(--mini-h, 340), var(--mini-s, 80%), var(--mini-l, 70%), 1.0) 0%,
-    hsla(var(--mini-mid-h, 45), var(--mini-mid-s, 95%), var(--mini-mid-l, 85%), 0.95) 65%,
-    hsla(var(--mini-outer-h, 340), var(--mini-outer-s, 90%), var(--mini-outer-l, 88%), 1.0) 100%
-  );
-  /* Small pink sector overlay defaults (one side keeps pink glow) */
-  --pink-sector-start: 300deg;
-  --pink-sector-size: 42deg;
-  opacity: ${({ $depthLayer = 1 }) =>
-    $depthLayer === 0 ? 0.98 : $depthLayer === 1 ? 0.9 : 0.78};
+  /* 전체 투명도를 조정해 주변 원이 너무 죽지 않으면서도 중앙보다 한 단계 뒤에 있도록 설정 */
+  opacity: 0.9;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 0.1vw;
+  gap: 0.02vw;
   text-align: center;
+  color: #A1908A;
   font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400;
   font-size: 2.083333vw;
   letter-spacing: 0.01em;
-  /* 중앙 CenterGlow(2) 아래, FrameBg(0) 위에 오도록
-     depthLayer(0/1/2)에 따라 1/0/0 으로 배치한다. */
-  z-index: ${({ $depthLayer = 1 }) =>
-    $depthLayer === 0 ? 1 : 0};
-  will-change: background-position, transform, opacity;
+  z-index: 2;
+  will-change: background-position, transform, background;
   isolation: isolate;
-  /* remove stroke to avoid gray edges on compositing */
-  border: none;
-
-  /* z축이 계속 살아 움직이는 것처럼 보이도록
-     ease-in-out 대신 linear 로 바꿔, 중간에서 잠깐 멈춘 느낌을 줄인다. */
-  animation: ${({ $depthLayer = 1 }) => {
-    if ($depthLayer === 0) {
-      return css`${frontDepthPulse} 7s linear infinite`;
-    }
-    if ($depthLayer === 1) {
-      return css`${midDepthPulse} 9s linear infinite`;
-    }
-    return css`${backDepthPulse} 11s linear infinite`;
-  }};
-
-  /* 키워드 텍스트는 항상 선명한 흰색으로 */
-  & span {
+  /* 색이 바뀔 때 기존 블롭 위에서 부드럽게 그라디언트만 변경되는 느낌을 위해 */
+  transition: background 900ms ease-in-out;
+  & > * {
     position: relative;
     z-index: 1;
+  }
+  & strong,
+  & span {
     font-size: 1.6vw;
     font-weight: 400;
-    letter-spacing: 0.02em;
-    color: #ffffff;
-    /* SW1과 톤을 맞춘 은은한 bloom 효과 */
+    letter-spacing: 0.01em;
+    color: #FFFFFF;
     mix-blend-mode: screen;
+    /* 약하게 번지는 글로우 느낌 (bloom) */
     text-shadow:
-      0 0.10vw 0.25vw rgba(255, 255, 255, 0.95),
-      0 0.32vw 0.70vw rgba(255, 192, 220, 0.85),
-      0 0.68vw 1.35vw rgba(255, 192, 220, 0.5);
+      0 0.10vw 0.25vw rgba(255, 255, 255, 0.9),
+      0 0.35vw 0.75vw rgba(255, 193, 218, 0.85),
+      0 0.70vw 1.40vw rgba(255, 193, 218, 0.55);
   }
-
-  /* 바깥 halo: 실제 색과 blur는 ::before 에서만 처리해서 텍스트는 선명하게 유지 */
+  /* 원보다 살짝 큰 레이어에 blur를 적용해서 외곽이 부드럽게 퍼지도록 처리 (halo) */
   &::before {
     content: '';
-  position: absolute;
-    inset: -3.2vw;
+    position: absolute;
+    /* 중앙 원 주변에 아주 부드럽게 깔리는 큰 광원 느낌을 위해 더 크게 확장 */
+    inset: -4.4vw;            /* 원보다 훨씬 더 크게 (halo) */
     border-radius: inherit;
-    /* Keep a small pink sector on one side by layering a conic-gradient over the emotion bg */
-    background:
-      conic-gradient(
-        from var(--pink-sector-start),
-        rgba(255, 105, 180, 0.36) 0deg,
-        rgba(255, 105, 180, 0.36) var(--pink-sector-size),
-        rgba(255, 105, 180, 0.0) var(--pink-sector-size)
-      ),
-      var(--blob-bg, transparent);
-    /* 제공받은 Figma 회전 각도는 halo에만 적용 (내용 텍스트는 회전하지 않도록 분리) */
-    transform: rotate(-66.216deg);
-    transform-origin: center;
+    /* warm 톤 외곽 링 (SW1 미니 블롭 느낌)
+       - 채도는 살짝 낮추고
+       - 명도는 조금 더 올려서, 진한 색 대신 부드러운 파스텔 링이 되도록 조정 */
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.0) 0%,
+      hsla(
+        var(--album-h, 340),
+        calc(var(--album-s, 68%) - 18%),
+        calc(var(--album-l, 82%) + 8%),
+        0.82
+      ) 48%,
+      hsla(
+        var(--album-h, 340),
+        calc(var(--album-s, 68%) - 8%),
+        calc(var(--album-l, 88%) + 12%),
+        0.0
+      ) 100%
+    );
+  filter: blur(4.4vw);
+  opacity: 0.55;
     z-index: 0;
     pointer-events: none;
-    will-change: filter, opacity;
-
-    /* depthLayer 에 따라 서로 다른 강도로 채도/블러 펄스 (메인보다 살짝 더 부드럽게) */
-    animation: ${({ $depthLayer = 1 }) => {
-      if ($depthLayer === 0) {
-        return css`${frontHaloPulse} 9s ease-in-out infinite`;
-      }
-      if ($depthLayer === 1) {
-        return css`${midHaloPulse} 11s ease-in-out infinite`;
-      }
-      return css`${backHaloPulse} 13s ease-in-out infinite`;
-    }};
+    animation: ${miniHaloPulse} 9s.ease-in-out infinite;
   }
-
-  /* ::after: 중앙에서 밖으로 퍼지는 얇은 링 파동 (메인보다 연하고 부드럽게) */
+  /* 내부 입체감을 위한 그라데이션 원 (가장자리는 마스크로 부드럽게 페이드) */
   &::after {
     content: '';
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100%;
-    height: 100%;
+    inset: 0.2vw;             /* halo 안쪽을 채우는 몸통 */
     border-radius: inherit;
+    background:
+      radial-gradient(
+        circle at 50% 38%,
+        rgba(255, 255, 255, 0.24) 0%,
+        rgba(255, 255, 255, 0.0) 45%
+      ),
+      radial-gradient(
+        circle at 26% 20%,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.0) 24%
+      ),
+      var(--blob-bg, transparent);
+    background-size: 320% 320%;
+    background-position: 0% 50%;
+    filter: blur(0.85vw);
+    z-index: 0.5;
     pointer-events: none;
-    z-index: 0;
-    /* center dot → 얇은 링이 블롭 외곽에서 더 멀리 퍼져 나가며 사라지는 파동 */
-    background: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.0) 0%,
-      rgba(255, 255, 255, 0.0) 55%,
-      rgba(255, 255, 255, 0.55) 70%,
-      rgba(255, 255, 255, 0.0) 92%
-    );
-    transform-origin: center;
-    filter: blur(2.6vw);
-    mix-blend-mode: screen;
-    /* 링이 중앙에서 바깥으로 퍼져 나가는 느낌 (조금 더 명확하게 보이도록 속도/강도 조정) */
-    animation: ${({ $depthLayer = 1 }) => {
-      if ($depthLayer === 0) {
-        return css`${miniRingPulse} 7s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
-      }
-      if ($depthLayer === 1) {
-        return css`${miniRingPulse} 9s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
-      }
-      return css`${miniRingPulse} 11s cubic-bezier(0.22, 1, 0.36, 1) infinite`;
-    }};
   }
 `;
 
@@ -1084,4 +1131,33 @@ export const EntryCircle = styled(Sw2BlobBase)`
   &[data-stage='t4'] {
     animation: ${entryCollapse} 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
+`;
+
+/* SW2 하단 중앙 오디오 비주얼라이저 (TV2 WaveformIndicator를 재배치한 버전) */
+// TV2 WaveformIndicator 그대로 가져와서, SW2는 중앙 하단에만 위치만 변경
+export const Sw2Waveform = styled.div`
+  position: absolute;
+  left: 50%;
+  bottom: 7vh;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  /* TV2 인디케이터 가로폭의 1/2 정도로 축소 */
+  width: 300px;
+  height: 120px;
+  z-index: 20;
+  pointer-events: none;
+`;
+
+export const Sw2WaveformBar = styled.div`
+  width: 6px;
+  height: ${({ $height }) => $height || 4}px;
+  min-height: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  transform-origin: bottom;
+  transition: height 0.1s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 `;

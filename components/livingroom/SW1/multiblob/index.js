@@ -59,7 +59,21 @@ export default function SW1Controls() {
   const BACKGROUND_URL = null; // remove background PNG (big pink blobs)
   const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
 
-  const { blobConfigs, entryBlob, centerTemp, centerHumidity, participantCount, dotCount, decisionTick, timelineState, bloomTick, typeTick } = useSW1Logic();
+  const {
+    blobConfigs,
+    entryBlob,
+    centerTemp,
+    centerHumidity,
+    participantCount,
+    dotCount,
+    decisionTick,
+    timelineState,
+    bloomTick,
+    typeTick,
+    miniTextMode,
+    miniTextVisible,
+    hasDecision,
+  } = useSW1Logic();
   const organicCenterPath = useOrganicCenterPath();
   const [midPulseAlpha, setMidPulseAlpha] = useState(1);
   const [bloomActive, setBloomActive] = useState(false);
@@ -75,11 +89,19 @@ export default function SW1Controls() {
 
   // HUE/BG를 부드럽게 보간하기 위한 이징 유틸
   const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-  const initialHue = computeBigBlobHues(centerTemp).mid2H;
-  const initialBg = computeBackgroundHsl(centerTemp);
+  // 인풋 없는 초기 상태에서는 기존 디자인에 맞춘 따뜻한 핑크톤(H≈340)을 사용
+  const initialHue = 340;
   const [animHue, setAnimHue] = useState(initialHue);
-  const [animBg, setAnimBg] = useState(initialBg); // {h,s,l}
+  const [animBg, setAnimBg] = useState(() => computeBackgroundHsl(centerTemp)); // {h,s,l}
+  const [bgFlashTick, setBgFlashTick] = useState(0);
   useEffect(() => {
+    // 아직 어떤 디시전도 들어오기 전이면 항상 기본 핑크 톤 유지
+    if (!hasDecision) {
+      setAnimHue(initialHue);
+      setAnimBg(computeBackgroundHsl(centerTemp));
+      return;
+    }
+
     let raf;
     const start = performance.now();
     const duration = 800; // ms
@@ -100,9 +122,11 @@ export default function SW1Controls() {
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+    // 메인 블롭 컬러 변경 시 BG 플래시 오버레이 한 번 재생
+    setBgFlashTick((x) => x + 1);
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [centerTemp]);
+  }, [centerTemp, hasDecision]);
 
   // Leva controls (HSL) for live-tuning center glow & background gradient
   const centerGlow = useControls('SW1 Center Glow (HSL)', {
@@ -121,9 +145,9 @@ export default function SW1Controls() {
     mid1S:           { value: 100, min: 0, max: 100, step: 1 },
     mid1L:           { value: 66,  min: 0, max: 100, step: 1 },
     mid1Alpha:       { value: 0.81,min: 0, max: 1,   step: 0.01 },
-    // mid2 (#f8cfc1 ≈ h:15 s:82 l:87)
+    // mid2: 큰 블롭 색상용 – S는 83으로 고정해서 채도 유지, L은 기존 설정 유지
     mid2H:           { value: 360, min: 0, max: 360, step: 1 },
-    mid2S:           { value: 6,   min: 0, max: 100, step: 1 },
+    mid2S:           { value: 83,  min: 0, max: 100, step: 1 },
     mid2L:           { value: 88,  min: 0, max: 100, step: 1 },
     mid2Alpha:       { value: 0.87,min: 0, max: 1,   step: 0.01 },
     // outer (#fff3ef ≈ h:15 s:100 l:96)
@@ -201,12 +225,15 @@ export default function SW1Controls() {
 
   // Display current HSLA strings (for quick copy/reference)
   const rgbDisplay = useMemo(() => {
-    const innerRingH = Math.round(animHue);
-    const mid2H = Math.round(animHue);
+    const hue = Math.round(animHue);
+    const innerRingH = hue;
+    const midH = hue;
+    const mid2H = hue;
     return {
       inner: toHsla(centerGlow.innerH, centerGlow.innerS, centerGlow.innerL, centerGlow.innerAlpha),
       innerRing: toHsla(innerRingH, centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha),
-      mid1: toHsla(centerGlow.mid1H, centerGlow.mid1S, centerGlow.mid1L, centerGlow.mid1Alpha * midPulseAlpha),
+      // midH: 큰 블롭의 중심 영역 색상 – 온도에 따라 hue 가 변함
+      mid1: toHsla(midH, centerGlow.mid1S, centerGlow.mid1L, centerGlow.mid1Alpha * midPulseAlpha),
       mid2: toHsla(mid2H, centerGlow.mid2S, centerGlow.mid2L, centerGlow.mid2Alpha),
       outer: toHsla(centerGlow.outerH, centerGlow.outerS, centerGlow.outerL, centerGlow.outerAlpha),
     };
@@ -219,11 +246,14 @@ export default function SW1Controls() {
     centerGlow.outerH, centerGlow.outerS, centerGlow.outerL, centerGlow.outerAlpha,
   ]);
   const centerGlowStyle = useMemo(() => {
-    const innerRingH = Math.round(animHue);
-    const mid2H = Math.round(animHue);
+    const hue = Math.round(animHue);
+    const innerRingH = hue;
+    const midH = hue;
+    const mid2H = hue;
     const c1     = toHsla(centerGlow.innerH,     centerGlow.innerS,     centerGlow.innerL,     centerGlow.innerAlpha);
     const cRing  = toHsla(innerRingH,            centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha);
-    const c2     = toHsla(centerGlow.mid1H,      centerGlow.mid1S,      centerGlow.mid1L,      centerGlow.mid1Alpha * midPulseAlpha);
+    // c2: midH – 큰 블롭의 mid 영역 컬러 (온도 기반 hue)
+    const c2     = toHsla(midH,                  centerGlow.mid1S,      centerGlow.mid1L,      centerGlow.mid1Alpha * midPulseAlpha);
     const c3     = toHsla(mid2H,                 centerGlow.mid2S,      centerGlow.mid2L,      centerGlow.mid2Alpha);
     const c4     = toHsla(centerGlow.outerH,     centerGlow.outerS,     centerGlow.outerL,     centerGlow.outerAlpha);
     const cExtra = toHsla(centerGlow.extraH,     centerGlow.extraS,     centerGlow.extraL,     centerGlow.extraAlpha);
@@ -256,21 +286,21 @@ export default function SW1Controls() {
   }, [centerGlow, animHue, midPulseAlpha, bloomActive, timelineState]);
 
   const rootBackgroundStyle = useMemo(() => {
-    const wrap = (h, s, l, a = 0.78) => `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, ${a})`;
-    // 요청: S/L은 고정값(Leva baseS/baseL)을 사용하고, H만 변화(=animHue 기반)하도록 설정
+    const wrap = (h, s, l, a = 1) => `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, ${a})`;
     const H = Math.round(animHue);
-    // 너무 진한 문제 방지를 위해 채도 상한 62로 캡
-    const S = Math.min(62, background.baseS);
-    // baseL은 고정 80
-    const L = 80;
-    // 알파로 전체 배경을 더 연하게
-    const solid = wrap(H, S, L, 0.76);
+    // 상단/베이스: 거의 화이트에 가까운 뉴트럴 톤
+    const top = wrap(H, 6, 98, 1);
+    // 중간부: 기존 메인 블롭의 옅은 핑크톤을 항상 살짝 끼워 넣기 (고정 hue≈340, 채도/명도 강화)
+    const midPink = wrap(340, 82, 95, 1);
+    // 하단: 메인 빅 블롭 컬러 계열을 더 강하게, 채도/명도 모두 살짝 올림
+    const bottom = wrap(H, 68, 86, 1);
+
     return {
-      backgroundColor: solid,
-      backgroundImage: 'none',
-      transition: 'background-color 700ms ease-in-out',
+      backgroundColor: top,
+      backgroundImage: `linear-gradient(to bottom, ${top} 0%, ${midPink} 40%, ${bottom} 100%)`,
+      transition: 'background 700ms ease-in-out',
     };
-  }, [animHue, background.baseS]);
+  }, [animHue]);
 
   return (
     <S.Root $backgroundUrl={BACKGROUND_URL} style={rootBackgroundStyle}>
@@ -284,6 +314,8 @@ export default function SW1Controls() {
         </S.Dots>
       </S.TopStatus>
       <S.Stage>
+        {/* 메인 블롭 컬러 변경 시 전체 배경이 한 번 강하게 물들었다가 사라지는 플래시 오버레이 */}
+        <S.BgFlashOverlay key={bgFlashTick} $h={animHue} />
         {/* 화면 가장자리를 따라 깔리는 글라스모피즘 레이어 (backdrop-filter) */}
         <S.EdgeGlassLayer
           $blur={edgeGlass.blur}
@@ -302,10 +334,12 @@ export default function SW1Controls() {
             key={`entry-${entryBlob.id}`}
             data-stage={timelineState}
             style={{
-              '--blob-h': miniColor.h,
+              '--blob-h': hasDecision ? Math.round(animHue) : miniColor.h,
               '--blob-s': `${miniColor.s}%`,
               '--blob-l': `${miniColor.l}%`,
-              '--blob-warm-h': computeMiniWarmHue(typeof entryBlob.temp === 'number' ? entryBlob.temp : centerTemp),
+              '--blob-warm-h': hasDecision
+                ? computeMiniWarmHue(typeof entryBlob.temp === 'number' ? entryBlob.temp : centerTemp)
+                : miniColor.warmH,
               '--blob-warm-s1': `${miniColor.warmS1}%`,
               '--blob-warm-l1': '85%',
               '--blob-warm-s2': `${miniColor.warmS2}%`,
@@ -323,6 +357,19 @@ export default function SW1Controls() {
           {blobConfigs
             .map((b, index) => {
               const Component = S[b.componentKey];
+              const useLabel = miniTextMode === 'label';
+              const showLabel = hasDecision && useLabel;
+              const topText = hasDecision
+                ? (showLabel
+                    ? (b.topLabel || b.topValue || '')
+                    : (b.topValue || b.topLabel || ''))
+                : '...';
+              const bottomText = hasDecision
+                ? (showLabel
+                    ? (b.bottomLabel || b.bottomValue || '')
+                    : (b.bottomValue || b.bottomLabel || ''))
+                : '...';
+
               return (
                 <Component
                   key={b.id}
@@ -333,11 +380,14 @@ export default function SW1Controls() {
                   $order={index}
                   data-stage={timelineState}
                   style={{
-                    // HSL variables for gradient in styles
-                    '--blob-h': miniColor.h,
+                    // 초기(인풋 전)에는 내부/외곽 모두 기본 핑크 톤을 사용
+                    '--blob-h': hasDecision ? Math.round(animHue) : miniColor.h,
                     '--blob-s': `${miniColor.s}%`,
                     '--blob-l': `${miniColor.l}%`,
-                    '--blob-warm-h': computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp),
+                    // 외곽 컬러: 디시전 이후에는 각 미니 블롭의 temp 기반, 그 전에는 기본 warmH 사용
+                    '--blob-warm-h': hasDecision
+                      ? computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp)
+                      : miniColor.warmH,
                     '--blob-warm-s1': `${miniColor.warmS1}%`,
                     '--blob-warm-l1': '85%',
                     '--blob-warm-s2': `${miniColor.warmS2}%`,
@@ -357,8 +407,8 @@ export default function SW1Controls() {
                 >
                   {/* 신규 블롭도 T4에서 별도 화이트 오버레이 없이 동일 룩 유지 */}
                   <S.ContentRotator $duration={animation.rotationDuration}>
-                    <strong>{b.top}</strong>
-                    <span>{b.bottom}</span>
+                    <S.MiniTopText $visible={miniTextVisible}>{topText}</S.MiniTopText>
+                    <S.MiniBottomText $visible={miniTextVisible}>{bottomText}</S.MiniBottomText>
                   </S.ContentRotator>
                 </Component>
               );
@@ -415,8 +465,26 @@ export default function SW1Controls() {
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
         </S.EllipseLayer>
         <S.CenterTextWrap>
-          <S.CenterTemp>{`${centerTemp}°C`}</S.CenterTemp>
-          <S.CenterMode>{/* show mode from humidity */}{centerHumidity >= 0 ? (centerHumidity >= 65 ? '강력 제습' : centerHumidity >= 55 ? '적정 제습' : centerHumidity >= 45 ? '기본 제습' : centerHumidity >= 35 ? '적정 가습' : '강력 가습') : ''}</S.CenterMode>
+          {hasDecision ? (
+            <>
+              <S.CenterTemp>{`${centerTemp}°C`}</S.CenterTemp>
+              <S.CenterMode>
+                {centerHumidity >= 0
+                  ? (centerHumidity >= 65 ? '강력 제습'
+                    : centerHumidity >= 55 ? '적정 제습'
+                    : centerHumidity >= 45 ? '기본 제습'
+                    : centerHumidity >= 35 ? '적정 가습'
+                    : '강력 가습')
+                  : ''}
+              </S.CenterMode>
+            </>
+          ) : (
+            <S.LoadingDots $color="rgba(255,192,220,0.85)">
+              <span />
+              <span />
+              <span />
+            </S.LoadingDots>
+          )}
         </S.CenterTextWrap>
         {/* 디버그 모달 숨김 */}
         {false && (

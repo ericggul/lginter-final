@@ -16,6 +16,9 @@ export const SW1_BLOB_CONFIGS = [
   // 추가 슬롯(최대 10개까지 확장 가능)
   { id: 'slot6', componentKey: 'Sw1OrbitBlob', angleDeg: -60,  depthLayer: 2, radiusFactor: 1.62 },
   { id: 'slot7', componentKey: 'Sw1OrbitBlob', angleDeg: 60,   depthLayer: 1, radiusFactor: 1.68 },
+  { id: 'slot8', componentKey: 'Sw1OrbitBlob', angleDeg: 0,    depthLayer: 2, radiusFactor: 1.50 },
+  { id: 'slot9', componentKey: 'Sw1OrbitBlob', angleDeg: -120, depthLayer: 1, radiusFactor: 1.55 },
+  { id: 'slot10',componentKey: 'Sw1OrbitBlob', angleDeg: 110,  depthLayer: 2, radiusFactor: 1.65 },
 ];
 
 const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
@@ -76,6 +79,8 @@ export function useSW1Logic() {
   const [stateTick, setStateTick] = useState(0);
   const [bloomTick, setBloomTick] = useState(0); // 중앙 블룸 트리거 (T4 진입 시점)
   const [typeTick, setTypeTick] = useState(0);  // T4 타이포 라이즈 트리거
+  // 첫 번째 디시전 도착 여부 (도착 전에는 텍스트/컬러를 기본 상태로 유지)
+  const [hasDecision, setHasDecision] = useState(false);
   // 각 스테이지 전환/이펙트용 타이머
   const stageTimersRef = useRef({ t3Bloom: null, t4: null, t5: null });
   const prevTimelineRef = useRef('t1');
@@ -172,6 +177,19 @@ export function useSW1Logic() {
         }
       } catch {}
     },
+    // SW2와 동일하게, device-new-voice 에서도 userId 기준으로 참여자 수를 집계
+    onDeviceNewVoice: (payload) => {
+      try {
+        const uid = payload?.userId ? String(payload.userId) : null;
+        if (!uid) return;
+        if (DUMMY_ID_REGEX.test(uid)) return;
+        setActiveUsers((prev) => {
+          const next = new Set(prev);
+          next.add(uid);
+          return next;
+        });
+      } catch {}
+    },
     onDeviceNewDecision: (msg) => {
       if (!msg || msg.target !== 'sw1') return;
       const env = msg.env || {};
@@ -191,6 +209,7 @@ export function useSW1Logic() {
         humidity: typeof env.humidity === 'number' ? env.humidity : displayClimate.humidity,
       };
       setNextClimate(incomingClimate);
+      setHasDecision(true);
       try { window.__sw1DecisionTick = (window.__sw1DecisionTick || 0) + 1; } catch {}
       // T4: 디시전 수신 시 타이포/상태 갱신 트리거
       // 중앙 블룸은 하단 엔트리 블롭이 실제로 중앙에 도달하는 타이밍(T3 후반)에 맞춰
@@ -356,14 +375,73 @@ export function useSW1Logic() {
     return () => clearInterval(id);
   }, []);
 
-  // Derive mini-blob display text set (temp on top, humidity% on bottom)
+  // 미니 블롭 텍스트 모드 토글: 값(value) ↔ 카테고리(label)
+  // - 초기 6초 동안은 실제 값(°C / %) 유지
+  // - 이후 5초 간격으로 값/카테고리를 계속 스위칭
+  // - 전환 시에는 먼저 서서히 페이드아웃 → 내용 교체 → 다시 페이드인
+  const [miniTextMode, setMiniTextMode] = useState('value'); // 'value' | 'label'
+  const [miniTextVisible, setMiniTextVisible] = useState(true);
+  useEffect(() => {
+    let startTimer;
+    let hideTimer;
+    let nextCycleTimer;
+
+    const runCycle = () => {
+      // 1) 기존 텍스트 서서히 사라지기
+      setMiniTextVisible(false);
+      hideTimer = setTimeout(() => {
+        // 2) 내용 교체 (값 ↔ 라벨)
+        setMiniTextMode((prev) => (prev === 'value' ? 'label' : 'value'));
+        // 3) 새 텍스트 페이드인
+        setMiniTextVisible(true);
+        // 4) 다음 전환까지 5초 대기
+        nextCycleTimer = setTimeout(runCycle, 5000);
+      }, 260); // CSS transition(약 260ms)에 맞춰 살짝 먼저 완전히 사라지게
+    };
+
+    // 초기 6초 동안은 값 모드 그대로 유지
+    startTimer = setTimeout(() => {
+      runCycle();
+    }, 6000);
+
+    return () => {
+      if (startTimer) clearTimeout(startTimer);
+      if (hideTimer) clearTimeout(hideTimer);
+      if (nextCycleTimer) clearTimeout(nextCycleTimer);
+    };
+  }, []);
+
+  // 미니 블롭 값 → 카테고리 매핑
+  const classifyTempLabel = (t) => {
+    if (t == null || Number.isNaN(t)) return '';
+    const temp = Math.round(t);
+    if (temp <= 20) return 'Cool';
+    if (temp <= 23) return 'Fresh';
+    if (temp <= 26) return 'Comfortable';
+    if (temp <= 28) return 'Warm';
+    return 'Hot';
+  };
+
+  const classifyHumidityLabel = (h) => {
+    if (h == null || Number.isNaN(h)) return "";
+    const hum = Math.round(h);
+    if (hum <= 29) return "Dry";
+    if (hum <= 45) return "Balanced";
+    if (hum <= 60) return "Moist";
+    if (hum <= 70) return "Humid";
+    return "Foggy";
+  };
+
+  // Derive mini-blob display text set (값/카테고리 토글 지원)
   const miniBlobDisplay = useMemo(() => {
-    // 항상 MAX_BLOBS 길이를 유지해 초회 메시지가 6개만 와도 슬롯이 빠지지 않도록 고정
-    const filled = ensureBlobCount(miniResults, displayClimate, MAX_BLOBS, MAX_BLOBS);
+    // 항상 최소 4개 슬롯은 유지하되, 최대 10개까지만 화면에 배치
+    const filled = ensureBlobCount(miniResults, displayClimate, 4, MAX_BLOBS);
     return SW1_BLOB_CONFIGS.slice(0, filled.length).map((cfg, idx) => {
       const r = filled[idx];
-      const top = r?.temp != null ? `${r.temp}℃` : '';
-      const bottom = r?.humidity != null ? `${Math.round(r.humidity)}%` : '';
+      const tempVal = r?.temp != null ? `${r.temp}℃` : '';
+      const tempLabel = classifyTempLabel(r?.temp);
+      const humVal = r?.humidity != null ? `${Math.round(r.humidity)}%` : '';
+      const humLabel = classifyHumidityLabel(r?.humidity);
       const addedAt = r?.addedAt || 0;
       // size boost by age
       const ageScale = computeAgeSizeBoost(addedAt);
@@ -382,17 +460,47 @@ export function useSW1Logic() {
         radiusFactorDynamic: rfClamped,
         sizeBoost: ageScale,
         isNew: Boolean(r?.isNew),
-        // per-blob 기후값을 노출해 개별 컬러 계산에 사용
+        // per-blob 기후값 및 텍스트 모드별 문자열
         temp: r?.temp ?? null,
         humidity: r?.humidity ?? null,
-        top,
-        bottom,
+        topValue: tempVal,
+        topLabel: tempLabel,
+        bottomValue: humVal,
+        bottomLabel: humLabel,
         depthLayer: cfg.depthLayer ?? 1,
         radiusFactor: cfg.radiusFactor ?? 1.55,
         zSeed: zSeeds[idx] ?? 0,
       };
     });
   }, [miniResults, zSeeds, displayClimate]);
+
+  // 오래된 실사용자 블롭은 1분에 하나씩 자연스럽게 제거 (최대 10개까지 유지)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMiniResults((prev) => {
+        if (!prev || !prev.length) return prev;
+        const now = Date.now();
+        let removedThisTick = false;
+        const next = [...prev];
+        for (let i = 0; i < next.length; i += 1) {
+          const r = next[i];
+          if (!r) continue;
+          const uid = String(r.userId || '');
+          if (!uid || DUMMY_ID_REGEX.test(uid)) continue; // 더미는 유지
+          const addedAt = r.addedAt || 0;
+          // 60초 이상 지난 실사용자 블롭을 한 번에 하나씩만 제거
+          if (!removedThisTick && addedAt && now - addedAt > 60_000) {
+            next[i] = null;
+            slotByUserRef.current.delete(uid);
+            removedThisTick = true;
+          }
+        }
+        return removedThisTick ? next : prev;
+      });
+    }, 10_000); // 10초마다 검사 → 1분 이상된 블롭을 순차적으로 하나씩 제거
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Play sfx when a new real user appears in mini blobs
   useEffect(() => {
@@ -437,6 +545,9 @@ export function useSW1Logic() {
     stateTick,
     bloomTick,
     typeTick,
+    miniTextMode,
+    miniTextVisible,
+    hasDecision,
   };
 }
 

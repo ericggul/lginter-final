@@ -5,23 +5,33 @@ export const toHsla = (h, s, l, a = 1) =>
 
 export const computeComplementHue = (h) => ((Math.round(h) + 180) % 360);
 
-// Build CSS variable bag for a mini-blob 3-tone (center emotion, mid yellow keep, outer pink keep)
+// Build CSS variable bag for a mini-blob.
+// - 외곽: 앨범 커버 컬러(루트 CSS 변수 --album-h/s/l)에서 결정 (styles 쪽에서 직접 사용)
+// - 내부: 감정 파라미터에서 온 hue 하나만 사용하고, S/L 은 고정된 값으로 통일
 export function buildMiniVars(entry) {
-  const c = entry?.center || { h: 302, s: 100, l: 60 };
-  const mid = entry?.mid || { h: 45, s: 95, l: 85 };
-  const outer = entry?.outer || { h: 340, s: 90, l: 88 };
-  const strokeH = computeComplementHue(c.h);
+  const center = entry?.center || { h: 302, s: 100, l: 60 };
+  const h = center.h ?? 302;
+  // 내부/중간/외곽의 대비를 더 키워서 두 겹이 확실히 느껴지도록 조정
+  // - inner: 살짝 더 진한 코어
+  // - mid: inner 와 outer 사이 브릿지
+  // - outer: 훨씬 밝은 링
+  const inner   = toHsla(h, 68, 70, 1);
+  const midCol  = toHsla(h, 58, 78, 0.96);
+  const outerCol= toHsla(h, 46, 90, 0.92);
+  const blobBg = `radial-gradient(
+    84.47% 61.21% at 66.09% 54.37%,
+    ${inner} 0%,
+    ${inner} 40%,
+    ${midCol} 68%,
+    ${outerCol} 100%
+  )`;
+
   return {
-    '--mini-h': c.h,
-    '--mini-s': `${c.s}%`,
-    '--mini-l': `${c.l}%`,
-    '--mini-mid-h': mid.h,
-    '--mini-mid-s': `${mid.s}%`,
-    '--mini-mid-l': `${mid.l}%`,
-    '--mini-outer-h': outer.h,
-    '--mini-outer-s': `${outer.s}%`,
-    '--mini-outer-l': `${outer.l}%`,
-    '--mini-stroke-h': strokeH,
+    '--mini-h': h,
+    '--mini-s': '78%',
+    '--mini-l': '66%',
+    // SW1 BlobBase 스타일에서 그대로 사용하는 메인 그라디언트
+    '--blob-bg': blobBg,
   };
 }
 
