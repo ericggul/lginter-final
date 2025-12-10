@@ -326,8 +326,12 @@ export default function SW2Controls() {
       <S.TopWaveLayer aria-hidden="true">
         {/* 서로 다른 딜레이를 줘서 연속적인 리플 느낌 생성 */}
         <S.TopWaveCircle $variant={1} $delay={0} />
-        <S.TopWaveCircle $variant={2} $delay={4} />
-        <S.TopWaveCircle $variant={3} $delay={8} />
+        <S.TopWaveCircle $variant={2} $delay={5} />
+        <S.TopWaveCircle $variant={3} $delay={9} />
+        {/* 기존 SW2 선형(화이트 링) 파동을 중앙 상단에 오버레이 */}
+        <S.TopLinearWaveCircle $delay={0} />
+        <S.TopLinearWaveCircle $delay={4.5} />
+        <S.TopLinearWaveCircle $delay={9} />
       </S.TopWaveLayer>
 
       {/* 가운데 원형 핑크 그라디언트 (SW1 스타일 응용, 인풋 이후에도 항상 동일한 메인 블롭 유지) */}

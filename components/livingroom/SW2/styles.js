@@ -119,8 +119,8 @@ export const TopWaveCircle = styled.div`
     `;
   }}
   border-radius: 50%;
-  /* 블러 강도를 줄여 Figma 디자인처럼 더 또렷한 링 느낌으로 */
-  filter: blur(0.25vw);
+  /* 블러를 한 번 더 줄여 거의 선에 가까운 또렷한 링 느낌으로 */
+  filter: blur(0.10vw);
   opacity: 0;
   transform-origin: 50% 50%;
   mix-blend-mode: screen;
@@ -129,6 +129,76 @@ export const TopWaveCircle = styled.div`
   animation: ${topRadialWave} 12s linear infinite;
 
   /* 각 파동 인스턴스 간의 시간차를 주어 연속적인 리플 느낌을 만든다. */
+  animation-delay: ${({ $delay = 0 }) => `${$delay}s`};
+`;
+
+/** 이전 SW2 선형(화이트 링) 파동 애니메이션 복구
+ *  - 앨범 커버 바로 위에서 얇은 흰색 링이 위쪽으로 떠오르며 사라지는 모션
+ *  - 새로운 원형 그라디언트 파동 위에 오버레이되어, 추가적인 하이라이트 느낌을 줌
+ */
+const topLinearWave = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -52%) scale(0.6);
+    opacity: 0.9; /* 앨범 커버 가장자리를 막 벗어날 즈음에 가장 밝게 보이도록 */
+  }
+  70% {
+    opacity: 0.75; /* 상당히 위까지 올라가도 링이 또렷하게 유지되도록 */
+  }
+  100% {
+    /* 위쪽으로 더 멀리, 더 넓게 퍼지도록 최종 스케일/위치 조정 */
+    transform: translate(-50%, -90%) scale(2.6);
+    opacity: 0;
+  }
+`;
+
+export const TopLinearWaveCircle = styled.div`
+  position: absolute;
+  /* 앨범 카드와 같은 중심 위치에서 시작 */
+  top: 40%;
+  left: 50%;
+  /* 기본 크기는 앨범 카드보다 약간 작은 원.
+     실제 화면에서는 scale 애니메이션으로 크게 확장되면서
+     커버 뒤에서 자연스럽게 빠져나오는 느낌이 난다. */
+  width: 20vw;
+  height: 20vw;
+  border-radius: 50%;
+  /* 모바일 ListeningOverlay 의 얇은 링 파동을 참고한 순수 흰색 링 */
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 255, 255, 0) 82%,
+    rgba(255, 255, 255, 0.98) 86%,
+    rgba(255, 255, 255, 0.6) 90%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
+  filter: blur(0.35vw); /* 살짝 더 얇고 선명하게 */
+  opacity: 0;
+  transform-origin: 50% 45%;
+  mix-blend-mode: screen;
+  animation: ${topLinearWave} 9s ease-in-out infinite;
+
+  /* 같은 링 안에서도 위로 갈수록 더 퍼져 보이도록,
+     상단 방향으로만 추가 블러/광이 번지는 오버레이 */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -12%;
+    border-radius: inherit;
+    background: radial-gradient(
+      closest-side,
+      rgba(255, 255, 255, 0) 70%,
+      rgba(255, 255, 255, 0.7) 86%,
+      rgba(255, 255, 255, 0.0) 100%
+    );
+    filter: blur(1.4vw);
+    opacity: 0.85;
+    transform: translateY(-10%);
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
   animation-delay: ${({ $delay = 0 }) => `${$delay}s`};
 `;
 
