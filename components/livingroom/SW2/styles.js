@@ -46,6 +46,8 @@ export const Root = styled.div`
      어떤 해상도/창 크기에서도 뷰포트 전체를 자연스럽게 채우도록 변경 */
   position: fixed;
   inset: 0;
+  /* SW2 공통 앨범 사이즈 변수: 카드/캡션 위치에서 함께 참조하기 위해 루트에서 정의 */
+  --album-size: min(60vmin, 18.5vw);
   width: 100vw;
   height: 100vh;
   background: #ffffff;
@@ -316,8 +318,11 @@ export const CaptionWrap = styled.div`
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  /* 앨범 커버와 더 가까워지도록 살짝 위로 당김 */
-  top: calc(40% + 18vmin);
+  /* 앨범 카드를 완전히 지난 뒤, 아래쪽 여백을 두고 배치
+     - AlbumCard 는 top: 50%, 높이: var(--album-size)
+     - 따라서 카드의 하단은 대략 50% + var(--album-size) / 2 부근
+     - 그 아래에 3vh 정도의 여백을 추가하여 겹치지 않도록 한다. */
+  top: calc(50% + (var(--album-size) / 2) + 3vh);
   text-align: center;
   pointer-events: none;
   z-index: 6;
@@ -336,11 +341,17 @@ export const HeadText = styled.div`
 `;
 
 export const SubText = styled.div`
-  margin-top: 0.375vw; /* more space between head and sub text */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.10vw;
+  margin-top: 0.375vw; /* 제목과의 간격 */
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: clamp(0.520833vw, 3.0vmin, 1.8vw);
+  color: #FFFFFF;
+  letter-spacing: 0.02em;
+  /* 제목과 동일 계열의 글로우/섀도우를 사용해 스타일을 맞춘다 */
+  text-shadow:
+    0 0.22vw 0.72vw rgba(0, 0, 0, 0.7),
+    0 0.46vw 1.45vw rgba(255, 255, 255, 0.82);
+  line-height: 1.2;
 `;
 
 /* SW2 중앙 곡명/가수 타이포 – TV2 TrackTitle / Artist 스타일을 축소해서 사용 */
