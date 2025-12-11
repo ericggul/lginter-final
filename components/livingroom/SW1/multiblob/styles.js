@@ -383,6 +383,134 @@ export const CenterSaturationPulse = styled.div`
   animation: ${centerSaturationPulse} 6.2s ease-in-out infinite;
 `;
 
+/* SW2 상단 원형 파동(topRadialWave)을 SW1 중앙에 맞게 가져온 버전
+   - 중앙을 기준으로 부드러운 컬러 링이 밖으로 퍼져나가는 파동 */
+const centerRadialWave = keyframes`
+  0% {
+    /* 중앙 하얀 코어 안쪽에서 아주 작게 시작 */
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+    filter: blur(0vw);
+  }
+  20% {
+    /* 하얀 코어 경계를 막 벗어날 즈음 가장 밝게 보이도록 */
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.95;
+    filter: blur(0vw);
+  }
+  70% {
+    /* 중앙 그라디언트를 충분히 지나며 퍼져 나가는 구간 */
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0.8;
+    filter: blur(0.75vw);
+  }
+  100% {
+    /* 화면 바깥 쪽에서 사라질 때는 더 크게/부드럽게 */
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+    filter: blur(1.4vw);
+  }
+`;
+
+export const CenterRadialWaveCircle = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  ${({ $variant = 1 }) => {
+    if ($variant === 2) {
+      return `
+        width: 40.7vw;
+        height: 40.7vw;
+        background: radial-gradient(
+          62.72% 62.73% at 50% 50%,
+          rgba(253, 255, 225, 0.05) 22.43%,
+          rgba(210, 226, 244, 0.50) 87.02%,
+          #FED9FF 100%
+        );
+      `;
+    }
+    if ($variant === 3) {
+      return `
+        width: 70vw;
+        height: 70vw;
+        background: radial-gradient(
+          62.46% 62.47% at 50% 50%,
+          rgba(217, 217, 217, 0.00) 43.91%,
+          #ECF5ED 100%
+        );
+      `;
+    }
+    return `
+      width: 30.4vw;
+      height: 30.4vw;
+      background: radial-gradient(
+        51.97% 51.98% at 50% 50%,
+        rgba(217, 217, 217, 0.00) 55%,
+        #E6D2E4 100%
+      );
+    `;
+  }}
+  border-radius: 50%;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  mix-blend-mode: screen;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  /* SW2와 동일하게 linear 타이밍으로 연속적인 파동 느낌 유지 */
+  animation: ${centerRadialWave} ${({ $duration = 12 }) => `${$duration}s`} linear infinite;
+  animation-delay: ${({ $delay = 0 }) => `${$delay}s`};
+`;
+
+/* SW2의 얇은 화이트 링 파동을 SW1 중앙에 맞게 변형한 버전
+   - 중앙 화이트 코어에서 시작해 바깥으로 퍼져 나가는 선형(링) 파동
+   - 기존 CenterPulse 보다 더 또렷한 링 형태를 위해 동일한 radial-gradient 를 사용 */
+const centerLinearWave = keyframes`
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.75;
+  }
+  100% {
+    /* 화면 중앙에서 시작해 충분히 바깥까지 퍼져 나가도록 스케일 확장 */
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+`;
+
+export const CenterLinearWaveCircle = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* 중앙 그라디언트(GradientEllipse) 크기를 기준으로 링 기본 크기를 설정 */
+  width: calc(var(--largestBlobSize) * 0.9);
+  height: calc(var(--largestBlobSize) * 0.9);
+  border-radius: 50%;
+  /* SW2 TopLinearWaveCircle 과 동일한 얇은 화이트 링 그라디언트 */
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 255, 255, 0) 82%,
+    rgba(255, 255, 255, 0.98) 86%,
+    rgba(255, 255, 255, 0.6) 90%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
+  filter: blur(0.35vw);
+  opacity: 0;
+  transform-origin: 50% 50%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  /* GradientEllipse(6) 위, CenterInnerCore(8) 아래에서 보이도록 */
+  z-index: 7;
+  animation: ${centerLinearWave} ${({ $duration = 9 }) => `${$duration}s`} linear infinite;
+  animation-delay: ${({ $delay = 0 }) => `${$delay}s`};
+`;
+
 /* T2 진행 중 표시: 중앙에서 작게 퍼지는 인디케이터 */
 const indicatorPulse = keyframes`
   0% {
@@ -642,9 +770,9 @@ export const CenterMark = styled.img`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  /* 회전 라인 PNG를 더 강조해서 키움 */
-  width: calc(var(--largestBlobSize) * 1.6);
-  height: calc(var(--largestBlobSize) * 1.6);
+  /* 회전 라인 PNG를 중앙 메인 블롭 가장자리 거의 닿을 만큼 더 크게 확대 */
+  width: calc(var(--largestBlobSize) * 2.5);
+  height: calc(var(--largestBlobSize) * 2.5);
   will-change: transform;
   animation: ${centerMarkSpin} 4s linear infinite;
   pointer-events: none;
@@ -867,12 +995,12 @@ const zPulse = keyframes`
   }
   40% {
     transform: translate(-50%, -50%) var(--orbit-transform)
-               scale(calc(var(--z-scale-base) * 1.2));
+               scale(calc(var(--z-scale-base) * 1.3));
     opacity: calc(var(--z-opacity-base) + 0.18);
   }
   70% {
     transform: translate(-50%, -50%) var(--orbit-transform)
-               scale(calc(var(--z-scale-base) * 0.9));
+               scale(calc(var(--z-scale-base) * 0.85));
     opacity: calc(var(--z-opacity-base) - 0.16);
   }
 `;
@@ -886,12 +1014,12 @@ const zPulseNew = keyframes`
   }
   40% {
     transform: translate(-50%, -50%) var(--orbit-transform)
-               scale(calc(var(--z-scale-base) * 1.2));
+               scale(calc(var(--z-scale-base) * 1.3));
     opacity: var(--z-opacity-base);
   }
   70% {
     transform: translate(-50%, -50%) var(--orbit-transform)
-               scale(calc(var(--z-scale-base) * 0.9));
+               scale(calc(var(--z-scale-base) * 0.85));
     opacity: var(--z-opacity-base);
   }
 `;
@@ -1106,7 +1234,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     if ($depthLayer === 0) {
       // 가장 앞 (사용자 가까이) → 크고 선명
       return `
-        --z-scale-base: 1.15;
+        --z-scale-base: 1.35;
         --z-blur-base: 0.3vw;
         --z-opacity-base: 1;
         z-index: 5;
@@ -1115,7 +1243,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     if ($depthLayer === 2) {
       // 가장 뒤 → 작고 흐림
       return `
-        --z-scale-base: 0.72;
+        --z-scale-base: 0.9;
         --z-blur-base: 1.0vw;
         --z-opacity-base: 0.62;
         z-index: 1;
@@ -1123,7 +1251,7 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     }
     // 중간 레이어
     return `
-      --z-scale-base: 0.95;
+      --z-scale-base: 1.15;
       --z-blur-base: 0.85vw;
       --z-opacity-base: 0.9;
       z-index: 3;
@@ -1294,6 +1422,44 @@ export const Sw1OrbitBlob = styled(BlobBase)`
     /* 내부 코어 그라데이션도 HSL 변수 기반으로 */
     background: var(--blob-bg, transparent);
     transition: filter 2200ms ease, opacity 2200ms ease;
+  }
+`;
+
+/* Sw1OrbitBlob 전용 잔상(트레일) – 메인 블롭보다 살짝 뒤에서 따라오며 퍼지는 흐릿한 복제본 */
+export const Sw1OrbitBlobTrail = styled(Sw1OrbitBlob)`
+  pointer-events: none;
+  /* 메인 블롭보다 한 단계 뒤 레이어에서 보이도록 z-index 살짝 낮춤 */
+  z-index: 1;
+  opacity: 0.45;
+  filter: blur(1.4vw);
+
+  /* 잔상은 내용 텍스트 없이 순수한 빛/색만 남도록 내부 콘텐츠 숨김 */
+  & > * {
+    display: none;
+  }
+
+  /* 기존 zPulse 대신, 약간 더 큰 스케일에서 서서히 사라지는 전용 모션을 사용 */
+  animation-name: ${blobInnerParallax}, ${zPulseNew}, ${orbitRadiusPulse}, ${floatDrift};
+
+  /* 잔상 스케일은 항상 메인보다 살짝 크게 */
+  --z-scale-base: calc(var(--z-scale-base) * 1.08);
+
+  /* 메인 블롭보다 살짝 뒤에 오도록 전체 애니메이션에 시간차를 준다 */
+  animation-delay:
+    0.6s,
+    ${({ $zSeed = 0 }) => `${0.6 + Math.round($zSeed * 4)}s`},
+    ${({ $zSeed = 0 }) => `${1.2 + Math.round($zSeed * 5)}s`},
+    ${({ $zSeed = 0 }) => `${0.8 + Math.round($zSeed * 7)}s`};
+
+  /* 트레일 하이라이트는 외곽 halo 쪽만 남기고, 안쪽 코어는 더 옅게 */
+  &::before {
+    opacity: 0.5;
+    filter: blur(calc(var(--z-blur-base) * 3.8));
+  }
+
+  &::after {
+    opacity: 0.3;
+    filter: blur(calc(var(--z-blur-base) * 2.0));
   }
 `;
 
