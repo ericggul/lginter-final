@@ -288,16 +288,30 @@ export default function SW1Controls() {
   const rootBackgroundStyle = useMemo(() => {
     const wrap = (h, s, l, a = 1) => `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, ${a})`;
     const H = Math.round(animHue);
-    // 상단/베이스: 거의 화이트에 가까운 뉴트럴 톤
-    const top = wrap(H, 6, 98, 1);
-    // 중간부: 기존 메인 블롭의 옅은 핑크톤을 항상 살짝 끼워 넣기 (고정 hue≈340, 채도/명도 강화)
-    const midPink = wrap(340, 82, 95, 1);
-    // 하단: 메인 빅 블롭 컬러 계열을 더 강하게, 채도/명도 모두 살짝 올림
-    const bottom = wrap(H, 68, 86, 1);
+    // animHue 기반 톤을 유지하되, 전체 배경은 약간 푸른 회색 계열로 스냅
+    const coolH = Math.round((H + 210) / 2); // 원래 hue 와 블루톤(≈210)을 섞어서 너무 튀지 않게
+    // 상단/베이스: 살짝 파란기가 도는 밝은 회색
+    const top = wrap(coolH, 10, 82, 1);
+    // 중간부: 약간 더 채도가 있는 푸른 회색
+    const midTone = wrap(coolH, 14, 74, 1);
+    // 하단: 가장 어두운 푸른 회색
+    const bottom = wrap(coolH, 20, 66, 1);
+
+    // 화면 중앙 쪽은 살짝 더 푸른 기가 돌도록, 중심부에만 얇은 블루톤 레이어를 한 겹 추가
+    const centerCool1 = wrap(coolH + 8, 24, 78, 0.9);
+    const centerCool2 = wrap(coolH + 4, 20, 70, 0.0);
 
     return {
       backgroundColor: top,
-      backgroundImage: `linear-gradient(to bottom, ${top} 0%, ${midPink} 40%, ${bottom} 100%)`,
+      backgroundImage: `
+        radial-gradient(
+          70% 70% at 50% 45%,
+          ${centerCool1} 0%,
+          ${centerCool1} 40%,
+          ${centerCool2} 85%
+        ),
+        linear-gradient(to bottom, ${top} 0%, ${midTone} 40%, ${bottom} 100%)
+      `,
       transition: 'background 700ms ease-in-out',
     };
   }, [animHue]);
@@ -424,9 +438,6 @@ export default function SW1Controls() {
         <S.FreeBlur2 data-stage={timelineState} />
         <S.FreeBlur3 data-stage={timelineState} />
         <S.FreeBlur4 data-stage={timelineState} />
-        {/* Debug markers: center and intended entry (bottom center). Remove after verification. */}
-        <S.DebugCenter />
-        <S.DebugBottomStart />
         {/* 유기적으로 일렁이는 중앙 화이트 코어 (기존 GradientEllipse 아래에 베이스로 깔림) */}
         <svg
           width="0"
@@ -450,6 +461,14 @@ export default function SW1Controls() {
           </g>
         </svg>
         <S.GradientEllipse style={centerGlowStyle} />
+        {/* SW2 상단 원형 파동을 SW1 중앙에 맞게 이식한 컬러 원형 파동 */}
+        <S.CenterRadialWaveCircle $variant={1} $duration={12} />
+        <S.CenterRadialWaveCircle $variant={2} $duration={12} $delay={5} />
+        <S.CenterRadialWaveCircle $variant={3} $duration={12} $delay={9} />
+        {/* 중앙 화이트 코어에서 시작해 밖으로 퍼져 나가는 얇은 화이트 링 파동 (SW2 선형 파동 이식) */}
+        <S.CenterLinearWaveCircle />
+        <S.CenterLinearWaveCircle $delay={3} />
+        <S.CenterLinearWaveCircle $delay={6} />
         {/* 결정 시 한 번만 강하게 퍼지는 링(화이트 블롭이 분리되어 나오는 느낌 강화) */}
         {bloomActive && <S.CenterPulseOnce key={bloomTick} />}
         {/* 완전한 화이트 코어 버스트(불투명) */}
