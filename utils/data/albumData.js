@@ -13,6 +13,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Burkely',
     imgURL: '1.png',
     songURL: '1.mp3',
+    bpm: 100,
     gradient: {
       colors: ['#D54C47', '#E89D4F', '#F5E266', '#486ECE', '#7C79A8'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -27,6 +28,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Burkely',
     imgURL: '2.png',
     songURL: '2.mp3',
+    bpm: 95,
     gradient: {
       colors: ['#5BE0CD', '#EDBED0', '#88F0E7', '#F1DCD3', '#EFF3DD'],
       stops: [0, 121.15, 223.27, 270, 360],
@@ -41,6 +43,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Kevin MacLeod',
     imgURL: '3.png',
     songURL: '3.mp3',
+    bpm: 80,
     gradient: {
       colors: ['#512715', '#B56C34', '#F5E7C5', '#7FC7C1', '#013639'],
       stops: [0, 136.73, 223.27, 287.31, 360],
@@ -55,6 +58,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Buckley',
     imgURL: '4.png',
     songURL: '4.mp3',
+    bpm: 75,
     gradient: {
       colors: ['#6C91AD', '#ABC7E4', '#EED8CA', '#C0DBB2', '#F0EFDD'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -69,6 +73,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: '331music',
     imgURL: '5.png',
     songURL: '5.mp3',
+    bpm: 110,
     gradient: {
       colors: ['#F9B800', '#FF6B00', '#B35D1B', '#C8C291', '#F0EFDD'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -83,6 +88,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Derek Fiechter & Brandon Fiechter',
     imgURL: '6.png',
     songURL: '6.mp3',
+    bpm: 120,
     gradient: {
       colors: ['#F25828', '#F7C8A8', '#FEFCEA', '#F3E4A6', '#E1DED1'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -97,6 +103,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Kevin MacLeod',
     imgURL: '7.png',
     songURL: '7.mp3',
+    bpm: 125,
     gradient: {
       colors: ['#62D8DD', '#AEABE4', '#FDFA8C', '#E2FBD5', '#A2D6AE'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -111,6 +118,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Victor Lundberg',
     imgURL: '8.png',
     songURL: '8.mp3',
+    bpm: 115,
     gradient: {
       colors: ['#FF6F4B', '#ABC7E4', '#A2D6AE', '#E2FBD5', '#F0EFDD'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -125,6 +133,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Tokyo Music Walker',
     imgURL: '9.png',
     songURL: '9.mp3',
+    bpm: 105,
     gradient: {
       colors: ['#B1C9AC', '#EDE2BA', '#F28700', '#F44600', '#A6A33B'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -139,6 +148,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Buckley',
     imgURL: '10.png',
     songURL: '10.mp3',
+    bpm: 90,
     gradient: {
       colors: ['#BE7D52', '#CAD6D8', '#DECCA1', '#FEF5F3', '#FDF8E8'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -153,6 +163,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Buckley',
     imgURL: '11.png',
     songURL: '11.mp3',
+    bpm: 70,
     gradient: {
       colors: ['#2069CA', '#ABC7E4', '#D7DDE5', '#E2E2E2', '#E4E3FA'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -167,6 +178,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'savfk',
     imgURL: '12.png',
     songURL: '12.mp3',
+    bpm: 85,
     gradient: {
       colors: ['#334971', '#A5B6C1', '#BAD1C7', '#E5EDE0', '#355162'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -181,6 +193,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Buckley',
     imgURL: '13.png',
     songURL: '13.mp3',
+    bpm: 95,
     gradient: {
       colors: ['#B5E3E8', '#ABC7E4', '#D6EFD8', '#FFE2BE', '#F7F7F7'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -195,6 +208,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Buckley',
     imgURL: '14.png',
     songURL: '14.mp3',
+    bpm: 80,
     gradient: {
       colors: ['#67A752', '#C3C9C3', '#E1C8C9', '#D2C3C3', '#E6DFB4'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -209,6 +223,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Buckley',
     imgURL: '15.png',
     songURL: '15.mp3',
+    bpm: 85,
     gradient: {
       colors: ['#3F501F', '#74A654', '#E0A72F', '#EDD51D', '#F0EFDD'],
       stops: [0, 136.73, 223.27, 270, 360],
@@ -223,6 +238,7 @@ export const ALBUM_DATA_BY_NUMBER = {
     displayArtist: 'Scott Buckley',
     imgURL: '16.png',
     songURL: '16.mp3',
+    bpm: 75,
     gradient: {
       colors: ['#2F3057', '#5182A0', '#9795BC', '#B8A1BE', '#ECEBCD'],
       stops: [0, 136.73, 223.27, 270, 360],
