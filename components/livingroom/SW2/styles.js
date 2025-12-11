@@ -26,23 +26,28 @@ export const ContentRotator = styled(SharedContentRotator)`
  */
 const topRadialWave = keyframes`
   0% {
-    /* 앨범 카드 중심에서 조금만 위로 시작 */
+    /* 앨범 카드 중심에서 조금만 위로 시작
+       - 중앙에 가까울 때는 또렷하게 보이도록 blur 0 유지 */
     transform: translate(-50%, -52%) scale(0.55);
     opacity: 0;
+    filter: blur(0vw);
   }
-  12% {
+  20% {
     /* 초반에만 서서히 나타난 뒤 바로 최대 밝기 도달 */
     opacity: 0.95;
+    filter: blur(0vw);
   }
   70% {
-    /* 위로 올라가며 부드럽게 확대 */
+    /* 화면 상단 쪽으로 멀어지면서 살짝 흐려지기 시작 */
     transform: translate(-50%, -72%) scale(1.55);
     opacity: 0.8;
+    filter: blur(0.75vw);
   }
   100% {
-    /* 더 위쪽에서 크게 퍼지며 사라짐 */
+    /* 더 위쪽에서 크게 퍼지며 사라짐 – 가장자리 근처에서는 경계를 더 부드럽게 */
     transform: translate(-50%, -86%) scale(1.9);
     opacity: 0;
+    filter: blur(1.4vw);
   }
 `;
 
@@ -73,6 +78,10 @@ export const TopWaveLayer = styled.div`
   /* CenterGlow(2) 위, AlbumCard(4) 아래에서 얇은 링들이 지나가도록 */
   z-index: 3;
   overflow: hidden;
+  /* 상단 파동 전체를 별도 합성 레이어로 올려서
+     필터/블렌드 효과가 화면 전체에 번쩍이는 느낌을 줄이는 데 도움을 준다. */
+  backface-visibility: hidden;
+  transform: translateZ(0);
 `;
 
 export const TopWaveCircle = styled.div`
@@ -100,8 +109,13 @@ export const TopWaveCircle = styled.div`
     }
     if ($variant === 3) {
       return css`
-        width: 73.8vw;
-        height: 73.8vw;
+        /* 가장 바깥 큰 원:
+           - 살짝 더 작은 반지름으로 줄이고
+           - 시작 위치를 약간 위로 올려서
+             중간 원과 엑스자로 겹쳐 보이는 구간을 줄인다. */
+        width: 70vw;
+        height: 70vw;
+        top: 40%;
         background: radial-gradient(
           62.46% 62.47% at 50% 50%,
           rgba(217, 217, 217, 0.00) 43.91%,
@@ -120,11 +134,14 @@ export const TopWaveCircle = styled.div`
     `;
   }}
   border-radius: 50%;
-  /* 블러를 한 번 더 줄여 거의 선에 가까운 또렷한 링 느낌으로 */
-  filter: blur(0.10vw);
   opacity: 0;
   transform-origin: 50% 50%;
   mix-blend-mode: screen;
+  /* transform / opacity / filter 애니메이션이 자주 일어나므로
+     브라우저가 미리 별도 레이어로 올려둘 수 있게 힌트를 준다. */
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
   /* 속도 변화 없이 일정한 파동 흐름을 위해 linear 타이밍 사용
      - duration 은 $duration prop 으로 조정 (기본 12초) */
   animation: ${topRadialWave} ${({ $duration = 12 }) => `${$duration}s`} linear infinite;
@@ -179,7 +196,8 @@ export const TopLinearWaveCircle = styled.div`
   opacity: 0;
   transform-origin: 50% 45%;
   mix-blend-mode: screen;
-  animation: ${topLinearWave} ${({ $duration = 9 }) => `${$duration}s`} ease-in-out infinite;
+  /* 속도가 앞뒤에서 멈칫거리지 않고, 일정한 흐름으로 위로 퍼져 나가도록 linear 이징 사용 */
+  animation: ${topLinearWave} ${({ $duration = 9 }) => `${$duration}s`} linear infinite;
 
   /* 같은 링 안에서도 위로 갈수록 더 퍼져 보이도록,
      상단 방향으로만 추가 블러/광이 번지는 오버레이 */
@@ -333,9 +351,11 @@ export const CenterGlow = styled.div`
   /* 더 위쪽에 중심을 두어 앨범 커버 상단 위로 감싸지도록 기본값 조정 */
   top: ${({ $topPercent = 20 }) => `${$topPercent}%`};
   left: 50%;
-  /* Figma 스펙에서 살짝 축소 (더 작게). Leva에서 전달된 scale 로 추가 조절 */
-  width: ${({ $scale = 1 }) => `calc(100vw * ${2200 * $scale} / 3840)`};
-  height: ${({ $scale = 1 }) => `calc(100vw * ${2200 * $scale} / 3840)`};
+  /* Figma 스펙 대비 조금 더 크게 시작해서,
+     상단으로 퍼져 나가는 작은/중간 원형 파동과의 경계가 시각적으로 겹치지 않도록
+     기본 반지름을 살짝 키워 준다. (모션 스펙은 그대로 유지) */
+  width: ${({ $scale = 1 }) => `calc(100vw * ${2400 * $scale} / 3840)`};
+  height: ${({ $scale = 1 }) => `calc(100vw * ${2400 * $scale} / 3840)`};
   transform: translate(-50%, -50%) rotate(-47.8deg) scale(1);
   transform-origin: center;
   border-radius: 50%;
@@ -546,27 +566,31 @@ const driftGradient = keyframes`
    Now we use a separate scale animation on the container to scale everything together.
 */
 
+/* 주변 5개의 원이 화면 안에서 천천히 날아다니는 느낌을 주기 위한 드리프트 경로.
+ * - 시작/끝은 항상 중앙(anchor)로 돌아오되,
+ * - 중간 구간에서 더 넓은 궤적을 그리며 부드럽게 이동하도록 수정했다.
+ */
 const interestDrift = keyframes`
   0%   { transform: translate(-50%, -50%) scale(1); }
-  30%  { transform: translate(calc(-50% + 2.5vw), calc(-50% + 1.2vw)) scale(1.375); } /* 22/16 ≈ 1.375 */
-  60%  { transform: translate(calc(-50% - 1.8vw), calc(-50% + 1vw)) scale(0.875); }   /* 14/16 ≈ 0.875 */
-  85%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 1.6vw)) scale(1.125); }  /* 18/16 ≈ 1.125 */
+  20%  { transform: translate(calc(-50% + 3.4vw), calc(-50% - 1.6vw)) scale(1.22); }
+  45%  { transform: translate(calc(-50% + 1.0vw), calc(-50% + 3.0vw)) scale(0.92); }
+  70%  { transform: translate(calc(-50% - 3.0vw), calc(-50% - 0.6vw)) scale(1.18); }
   100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
 const wonderDrift = keyframes`
   0%   { transform: translate(-50%, -50%) scale(1); }
-  35%  { transform: translate(calc(-50% + 2vw), calc(-50% - 1.4vw)) scale(1.375); }    /* 22/16 */
-  60%  { transform: translate(calc(-50% + 2.4vw), calc(-50% + 1.5vw)) scale(0.875); }    /* 14/16 */
-  85%  { transform: translate(calc(-50% - 1.6vw), calc(-50% + 1.3vw)) scale(1.1875); }   /* 19/16 */
+  25%  { transform: translate(calc(-50% - 3.6vw), calc(-50% + 1.8vw)) scale(1.18); }
+  55%  { transform: translate(calc(-50% + 2.8vw), calc(-50% + 3.2vw)) scale(0.9); }
+  80%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 2.4vw)) scale(1.2); }
   100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
 const happyDrift = keyframes`
   0%   { transform: translate(-50%, -50%) scale(1); }
-  30%  { transform: translate(calc(-50% + 2.1vw), calc(-50% + 2.6vw)) scale(1.375); }    /* 22/16 */
-  60%  { transform: translate(calc(-50% - 2.4vw), calc(-50% + 1.1vw)) scale(0.875); }    /* 14/16 */
-  90%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 2.2vw)) scale(1.156); }    /* 18.5/16 */
+  22%  { transform: translate(calc(-50% + 3.0vw), calc(-50% + 3.4vw)) scale(1.24); }
+  50%  { transform: translate(calc(-50% - 3.8vw), calc(-50% + 1.2vw)) scale(0.9); }
+  82%  { transform: translate(calc(-50% + 2.0vw), calc(-50% - 2.8vw)) scale(1.16); }
   100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
@@ -876,6 +900,40 @@ const entryMoveUp = keyframes`
   }
 `;
 
+/* t3 전용: 중앙 하단에서 올라오는 엔트리 원에 잔상(트레일) 효과를 주기 위한 halo 펄스
+ * - 메인 원의 모션/디자인은 그대로 두고
+ * - 이미 존재하는 ::before / ::after 레이어에만 부드러운 스케일·투명도 애니메이션을 얹는다.
+ */
+const entryTrailInner = keyframes`
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+`;
+
+const entryTrailOuter = keyframes`
+  0% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.24);
+  }
+`;
+
 /* t4: 상단 근처에 도달한 원이 안쪽으로 말려 들어가며 빛나는 모션 */
 const entryCollapse = keyframes`
   0% {
@@ -1093,7 +1151,7 @@ export const Sw2InterestBox = styled(Sw2BlobBase)`
   background-size: 320% 320%;
   /* 상단 interest 원: 부드럽게 궤도를 돌면서 크기가 바뀌어
      다른 두 원과 자리를 주고받는 듯한 깊이감을 만든다. */
-  animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${interestDrift} 22s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   /* 중앙 상단 메인 원은 다른 블롭보다 조금 더 선명하게 보이도록
      기본 투명도를 살짝 올려 준다. */
   opacity: 0.95;
@@ -1105,7 +1163,7 @@ export const Sw2WonderBox = styled(Sw2BlobBase)`
   background-size: 320% 320%;
   /* 좌측 wonder 원: interest / happy 와 타이밍을 어긋나게 해
      서로가 앞뒤로 교차하며 도는 느낌을 강화한다. */
-  animation: ${wonderDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${wonderDrift} 26s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -6s;
 `;
 
@@ -1115,7 +1173,7 @@ export const Sw2HappyBox = styled(Sw2BlobBase)`
   background-size: 320% 320%;
   /* 우측 happy 원: 세 원 중 가장 긴 주기로 움직여
      전체가 느리게 회전하는 삼각 궤도처럼 보이게 한다. */
-  animation: ${happyDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${happyDrift} 30s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -12s;
 `;
 
@@ -1127,7 +1185,7 @@ export const Sw2CalmBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 26vw);
   left: var(--blob-left, 30vw);
   background-size: 320% 320%;
-  animation: ${wonderDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${wonderDrift} 24s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -3s;
 `;
 
@@ -1135,7 +1193,7 @@ export const Sw2VividBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 26vw);
   left: var(--blob-left, 70vw);
   background-size: 320% 320%;
-  animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${interestDrift} 28s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -9s;
 `;
 
@@ -1145,9 +1203,16 @@ export const Sw2VividBox = styled(Sw2BlobBase)`
 export const EntryCircle = styled(Sw2BlobBase)`
   top: var(--entry-top, 78%);
   left: 50%;
-  transform: translate(-50%, -50%);
+  /* 3D 변환 힌트를 줘서 GPU 합성 레이어로 올려, t3 구간의 강한 블러/밝기 변화에도
+     화면 전체가 하얗게 깜빡이지 않도록 안정성을 높인다. */
+  transform: translate3d(-50%, -50%, 0);
   /* 앨범 카드(4), 캡션(6)보다 뒤에 위치시키기 위해 z-index를 낮춘다. */
   z-index: 3;
+  /* EntryCircle 자체를 하나의 페인트 컨테이너로 만들어
+     잔상/halo 가 주변 레이어까지 번져서 영향을 주는 것을 줄인다. */
+  contain: paint;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
   /* 엔트리 전용 모션을 쓰기 위해 기본 depth 펄스 애니메이션은 제거 */
   animation: none;
   /* 상단 interest 블롭보다 더 크게 – 중앙 메인 원처럼 보이도록 스케일 업 */
@@ -1186,6 +1251,8 @@ export const EntryCircle = styled(Sw2BlobBase)`
     pointer-events: none;
     transform: none;
     animation: none;
+    will-change: opacity, transform, filter;
+    backface-visibility: hidden;
   }
 
   &::after {
@@ -1205,14 +1272,45 @@ export const EntryCircle = styled(Sw2BlobBase)`
     pointer-events: none;
     transform: none;
     animation: none;
+    will-change: opacity, transform, filter;
+    backface-visibility: hidden;
   }
 
   &[data-stage='t3'] {
     animation: ${entryMoveUp} 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    /* t3 구간에서만, 기존 halo 레이어에 잔상 펄스를 얹어서
+       하단에서 상단으로 올라오는 동안 자연스러운 트레일이 남도록 한다. */
+    &::before {
+      animation: ${entryTrailInner} 1.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
+    &::after {
+      animation: ${entryTrailOuter} 1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
   }
 
   &[data-stage='t4'] {
     animation: ${entryCollapse} 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+`;
+
+/* t3 전용: 엔트리 서클의 지난 경로에 잔상처럼 남는 트레일 원
+ * - EntryCircle 과 동일한 모션(entryMoveUp)을 사용하되
+ *   약간의 animation-delay, 더 옅은 불투명도, 강한 blur 를 적용한다.
+ * - 여러 개를 서로 다른 delay/blur 로 겹쳐서 실제 잔상이 남는 듯한 느낌을 만든다.
+ */
+export const EntryCircleTrail = styled(EntryCircle)`
+  z-index: 2; /* 메인 EntryCircle(3) 뒤쪽에 위치 */
+  pointer-events: none;
+  opacity: ${({ $opacity = 0.55 }) => $opacity};
+  filter: ${({ $blur = 2.4 }) => `blur(${$blur}vw)`};
+  /* 트레일도 transform/opacity/filter 를 계속 변경하므로
+     별도 합성 레이어에 올려 번쩍이는 아티팩트를 줄인다. */
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+
+  &[data-stage='t3'] {
+    /* t3 구간에서만, 메인 원보다 약간 뒤에 오도록 딜레이를 준다. */
+    animation-delay: ${({ $delay = 0.18 }) => `${$delay}s`};
   }
 `;
 

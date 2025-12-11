@@ -368,15 +368,47 @@ export default function SW2Controls() {
 
       {/* t3/t4: 화면 하단에서 올라와 메인 블롭으로 합쳐지는 엔트리 서클 (컬러는 메인 블롭과 동일하게 고정) */}
       {interestBlob && (timelineState === 't3' || timelineState === 't4') && (
-        <S.EntryCircle
-          data-stage={timelineState}
-          aria-hidden="true"
-          $depthLayer={interestBlob.depthLayer}
-          style={{
-            '--blob-size': `${interestBlob.size.base}vw`,
-            '--blob-bg': centerGlowBackground,
-          }}
-        />
+        <>
+          {/* t3 전용: 엔트리 서클의 지나온 경로에 남는 잔상 트레일 */}
+          {timelineState === 't3' && (
+            <>
+              <S.EntryCircleTrail
+                data-stage={timelineState}
+                aria-hidden="true"
+                $depthLayer={interestBlob.depthLayer}
+                $delay={0.16}
+                $opacity={0.55}
+                $blur={2.0}
+                style={{
+                  '--blob-size': `${interestBlob.size.base}vw`,
+                  '--blob-bg': centerGlowBackground,
+                }}
+              />
+              <S.EntryCircleTrail
+                data-stage={timelineState}
+                aria-hidden="true"
+                $depthLayer={interestBlob.depthLayer}
+                $delay={0.32}
+                $opacity={0.35}
+                $blur={2.8}
+                style={{
+                  '--blob-size': `${interestBlob.size.base}vw`,
+                  '--blob-bg': centerGlowBackground,
+                }}
+              />
+            </>
+          )}
+
+          <S.EntryCircle
+            data-stage={timelineState}
+            aria-hidden="true"
+            $depthLayer={interestBlob.depthLayer}
+            style={{
+              '--blob-size': `${interestBlob.size.base}vw`,
+              '--blob-bg': centerGlowBackground,
+            }}
+          />
+        </>
       )}
 
       {/* t4: 화면 전체 배경 채도/광량 펄스 레이어 (SW1 BackgroundPulse 참고) */}
