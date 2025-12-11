@@ -134,6 +134,7 @@ export function useSW1TestLogic() {
     outer: [],
   }));
   const ORBIT_MIN_PER_TIER = 2;
+  const ORBIT_MIN_OUTER = 4;
   const ORBIT_MAX_PER_TIER = 4;
   const pickTierForTemp = useCallback((center, temp, humidity = null) => {
     const d = Math.abs((typeof center === 'number' ? center : 23) - (typeof temp === 'number' ? temp : 23));
@@ -154,13 +155,14 @@ export function useSW1TestLogic() {
       return next;
     });
   }, []);
-  // Ensure min two dummies per tier
+  // Ensure baseline dummies per tier (inner/mid: 2, outer: 4)
   const ensureOrbitBaselines = useCallback((climate) => {
     setOrbitLines((prev) => {
       const next = { inner: [...prev.inner], mid: [...prev.mid], outer: [...prev.outer] };
       const tiers = ['inner', 'mid', 'outer'];
       tiers.forEach((t) => {
-        while (next[t].length < ORBIT_MIN_PER_TIER) {
+        const minForTier = t === 'outer' ? ORBIT_MIN_OUTER : ORBIT_MIN_PER_TIER;
+        while (next[t].length < minForTier) {
           next[t].push({
             userId: `dummy:${t}:${next[t].length}`,
             temp: climate?.temp ?? 23,
@@ -427,7 +429,8 @@ export function useSW1TestLogic() {
     const tiers = ['inner', 'mid', 'outer'];
     const base = { inner: [...orbitLines.inner], mid: [...orbitLines.mid], outer: [...orbitLines.outer] };
     tiers.forEach((t) => {
-      while (base[t].length < ORBIT_MIN_PER_TIER) {
+      const minForTier = t === 'outer' ? ORBIT_MIN_OUTER : ORBIT_MIN_PER_TIER;
+      while (base[t].length < minForTier) {
         base[t].push({
           userId: `dummy:${t}:${base[t].length}`,
           temp: displayClimate?.temp ?? 23,
@@ -442,16 +445,15 @@ export function useSW1TestLogic() {
     const anglesFor = (n, offset = 0) =>
       Array.from({ length: n }, (_, i) => Math.round(offset + (360 / n) * i));
     const ANGLE_PRESETS = {
-      // 미니/중간 블롭은 십자 형태를 느낄 수 있도록 축을 나누고,
-      // outer(대 블롭)는 기존 위치를 유지해 전체가 너무 딱딱해 보이지 않게 한다.
-      inner: [-90, 90],   // 위/아래 축 (작은 블롭)
-      mid: [0, 180],      // 좌/우 축 (중간 블롭)
-      outer: [-140, 40],  // 큰 블롭: 약간 비틀린 좌상/우측
+      // 미니/중간 블롭은 거의 십자에 가깝지만, 살짝씩 비틀어서 더 유기적으로 보이도록 설정
+      inner: [-104, 76],  // 위/아래 축에서 약간 회전
+      mid: [-8, 172],     // 좌/우 축에서 약간 회전
+      outer: [-140, 40],  // 큰 블롭: 약간 비틀린 좌상/우측 (기존 유지)
     };
     // inner: 화이트 코어에 거의 붙어서 도는 수준
     // mid: 중앙 메인 블롭과 절반 정도 겹치며 도는 아크
-    // outer: 기존 외곽 궤도 유지
-    const radiusByTier = { inner: 0.70, mid: 1.20, outer: 2.05 };
+    // outer: 가장 바깥쪽, 메인 블롭에서 한 단계 더 멀어진 아크
+    const radiusByTier = { inner: 0.70, mid: 1.20, outer: 2.30 };
     const depthByTier = { inner: 0, mid: 1, outer: 2 };
     const out = [];
     tiers.forEach((tier, tierIndex) => {
@@ -467,8 +469,17 @@ export function useSW1TestLogic() {
         const dTemp = Math.abs((displayClimate?.temp ?? 23) - temp);
         const dHum = Math.abs((displayClimate?.humidity ?? 50) - hum);
         const intensity = Math.min(1.0, (dTemp / 8 + dHum / 40)); // 0~1 근사
-        const radiusScale = 1 + intensity * 0.35; // 최대 약 35%까지 밖으로
-        const sizeScale = 1 + intensity * 0.3;    // 최대 약 30%까지 커짐
+        // 각 티어별로 공전 반경/사이즈가 섞이지 않도록, 확장 폭을 다르게 설정
+        const radiusScaleBase =
+          tier === 'inner' ? 0.15 : // 이너는 거의 중앙 아크 근처에서만 살짝만 밖으로
+          tier === 'mid' ? 0.25 :   // 미드는 중간 아크 주변
+          0.35;                     // 아우터는 가장 크게 확장
+        const sizeScaleBase =
+          tier === 'inner' ? 0.22 :
+          tier === 'mid' ? 0.28 :
+          0.36;
+        const radiusScale = 1 + intensity * radiusScaleBase;
+        const sizeScale = 1 + intensity * sizeScaleBase;
         out.push({
           id: `${tier}-${i}`,
           componentKey: 'Sw1TestOrbitBlob',

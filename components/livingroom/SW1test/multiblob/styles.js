@@ -59,8 +59,13 @@ export const MiniBottomText = styled(Base.MiniBottomText)`
 `;
 export const LoadingDots = Base.LoadingDots;
 
-// Root override: scene scale support for zoom-out effect
-export const Root = styled(Base.Root)`
+// Root: SW1 기본 Root를 그대로 사용 (줌아웃은 내부 레이어에서만 적용)
+export const Root = styled(Base.Root)``;
+
+// 전체 씬(블롭/배경 반응 등)만 살짝 줌아웃시키는 래퍼 레이어
+export const SceneScaleLayer = styled.div`
+  position: absolute;
+  inset: 0;
   transform: scale(var(--scene-scale, 1));
   transform-origin: 50% 50%;
   transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -68,10 +73,10 @@ export const Root = styled(Base.Root)`
 
 // ---------- Keyframes (test-only) ----------
 export const edgeGlowPulse = keyframes`
-  0%   { opacity: 0; filter: saturate(1) brightness(1); }
-  25%  { opacity: .8; filter: saturate(1.2) brightness(1.04); }
-  60%  { opacity: .45; filter: saturate(1.1) brightness(1.02); }
-  100% { opacity: 0; filter: saturate(1) brightness(1); }
+  0%   { opacity: 0;   filter: saturate(1.0) brightness(1.0); }
+  20%  { opacity: 1.0; filter: saturate(1.5) brightness(1.2); }
+  55%  { opacity: .65; filter: saturate(1.3) brightness(1.08); }
+  100% { opacity: 0;   filter: saturate(1.0) brightness(1.0); }
 `;
 
 export const swirlMix = keyframes`
@@ -93,14 +98,34 @@ export const flyInFromAngle = keyframes`
 `;
 
 export const trailFade = keyframes`
-  0%   { opacity: .3; filter: blur(1.2vw); }
-  50%  { opacity: .18; filter: blur(1.6vw); }
-  100% { opacity: 0; filter: blur(1.8vw); }
+  0%   { opacity: .95; filter: blur(1.6vw); }
+  35%  { opacity: .6;  filter: blur(2.3vw); }
+  100% { opacity: 0;   filter: blur(3.1vw); }
 `;
 
 export const zoomBreath = keyframes`
   0%,100% { transform: scale(1); }
   50%     { transform: scale(1.01); }
+`;
+
+// Outer orbit arc가 아주 연하게 나타났다 사라지는 루프용
+export const outerArcPulse = keyframes`
+  0% {
+    opacity: 0;
+    box-shadow: 0 0 0vw hsla(340, 65%, 98%, 0.0);
+  }
+  25% {
+    opacity: 0.85;
+    box-shadow: 0 0 2.6vw hsla(340, 70%, 97%, 0.95);
+  }
+  60% {
+    opacity: 0.55;
+    box-shadow: 0 0 1.9vw hsla(340, 60%, 96%, 0.7);
+  }
+  100% {
+    opacity: 0;
+    box-shadow: 0 0 0vw hsla(340, 65%, 98%, 0.0);
+  }
 `;
 
 // ---------- Overlays / Badges (test-only) ----------
@@ -247,6 +272,25 @@ export const Sw1TestMainOverlayBlob = styled.div`
   opacity: 1.0;
 `;
 
+// 빅 블롭이 도는 궤도를 아주 연한 라인/블룸 스트로크로 표시
+export const Sw1TestOuterOrbitArc = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border-radius: 50%;
+  /* radiusFactor(outer=2.30)를 반영한 궤도 반지름: 2 * R * factor */
+  width: calc(var(--R) * 2 * 2.30);
+  height: calc(var(--R) * 2 * 2.30);
+  /* 거의 화이트에 가까운 연핑크 라인 */
+  border: 0.09vw solid hsla(340, 55%, 97%, 0.3);
+  mix-blend-mode: screen;
+  opacity: 0;
+  z-index: 2; /* 배경 위, 메인 블롭/오빗보다는 한 단계 아래 */
+  animation: ${outerArcPulse} 7.4s ease-in-out infinite;
+`;
+
 // Center saturation pulse override (behind mini blobs)
 export const Sw1TestCenterSaturationPulse = styled(Base.CenterSaturationPulse)`
   z-index: 1;
@@ -269,9 +313,9 @@ export const Sw1TestOrbitBlob = styled(Base.Sw1OrbitBlob)`
     border-radius: inherit;
     background: var(--blob-bg, transparent);
     mix-blend-mode: screen;
-    opacity: var(--trail-opacity, 0.28);
-    filter: blur(var(--trail-blur, 1.1vw));
-    animation: ${trailFade} 2.8s ease-in-out infinite;
+    /* 항상 남아 있는 잔상 느낌: 애니메이션 없이 고정된 블러로 유지 */
+    opacity: var(--trail-opacity, 0.55);
+    filter: blur(var(--trail-blur, 1.6vw));
   }
 
   /* 내부 하이라이트가 항상 중앙을 바라보는 느낌을 위해,
@@ -301,8 +345,21 @@ export const Sw1TestOrbitBlob = styled(Base.Sw1OrbitBlob)`
     }
   }
   &[data-tier='outer'] {
-    /* 큰 블롭은 전체적으로 더 또렷하게 보이도록 불투명도를 더 높임 */
-    --z-opacity-base: 0.9;
+    /* 큰 블롭은 전체적으로 더 또렷하고 핑키쉬하게 보이도록 조정 */
+    --z-opacity-base: 1;
+    --z-blur-base: 0.6vw;
+    /* 빅 블롭만 warm 파트가 더 강하게 보이도록 채도/밝기 보정 */
+    filter: saturate(calc(var(--tier-sat, 1) * 1.4)) brightness(1.08);
+    /* 빅 블롭의 하이라이트가 중앙을 향하도록 방향 보정 */
+    &::after {
+      transform: rotate(var(--orbit-angle, 0deg));
+    }
+    /* 빅 블롭 잔상은 더 강하고 넓게 보이도록 오버라이드 */
+    &::before {
+      inset: -0.35vw;
+      opacity: 0.9;
+      filter: blur(2.6vw);
+    }
   }
 
   /* Orchestration burst: 잠시 더 밝고 선명하게 */

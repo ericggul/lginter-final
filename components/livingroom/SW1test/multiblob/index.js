@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useControls } from "leva";
+import { useControls, folder } from "leva";
 import { KeyframesGlobal as BGKeyframesGlobal, BlobCssGlobal as BGBlobCssGlobal } from "@/components/mobile/BackgroundCanvas/styles";
 import * as S from "./styles";
 import { useSW1TestLogic } from "../logic/mainlogic";
@@ -77,6 +77,8 @@ export default function SW1TestControls() {
   const organicCenterPath = useOrganicCenterPath();
   const [midPulseAlpha, setMidPulseAlpha] = useState(1);
   const [bloomActive, setBloomActive] = useState(false);
+  const [bgBreathPhase, setBgBreathPhase] = useState(0);
+  const [centerOrchestrating, setCenterOrchestrating] = useState(false);
   useEffect(() => {
     setBloomActive(true);
     const id = setTimeout(() => setBloomActive(false), 2000);
@@ -85,6 +87,27 @@ export default function SW1TestControls() {
   useEffect(() => {
     pulseMidAlpha(setMidPulseAlpha, { down: 0.24, durationMs: 1000 });
   }, [decisionTick]);
+
+  // 중앙 텍스트: 6초 주기로 모드 라인이 "Orchestrating" <-> 원래 모드 텍스트로 스위치
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCenterOrchestrating((prev) => !prev);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 배경 컬러가 조금 더 어두웠다가 현재 값으로 천천히 이동하는 '일렁임' 효과
+  useEffect(() => {
+    let frame;
+    const start = performance.now();
+    const loop = (now) => {
+      const t = (now - start) / 10000; // 약 10초 주기로 조금 더 빠르게
+      setBgBreathPhase(Math.sin(t * 2 * Math.PI));
+      frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const initialHue = 340;
@@ -122,57 +145,69 @@ export default function SW1TestControls() {
   }, [centerTemp, hasDecision]);
 
   const centerGlow = useControls("SW1 Center Glow (HSL)", {
-    // 첨부된 파라미터 스크린샷에 맞춘 기본값 (이미지1 메인 블롭 기준)
-    innerH: { value: 0, min: 0, max: 360, step: 1 },
-    innerS: { value: 0, min: 0, max: 100, step: 1 },
-    innerL: { value: 100, min: 0, max: 100, step: 1 },
-    innerAlpha: { value: 1.0, min: 0, max: 1, step: 0.01 },
-    innerRingH: { value: 138, min: 0, max: 360, step: 1 },
-    innerRingS: { value: 100, min: 0, max: 100, step: 1 },
-    innerRingL: { value: 100, min: 0, max: 100, step: 1 },
-    innerRingAlpha: { value: 0.41, min: 0, max: 1, step: 0.01 },
-    mid1H: { value: 360, min: 0, max: 360, step: 1 },
-    mid1S: { value: 100, min: 0, max: 100, step: 1 },
-    mid1L: { value: 100, min: 0, max: 100, step: 1 },
-    mid1Alpha: { value: 1.0, min: 0, max: 1, step: 0.01 },
-    mid2H: { value: 360, min: 0, max: 360, step: 1 },
-    mid2S: { value: 100, min: 0, max: 100, step: 1 },
-    mid2L: { value: 60, min: 0, max: 100, step: 1 },
-    mid2Alpha: { value: 0.73, min: 0, max: 1, step: 0.01 },
-    outerH: { value: 304, min: 0, max: 360, step: 1 },
-    outerS: { value: 90, min: 0, max: 100, step: 1 },
-    outerL: { value: 96, min: 0, max: 100, step: 1 },
-    outerAlpha: { value: 0.65, min: 0, max: 1, step: 0.01 },
-    extraH: { value: 205, min: 0, max: 360, step: 1 },
-    extraS: { value: 0, min: 0, max: 100, step: 1 },
-    extraL: { value: 97, min: 0, max: 100, step: 1 },
-    extraAlpha: { value: 0.6, min: 0, max: 1, step: 0.01 },
-    innerStop: { value: 41, min: 0, max: 100 },
-    innerRingStop: { value: 26, min: 0, max: 100 },
-    mid1Stop: { value: 0, min: 0, max: 100 },
-    mid2Stop: { value: 89, min: 0, max: 100 },
-    extraStop: { value: 100, min: 0, max: 100 },
-    outerStop: { value: 91, min: 0, max: 100 },
-    blur: { value: 24, min: 0, max: 120 },
-    centerBrightness: { value: 1.08, min: 0.7, max: 1.8, step: 0.01 },
-    outerGlowRadius: { value: 340, min: 0, max: 600 },
-    outerGlowAlpha: { value: 0.7, min: 0, max: 1, step: 0.01 },
+    Core: folder({
+      // 첨부된 파라미터 스크린샷에 맞춘 기본값 (이미지1 메인 블롭 기준)
+      innerH: { value: 0, min: 0, max: 360, step: 1 },
+      innerS: { value: 0, min: 0, max: 100, step: 1 },
+      innerL: { value: 100, min: 0, max: 100, step: 1 },
+      innerAlpha: { value: 1.0, min: 0, max: 1, step: 0.01 },
+    }),
+    InnerRing: folder({
+      innerRingH: { value: 138, min: 0, max: 360, step: 1 },
+      innerRingS: { value: 100, min: 0, max: 100, step: 1 },
+      innerRingL: { value: 100, min: 0, max: 100, step: 1 },
+      innerRingAlpha: { value: 0.41, min: 0, max: 1, step: 0.01 },
+    }),
+    MidRings: folder({
+      mid1H: { value: 360, min: 0, max: 360, step: 1 },
+      mid1S: { value: 100, min: 0, max: 100, step: 1 },
+      mid1L: { value: 100, min: 0, max: 100, step: 1 },
+      mid1Alpha: { value: 1.0, min: 0, max: 1, step: 0.01 },
+      mid2H: { value: 360, min: 0, max: 360, step: 1 },
+      mid2S: { value: 100, min: 0, max: 100, step: 1 },
+      mid2L: { value: 60, min: 0, max: 100, step: 1 },
+      mid2Alpha: { value: 0.73, min: 0, max: 1, step: 0.01 },
+    }),
+    OuterRing: folder({
+      outerH: { value: 304, min: 0, max: 360, step: 1 },
+      outerS: { value: 90, min: 0, max: 100, step: 1 },
+      outerL: { value: 96, min: 0, max: 100, step: 1 },
+      outerAlpha: { value: 0.65, min: 0, max: 1, step: 0.01 },
+    }),
+    ExtraGlow: folder({
+      extraH: { value: 205, min: 0, max: 360, step: 1 },
+      extraS: { value: 0, min: 0, max: 100, step: 1 },
+      extraL: { value: 97, min: 0, max: 100, step: 1 },
+      extraAlpha: { value: 0.6, min: 0, max: 1, step: 0.01 },
+    }),
+    StopsAndFX: folder({
+      innerStop: { value: 41, min: 0, max: 100 },
+      innerRingStop: { value: 26, min: 0, max: 100 },
+      mid1Stop: { value: 0, min: 0, max: 100 },
+      mid2Stop: { value: 89, min: 0, max: 100 },
+      extraStop: { value: 100, min: 0, max: 100 },
+      outerStop: { value: 91, min: 0, max: 100 },
+      blur: { value: 24, min: 0, max: 120 },
+      centerBrightness: { value: 1.08, min: 0.7, max: 1.8, step: 0.01 },
+      outerGlowRadius: { value: 340, min: 0, max: 600 },
+      outerGlowAlpha: { value: 0.7, min: 0, max: 1, step: 0.01 },
+    }),
   });
 
   const background = useControls("SW1 Background (HSL)", {
     // 기본 톤: 한 단계 더 어두운 쿨 그레이 베이스
     baseH: { value: 210, min: 0, max: 360, step: 1 },
-    baseS: { value: 12, min: 0, max: 100, step: 1 },
-    baseL: { value: 82, min: 50, max: 100, step: 1 },
+    baseS: { value: 14, min: 0, max: 100, step: 1 },
+    baseL: { value: 74, min: 50, max: 100, step: 1 },
     topH: { value: 210, min: 0, max: 360, step: 1 },
-    topS: { value: 8, min: 0, max: 100, step: 1 },
-    topL: { value: 90, min: 0, max: 100, step: 1 },
+    topS: { value: 10, min: 0, max: 100, step: 1 },
+    topL: { value: 84, min: 0, max: 100, step: 1 },
     midH: { value: 340, min: 0, max: 360, step: 1 },
-    midS: { value: 18, min: 0, max: 100, step: 1 },
-    midL: { value: 82, min: 0, max: 100, step: 1 },
+    midS: { value: 22, min: 0, max: 100, step: 1 },
+    midL: { value: 74, min: 0, max: 100, step: 1 },
     bottomH: { value: 340, min: 0, max: 360, step: 1 },
-    bottomS: { value: 22, min: 0, max: 100, step: 1 },
-    bottomL: { value: 78, min: 0, max: 100, step: 1 },
+    bottomS: { value: 26, min: 0, max: 100, step: 1 },
+    bottomL: { value: 70, min: 0, max: 100, step: 1 },
     angle: { value: 230, min: 0, max: 360, step: 1 },
     midStop: { value: 56, min: 0, max: 100, step: 1 },
     midStop2: { value: 92, min: 0, max: 100, step: 1 },
@@ -187,11 +222,11 @@ export default function SW1TestControls() {
     s: { value: 72, min: 0, max: 100, step: 1 },
     l: { value: 66, min: 0, max: 100, step: 1 },
     // warm 파트도 연핑크 톤으로 보이도록 기본값을 핑크 계열로 설정
-    warmH: { value: 340, min: 0, max: 360, step: 1 },
-    warmS1: { value: 88, min: 0, max: 100, step: 1 },
-    warmL1: { value: 90, min: 0, max: 100, step: 1 },
-    warmS2: { value: 96, min: 0, max: 100, step: 1 },
-    warmL2: { value: 95, min: 0, max: 100, step: 1 },
+    warmH: { value: 345, min: 0, max: 360, step: 1 },
+    warmS1: { value: 100, min: 0, max: 100, step: 1 },
+    warmL1: { value: 88, min: 0, max: 100, step: 1 },
+    warmS2: { value: 100, min: 0, max: 100, step: 1 },
+    warmL2: { value: 92, min: 0, max: 100, step: 1 },
     warmStart: { value: 60, min: 50, max: 90, step: 1 },
   });
   const edgeBlur = useControls("SW1 Edge Blur", {
@@ -225,13 +260,28 @@ export default function SW1TestControls() {
     const innerRingH = hue;
     const midH = hue;
     const mid2H = hue;
+
+    // 1) mid2S: 56 → 현재 mid2S 값(예: 100)까지 천천히 루프
+    const osc = (bgBreathPhase + 1) / 2; // 0..1
+    const mid2SMin = 56;
+    const mid2SMax = centerGlow.mid2S; // Leva 슬라이더 값을 상한으로 사용
+    const mid2SAnimated = mid2SMin + (mid2SMax - mid2SMin) * osc;
+
+    // 3) innerStop: 더 작게/더 크게 모두 호흡하도록 32 → innerStopMax까지 루프
+    const innerStopMin = 32;
+    // 사용자가 원하는 최대 확장 값은 최소 93까지 확보
+    const innerStopMax = Math.max(centerGlow.innerStop, 93);
+    const innerStopAnimated = innerStopMin + (innerStopMax - innerStopMin) * osc;
+
     const c1 = toHslaLocal(centerGlow.innerH, centerGlow.innerS, centerGlow.innerL, centerGlow.innerAlpha);
     const cRing = toHslaLocal(innerRingH, centerGlow.innerRingS, centerGlow.innerRingL, centerGlow.innerRingAlpha);
     const c2 = toHslaLocal(midH, centerGlow.mid1S, centerGlow.mid1L, centerGlow.mid1Alpha * midPulseAlpha);
-    const c3 = toHslaLocal(mid2H, centerGlow.mid2S, centerGlow.mid2L, centerGlow.mid2Alpha);
+    const c3 = toHslaLocal(mid2H, mid2SAnimated, centerGlow.mid2L, centerGlow.mid2Alpha);
     const c4 = toHslaLocal(centerGlow.outerH, centerGlow.outerS, centerGlow.outerL, centerGlow.outerAlpha);
     const cExtra = toHslaLocal(centerGlow.extraH, centerGlow.extraS, centerGlow.extraL, centerGlow.extraAlpha);
-    const gradient = `radial-gradient(47.13% 47.13% at 50% 50%, ${c1} ${centerGlow.innerStop}%, ${cRing} ${centerGlow.innerRingStop}%, ${c2} ${centerGlow.mid1Stop}%, ${c3} ${centerGlow.mid2Stop}%, ${cExtra} ${centerGlow.extraStop}%, ${c4} ${centerGlow.outerStop}%)`;
+
+    const gradient = `radial-gradient(47.13% 47.13% at 50% 50%, ${c1} ${innerStopAnimated}%, ${cRing} ${centerGlow.innerRingStop}%, ${c2} ${centerGlow.mid1Stop}%, ${c3} ${centerGlow.mid2Stop}%, ${cExtra} ${centerGlow.extraStop}%, ${c4} ${centerGlow.outerStop}%)`;
+
     return {
       background: gradient,
       filter: `blur(${centerGlow.blur + (timelineState === "t2" ? 8 : 0)}px) brightness(${centerGlow.centerBrightness})`,
@@ -239,7 +289,7 @@ export default function SW1TestControls() {
       transition: "background 600ms ease-in-out, transform 1200ms cubic-bezier(0.22,1,0.36,1), filter 600ms ease",
       boxShadow: centerGlow.outerGlowRadius > 0 && centerGlow.outerGlowAlpha > 0 ? `0 0 ${centerGlow.outerGlowRadius}px rgba(255, 255, 255, ${centerGlow.outerGlowAlpha})` : "none",
     };
-  }, [centerGlow, animHue, midPulseAlpha, bloomActive, timelineState]);
+  }, [centerGlow, animHue, midPulseAlpha, bloomActive, timelineState, bgBreathPhase]);
 
   const mainOverlayStyle = useMemo(() => {
     const hue = Math.round(animHue);
@@ -252,22 +302,37 @@ export default function SW1TestControls() {
     const wrap = (h, s, l, a = 1) => `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, ${a})`;
     const top = wrap(background.topH, background.topS, background.topL, 1);
     const mid = wrap(background.midH, background.midS, background.midL, 1);
-    const bottom = wrap(background.bottomH, background.bottomS, background.bottomL, 1);
+
+    // 하단 그라디언트는 항상 메인 블롭(animHue)의 컬러를 따라가도록 hue만 animHue로 교체
+    const bottomHue = Math.round(animHue);
+
+    // bgBreathPhase (-1..1)를 0..1 범위로 변환해서 어두운 쪽 → 현재 값으로 천천히 왕복
+    const k = (bgBreathPhase + 1) / 2; // 0..1
+    const darkBoost = 8; // 최대 8 정도까지 더 어둡게
+    const satBoost = 6;  // 살짝 더 채도 올림
+
+    const baseBottomL = background.bottomL - darkBoost * (1 - k);
+    const baseBottomS =
+      (!hasDecision ? background.bottomS * 1.25 : background.bottomS + satBoost * k);
+
+    const bottom = wrap(
+      bottomHue,
+      Math.max(0, Math.min(100, baseBottomS)),
+      Math.max(0, Math.min(100, baseBottomL)),
+      1
+    );
+
     return {
       backgroundColor: top,
       backgroundImage: `linear-gradient(${background.angle}deg, ${top} 0%, ${mid} ${background.midStop}%, ${bottom} ${background.midStop2}%)`,
-      transition: "background 700ms ease-in-out",
+      transition: "background 1200ms ease-in-out",
     };
-  }, [background]);
+  }, [background, animHue, bgBreathPhase, hasDecision]);
+
+  const sceneScaleValue = timelineState === "t3" ? 0.94 : 1;
 
   return (
-    <S.Root
-      $backgroundUrl={BACKGROUND_URL}
-      style={{
-        ...rootBackgroundStyle,
-        "--scene-scale": timelineState === "t3" ? 0.94 : 1,
-      }}
-    >
+    <S.Root $backgroundUrl={BACKGROUND_URL} style={rootBackgroundStyle}>
       <S.MotionProps />
       <S.TopStatus>
         <span>사용자 {participantCount}명을 위한 조율중</span>
@@ -277,7 +342,8 @@ export default function SW1TestControls() {
           <S.Dot $visible={dotCount >= 3}>.</S.Dot>
         </S.Dots>
       </S.TopStatus>
-      <S.Stage data-orchestrate={orchestrateTick > 0}>
+      <S.SceneScaleLayer style={{ "--scene-scale": sceneScaleValue }}>
+        <S.Stage data-orchestrate={orchestrateTick > 0}>
         {/* 입력 감지: 화면 외곽 엣지 글로우 (색상은 새 블롭 hue 우선, 없으면 현재 hue) */}
         {edgeGlowTick > 0 && (
           <S.EdgeGlowOverlay
@@ -332,8 +398,9 @@ export default function SW1TestControls() {
               tier === "inner"
                 ? {
                     "--tier-sat": 1.2,
-                    "--tier-size": 0.40,
-                    "--trail-opacity": 0.16,
+                    // 미니 블롭은 살짝 더 작게
+                    "--tier-size": 0.34,
+                    "--trail-opacity": 0.36,
                     "--trail-blur": "0.6vw",
                     // 가장 안쪽: 조금 더 빠른 호흡/부유 속도
                     "--parallaxDur": "36s",
@@ -347,8 +414,9 @@ export default function SW1TestControls() {
                 ? {
                     // 중간 블롭: 중앙에 가까운 쪽의 핑크가 더 강하게 느껴지도록 채도 업
                     "--tier-sat": 1.25,
-                    "--tier-size": 0.70,
-                    "--trail-opacity": 0.26,
+                    // 중간 블롭은 살짝 더 크게
+                    "--tier-size": 0.80,
+                    "--trail-opacity": 0.46,
                     "--trail-blur": "0.95vw",
                     "--parallaxDur": "48s",
                     "--zPulseDur": "18s",
@@ -358,11 +426,10 @@ export default function SW1TestControls() {
                     "--label-scale": 0.9,
                   }
                 : {
-                    // 큰 블롭: 전체적으로 연한 쿨 그레이에 가깝게 보이도록 채도는 낮추고,
-                    // 안쪽은 메인 오버레이/핑크 그라디언트와 섞여 살짝만 색이 묻도록 조정
-                    "--tier-sat": 0.55,
-                    "--tier-size": 1.45,
-                    "--trail-opacity": 0.45,
+                    // 큰 블롭: 사이즈는 더 키우고, 시작 파트는 핑키쉬하게
+                    "--tier-sat": 0.75,
+                    "--tier-size": 1.65,
+                    "--trail-opacity": 0.75,
                     "--trail-blur": "1.8vw",
                     // 가장 바깥: 전체적으로 더 느린 움직임
                     "--parallaxDur": "64s",
@@ -373,9 +440,11 @@ export default function SW1TestControls() {
                     "--label-scale": 1.15,
                   };
             const useLabel = miniTextMode === "label";
-            const showLabel = hasDecision && useLabel;
-            const topText = hasDecision ? (showLabel ? b.topLabel || b.topValue || "" : b.topValue || b.topLabel || "") : "...";
-            const bottomText = hasDecision ? (showLabel ? b.bottomLabel || b.bottomValue || "" : b.bottomValue || b.bottomLabel || "") : "...";
+            // value/label 모드는 hasDecision 여부와 상관없이 주기적으로 스위치되도록 유지
+            const showLabel = useLabel;
+            // hasDecision 이전에도 엘립시스(...) 대신 더미 기온/습도 값/라벨이 바로 보이도록 설정
+            const topText = showLabel ? b.topLabel || b.topValue || "" : b.topValue || b.topLabel || "";
+            const bottomText = showLabel ? b.bottomLabel || b.bottomValue || "" : b.bottomValue || b.bottomLabel || "";
             return (
               <Component
                 key={b.id}
@@ -397,9 +466,16 @@ export default function SW1TestControls() {
                   "--blob-warm-l1": `${miniColor.warmL1}%`,
                   "--blob-warm-s2": `${miniColor.warmS2}%`,
                   "--blob-warm-l2": `${miniColor.warmL2}%`,
-                  "--blob-warm-start": tier === "outer" ? "52%" : tier === "mid" ? "56%" : "60%",
+                  // 빅 블롭(outer)의 이너 핑크 영역이 더 넓게 퍼지도록 start 지점을 더 안쪽으로 당김
+                  "--blob-warm-start": tier === "outer" ? "42%" : tier === "mid" ? "56%" : "60%",
                   "--stroke-h": hasDecision ? Math.round(animHue) : miniColor.h,
                   "--size-boost": b.sizeBoost ?? 1,
+                  // outer(빅 블롭) 4개 중 2개는 살짝 더 옅게 보이도록 opacity 조정
+                  ...(tier === "outer"
+                    ? {
+                        "--z-opacity-base": index % 2 === 0 ? 1 : 0.72,
+                      }
+                    : {}),
                   "--orbit-radius-amp": (() => {
                     const base = b.depthLayer === 0 ? 0.12 : b.depthLayer === 1 ? 0.10 : 0.08;
                     const noise = ((b.zSeed ?? 0) - 0.5) * 0.04;
@@ -423,6 +499,8 @@ export default function SW1TestControls() {
         <S.FreeBlur4 data-stage={timelineState} />
         <S.DebugCenter />
         <S.DebugBottomStart />
+        {/* 빅 블롭 궤도를 따라가는 매우 연한 아크 라인 (블룸 스트로크) */}
+        <S.Sw1TestOuterOrbitArc style={{ "--orbit-arc-h": Math.round(animHue) }} />
         <svg
           width="0"
           height="0"
@@ -455,33 +533,28 @@ export default function SW1TestControls() {
         </S.EllipseLayer>
         {/* 중앙 버스트 파동 */}
         {burstTick > 0 && <S.CenterBurstWave key={burstTick} />}
+        {/* 중앙 텍스트: 처음 스타트 시에도 더미 조율값이 항상 보이되,
+            6초 주기로 모드 라인이 "Orchestrating"으로 스위치되었다가 돌아오도록 설정 */}
         <S.CenterTextWrap>
-          {hasDecision ? (
-            <>
-              <S.CenterTemp>{`${centerTemp}°C`}</S.CenterTemp>
-              <S.CenterMode>
-                {centerHumidity >= 0
-                  ? centerHumidity >= 65
-                    ? "강력 제습"
-                    : centerHumidity >= 55
-                    ? "적정 제습"
-                    : centerHumidity >= 45
-                    ? "기본 제습"
-                    : centerHumidity >= 35
-                    ? "적정 가습"
-                    : "강력 가습"
-                  : ""}
-              </S.CenterMode>
-            </>
-          ) : (
-            <S.LoadingDots $color="rgba(255,192,220,0.85)">
-              <span />
-              <span />
-              <span />
-            </S.LoadingDots>
-          )}
+          <S.CenterTemp>{`${centerTemp}°C`}</S.CenterTemp>
+          <S.CenterMode>
+            {centerOrchestrating
+              ? "Orchestrating"
+              : centerHumidity >= 0
+              ? centerHumidity >= 65
+                ? "강력 제습"
+                : centerHumidity >= 55
+                ? "적정 제습"
+                : centerHumidity >= 45
+                ? "기본 제습"
+                : centerHumidity >= 35
+                ? "적정 가습"
+                : "강력 가습"
+              : ""}
+          </S.CenterMode>
         </S.CenterTextWrap>
-      </S.Stage>
+        </S.Stage>
+      </S.SceneScaleLayer>
     </S.Root>
   );
 }
