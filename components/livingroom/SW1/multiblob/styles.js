@@ -138,12 +138,15 @@ export const TopStatus = styled.div`
   top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
-  color: #334155;
+  color: #FFFFFF;
   font-weight: 600;
   letter-spacing: -0.005208vw;
   text-align: center;
   font-size: clamp(0.729167vw, 3.96vmin, 1.223958vw);
-  text-shadow: 0 0.052083vw 0.3125vw rgba(0,0,0,0.08);
+  /* TV2/SW2 캡션 계열과 통일된 화이트 + 글로우 텍스트 쉐도우 */
+  text-shadow:
+    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
   pointer-events: none;
   z-index: 10;
 `;

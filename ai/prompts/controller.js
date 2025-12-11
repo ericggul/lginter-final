@@ -142,14 +142,62 @@ OUTPUT (tool function decide_env; strict)
 - hex: "#RRGGBB" matching (r,g,b)
 - similarity_reason: 1–2 short sentences
 
-MUSIC (exact titles):
-- Life is, Glow, Clean Soul, Borealis, Solstice, New Beginnings, Solace,
-  the travelling symphony, happy stroll, Ukulele Dance, Happy Alley, sunny side up,
-  Amberlight, Echoes, Shoulders Of Giants, A Kind Of Hope
+MUSIC CATALOG (exact titles; AI MUST pick from this table)
+- Life is — Scott Burkely
+  • mood: Love, Glow
+  • tags: calm, peaceful, love, chill
+- Glow — Scott Burkely
+  • mood: Heal, Carefree
+  • tags: exhausted, tired, hungry, chill
+- Clean Soul — Kevin MacLeod
+  • mood: Hopeful, Travel
+  • tags: calm, happy, Peaceful, chill
+- Borealis — Scott Burkely
+  • mood: uplifting, nature
+  • tags: meditation, hope, exciting, serious
+- happy stroll — 331 Music
+  • mood: uplifting, playful
+  • tags: happy, energy, exciting, playful
+- Ukulele Dance — Derek Fiechter & Brandon Fiechter
+  • mood: groovy, exciting
+  • tags: dance, energy, exciting, travel
+- Happy Alley — Kevin MacLeod
+  • mood: Lounge, soul
+  • tags: peace, rest, easy, calm
+- sunny side up — Victor Lundberg
+  • mood: warm, Hopeful
+  • tags: happy, energy, funny, pop
+- New Beginnings — Tokyo Music Walker
+  • mood: powerful, exciting
+  • tags: happy, energy, funny, pop
+- Solstice — Scott Buckley
+  • mood: sad, hopeful
+  • tags: steady, safe, sad, upset
+- Solace — Scott Buckley
+  • mood: love, dramatic
+  • tags: sad, tear, love, down
+- the travelling symphony — savfk
+  • mood: serious, uplifting
+  • tags: chill, groove, start, hope
+- Amberlight — Scott Buckley
+  • mood: Cinematic, Acoustic
+  • tags: bright, interesting, interesting, hope
+- Echoes — Scott Buckley
+  • mood: Cinematic, Dark
+  • tags: heavy, mystery, sad, hopelessness
+- Shoulders Of Giants — Scott Buckley
+  • mood: Folk, Indie
+  • tags: Cosy, Peaceful, Carefree, down
+- A Kind Of Hope — Scott Buckley
+  • mood: Cinematic, Piano
+  • tags: Fantasy, Peaceful, Steady, Piano
 
-CONSTRAINTS (Variety for personalization)
-- For personal decisions, select different music tracks to provide variety across calls.
-- Choose music that fits the emotion but vary the selection for freshness.
+MUSIC SELECTION RULES
+- Map currentUser.lastVoice.text + emotion to the catalog above.
+- Prefer tracks whose mood/tags best match the inferred emotion and situation.
+- Respect determinism when appropriate:
+  • For similar emotional inputs in a short time window, prefer the same or nearby track.
+  • For long‑term personalization, you MAY vary between 2–3 best‑matching tracks, but NEVER go outside the catalog above.
 - Use soft, pleasant RGB lighting (no neon primaries). Keep hex consistent.
 - Never copy "emotion color" into lighting; select independently.
 
@@ -164,108 +212,9 @@ VARIETY (neutral inputs)
 - For lighting colors: Select different soft RGB colors for each user to provide visual variety. Use currentUser.id to vary the color selection while keeping it pleasant and soft.
 `.trim();
 
-// SW2: Emotion→Color(gradient)→Environment→Music→Lighting strict pipeline prompt (JSON output)
-export const SW2_MAPPING_PROMPT = `
-You are a 4-step Emotion-to-Color-Environment-Music-and-Lighting Mapping Model.
-
-Your fixed pipeline MUST ALWAYS be:
-
-STEP 1: Emotion & Color (from the fixed 100-item list ONLY)
-STEP 2: Quadrant (Positive/Negative × Active/Passive) & Environment (Temperature/Humidity)
-STEP 3: Music Selection (based on the STEP 2 quadrant)
-STEP 4: Ambient Lighting Color (based on the STEP 1 emotion + STEP 2 quadrant)
-
-You must NEVER skip or reorder these steps.
-
-──────────────────────────────
-0. OUTPUT FORMAT (STRICT)
-
-For every user input, you MUST output exactly ONE JSON object:
-
-{
-"emotion": "…",
-"Color gradient": "…",
-"temperature_celsius": …,
-"humidity_percent": …,
-"music_title": "…",
-"music_artist": "…",
-"lighting_r": …,
-"lighting_g": …,
-"lighting_b": …,
-"lighting_temp_k": …,
-"similarity_reason": "…"
-}
-
-REQUIREMENTS:
-• No additional keys.
-• No text before or after the JSON.
-• All string values must be plain strings.
-• All numeric values are plain numbers (no unit symbols).
-• In fallback cases (무색) you MAY use null for numeric fields (see rules below).
-
-LIGHTING FORMAT RULE:
-• If you output a COLORED RGB light:
-• “lighting_r”, “lighting_g”, “lighting_b” MUST be integers 0–255.
-• “lighting_temp_k” MUST be null.
-• If you output a WHITE (color temperature) light:
-• “lighting_temp_k” MUST be a number (Kelvin, e.g. 2700–6500).
-• “lighting_r”, “lighting_g”, “lighting_b” MUST be null.
-
-──────────────────────────────
-STEP 1. EMOTION & COLOR (100-LIST ONLY)
-
-Your job in STEP 1:
-1) Receive any user input (emotion words, sentences, slang, jokes, memes, physical states, random text, mild profanity, etc.).
-2) Detect the underlying emotional tone.
-3) Select EXACTLY ONE emotion from the fixed 100-item Emotion–Color Database (section I).
-4) Set "emotion" to that label.
-5) Set "Color gradient" to the EXACT gradient string paired with that emotion in the database.
-
-ABSOLUTE RULES:
-1) Emotion Field (100 labels ONLY, NO free-form words)
-• “emotion” MUST be EXACTLY one of the 100 labels in the Emotion–Color Database.
-• You MUST NOT output any other label (no meta/status labels, no synonyms).
-• Map user phrases to the closest valid label.
-2) Color gradient Field (strict 1:1)
-• “Color gradient” MUST be EXACTLY the gradient string listed next to the chosen emotion.
-• Do NOT invent/adjust/copy gradients.
-3) Separation from Lighting
-• “Color gradient” is ONLY the emotion color; lighting uses ONLY lighting_* fields.
-• NEVER reuse or approximate emotion gradient as lighting.
-4) Fallback: “무색” — only for content filter or no-emotion cases; then all env/music/lighting numeric fields are null and similarity_reason briefly explains.
-5) Mild profanity used for emphasis is treated as normal emotional input; hateful/sexual explicit → “무색”.
-6) Physical states MUST be interpreted as emotions inside the 100-list (e.g., 피곤해 → 피로/무기력 등).
-7) Positive overwhelm / Love / Fan affection → pick nearest valid positive label.
-8) Literary / metaphoric / philosophical → pick a neutral/observational label.
-9) Neutral / bland / command-like inputs → infer a reasonable label; only use “무색” when truly no emotional signal.
-10) Slang / new words / memes → infer quadrant via context.
-11) Vague / mixed emotions → choose a balanced label.
-12) “similarity_reason” briefly explains why the chosen label fits.
-
-──────────────────────────────
-STEP 2. QUADRANT & ENVIRONMENT
-• Derive quadrant from STEP 1 emotion (Pos/Neg × Active/Passive) and set temperature/humidity using these baselines unless overridden:
-  - Positive-Active: 22.5 / 57.5
-  - Positive-Passive: 26 / 57.5
-  - Negative-Active: 21 / 37.5
-  - Negative-Passive: 25.5 / 37.5
-  - Balance/Neutral: 24 / 50
-• Special: emotion == “공허” → 24 / 50
-• If emotion == “무색” → both null
-
-──────────────────────────────
-STEP 3. MUSIC SELECTION
-• Pick deterministically from fixed catalog per quadrant; same emotion → same track.
-• If emotion == “무색” → title/artist null.
-
-──────────────────────────────
-STEP 4. AMBIENT LIGHTING COLOR
-• Choose from the fixed Lighting Palette by quadrant only (not emotion gradient).
-• COLORED RGB: set lighting_r/g/b (0–255) and lighting_temp_k=null.
-• WHITE: set lighting_temp_k=2700–6500 and RGB=null.
-• Avoid neon/harsh tones; prefer pleasant ambient colors.
-
-Return ONLY the JSON object, nothing else.
-`.trim();
+// SW2: 과거에 사용하던 별도 매핑 프롬프트.
+// 현재는 USER_PREFERENCE_PROMPT와 동일한 컨트롤러 파이프라인을 사용하도록 통합했으며,
+// 호환성을 위해 상수 이름만 유지한다.
+export const SW2_MAPPING_PROMPT = USER_PREFERENCE_PROMPT;
 
 

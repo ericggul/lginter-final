@@ -106,6 +106,8 @@ export function useTV2Logic() {
   const [audioSrc, setAudioSrc] = useState('');
   const [reason, setReason] = useState('');
   const [emotionKeyword, setEmotionKeyword] = useState('');
+  // 새로운 디시전이 들어올 때마다 1씩 증가하는 토큰 (env 값이 동일해도 증가)
+  const [decisionToken, setDecisionToken] = useState(0);
 
   useSocketTV2({
     onDeviceNewDecision: (msg) => {
@@ -120,12 +122,24 @@ export function useTV2Logic() {
         userId: msg.mergedFrom?.[0],
         reason: msg.reason,
       });
+      // 숫자 혹은 숫자 문자열 모두 허용하는 헬퍼
+      const toNumberOrFallback = (value, fallback) => {
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        if (typeof value === 'string') {
+          const n = Number(value.trim());
+          if (!Number.isNaN(n) && Number.isFinite(n)) return n;
+        }
+        return fallback;
+      };
+
       setEnv((prev) => {
+        const nextTemp = toNumberOrFallback(e.temp, prev?.temp ?? DEFAULT_ENV.temp);
+        const nextHumidity = toNumberOrFallback(e.humidity, prev?.humidity ?? DEFAULT_ENV.humidity);
         const next = {
           ...prev,
-          temp: typeof e.temp === 'number' ? e.temp : prev.temp,
-          humidity: typeof e.humidity === 'number' ? e.humidity : prev.humidity,
-          lightColor: e.lightColor || prev.lightColor,
+          temp: nextTemp,
+          humidity: nextHumidity,
+          lightColor: e.lightColor || prev.lightColor || DEFAULT_ENV.lightColor,
           music: typeof e.music === 'string' && e.music ? e.music : prev.music,
         };
         next.lightLabel = next.lightColor ? `Light ${next.lightColor}` : prev.lightLabel;
@@ -139,6 +153,9 @@ export function useTV2Logic() {
       if (msg.emotionKeyword && typeof msg.emotionKeyword === 'string') {
         setEmotionKeyword(msg.emotionKeyword);
       }
+
+      // env 내용이 동일하더라도, 새로운 디시전이 들어왔다는 사실 자체를 전달하기 위한 토큰
+      setDecisionToken((prev) => prev + 1);
     },
   });
 
@@ -177,10 +194,10 @@ export function useTV2Logic() {
     setAudioSrc(audioPath || '');
   }, [env?.music]);
 
-  return { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword };
+  return { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword, decisionToken };
 }
 
-export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, reason, emotionKeyword, levaControls, audioRef }) {
+export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, reason, emotionKeyword, decisionToken, levaControls, audioRef }) {
   const hexColor = (env?.lightColor || '').toUpperCase();
   const friendlyName = useMemo(() => describeHexColor(hexColor), [hexColor]);
   const headerText = friendlyName || env.lightLabel || hexColor || '조명 색상';
@@ -197,64 +214,55 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   const prevEnvRef = useRef(null);
   const motionStateRef = useRef('T3');
   
-  // Detect new decision arrival
+  // env 변화에 따라 idle 여부만 판단하고 스냅샷 유지
   useEffect(() => {
     const hasInput = !!(env?.music || env?.lightColor || typeof env?.temp === 'number' || typeof env?.humidity === 'number');
-    
-    // Initialize prevEnvRef if not set
+
     if (!prevEnvRef.current) {
       prevEnvRef.current = { ...env };
-      if (hasInput) {
-        // Initial state: if input exists, go to T5 directly (no T4 transition needed for initial load)
-        setMotionState('T5');
-        motionStateRef.current = 'T5';
-      } else {
+      // 최초 진입 시에는 항상 T3에서 시작하고,
+      // 실제 디시전 이벤트(decisionToken)가 들어올 때 T4/T5 전환을 맡긴다.
+      if (!hasInput) {
         setMotionState('T3');
         motionStateRef.current = 'T3';
       }
       return;
     }
-    
-    // Check if this is a new decision (env changed)
-    const envChanged = (
-      prevEnvRef.current.music !== env?.music ||
-      prevEnvRef.current.lightColor !== env?.lightColor ||
-      prevEnvRef.current.temp !== env?.temp ||
-      prevEnvRef.current.humidity !== env?.humidity
-    );
-    
-    if (envChanged && hasInput && motionStateRef.current !== 'T4') {
-      // New decision arrived - trigger T4
-      setMotionState('T4');
-      motionStateRef.current = 'T4';
-      setDecisionKey(prev => prev + 1);
-      
-      // Flash white border
-      setShowBorderFlash(true);
-      const flashTimer = setTimeout(() => setShowBorderFlash(false), 400);
-      
-      // After 3 seconds, transition to T5
-      const t5Timer = setTimeout(() => {
-        setMotionState('T5');
-        motionStateRef.current = 'T5';
-      }, 3000);
-      
-      prevEnvRef.current = { ...env };
-      
-      return () => {
-        clearTimeout(t5Timer);
-        clearTimeout(flashTimer);
-      };
-    } else if (!hasInput) {
-      // No input - stay in T3
+
+    if (!hasInput) {
       setMotionState('T3');
       motionStateRef.current = 'T3';
-      prevEnvRef.current = { ...env };
-    } else if (!envChanged) {
-      // Input exists but no change - maintain current state
-      prevEnvRef.current = { ...env };
     }
+
+    prevEnvRef.current = { ...env };
   }, [env]);
+
+  // 새로운 디시전 토큰이 들어올 때마다 T4 → T5 전환 및 decisionKey++
+  useEffect(() => {
+    if (!decisionToken) return; // 초기값 0: 아직 디시전 없음
+
+    const hasInput = !!(env?.music || env?.lightColor || typeof env?.temp === 'number' || typeof env?.humidity === 'number');
+    if (!hasInput) return;
+
+    setMotionState('T4');
+    motionStateRef.current = 'T4';
+    setDecisionKey((prev) => prev + 1);
+
+    // 상단 전체 테두리 플래시
+    setShowBorderFlash(true);
+    const flashTimer = setTimeout(() => setShowBorderFlash(false), 400);
+
+    // 3초 뒤 T5 진입
+    const t5Timer = setTimeout(() => {
+      setMotionState('T5');
+      motionStateRef.current = 'T5';
+    }, 3000);
+
+    return () => {
+      clearTimeout(t5Timer);
+      clearTimeout(flashTimer);
+    };
+  }, [decisionToken, env]);
   
   // Loading states
   const [showTitleLoading, setShowTitleLoading] = useState(true);
@@ -275,8 +283,12 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   const titleChangeRef = useRef('');
   const artistChangeRef = useRef('');
   const coverChangeRef = useRef('');
-  const tempChangeRef = useRef(typeof env?.temp === 'number' ? env.temp : null);
-  const humidityChangeRef = useRef(typeof env?.humidity === 'number' ? env.humidity : null);
+  // 초기 값과 같더라도 첫 번째 디시전에서 반드시 온도/습도 값이 나타나도록
+  // 기본 ref 값은 null 로 두고, decisionKey 기반으로 변경 여부를 판단한다.
+  const tempChangeRef = useRef(null);
+  const humidityChangeRef = useRef(null);
+  const tempDecisionKeyRef = useRef(0);
+  const humidityDecisionKeyRef = useRef(0);
   const headerChangeRef = useRef(headerText || '');
   const reasonChangeRef = useRef(reason || '');
   
@@ -410,68 +422,77 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   // Temperature loading logic (respects T4 state)
   useEffect(() => {
     const newTemp = typeof env?.temp === 'number' ? env.temp : null;
-    const tempChanged = newTemp !== null && newTemp !== tempChangeRef.current;
+    // 새로운 디시전(decisionKey) 이 들어왔거나, 온도 값 자체가 바뀐 경우에만 갱신
+    const keyChanged = decisionKey !== tempDecisionKeyRef.current;
+    const valueChanged = newTemp !== null && newTemp !== tempChangeRef.current;
     
-    if (tempChanged) {
-      tempChangeRef.current = newTemp;
-      setShowTempLoading(true);
-      setDisplayTemp('');
-      
-      setShowChangeMessage(true);
-      const messageTimer = setTimeout(() => {
-        setShowChangeMessage(false);
-      }, 3000);
-      
-      const checkT5 = () => {
-        if (motionStateRef.current === 'T5') {
-          setShowTempLoading(false);
-          setDisplayTemp(newTemp !== null ? `${newTemp}°C` : '');
-        } else {
-          setTimeout(checkT5, 100);
-        }
-      };
-      
-      const timer = setTimeout(checkT5, 3000);
-      
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(messageTimer);
-      };
-    }
-  }, [env?.temp]);
+    if (!keyChanged && !valueChanged) return;
+    if (newTemp === null) return;
+
+    tempChangeRef.current = newTemp;
+    tempDecisionKeyRef.current = decisionKey;
+
+    setShowTempLoading(true);
+    setDisplayTemp('');
+    
+    setShowChangeMessage(true);
+    const messageTimer = setTimeout(() => {
+      setShowChangeMessage(false);
+    }, 3000);
+    
+    const checkT5 = () => {
+      if (motionStateRef.current === 'T5') {
+        setShowTempLoading(false);
+        setDisplayTemp(`${newTemp}°C`);
+      } else {
+        setTimeout(checkT5, 100);
+      }
+    };
+    
+    const timer = setTimeout(checkT5, 3000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(messageTimer);
+    };
+  }, [env?.temp, decisionKey]);
   
   // Humidity loading logic (respects T4 state)
   useEffect(() => {
     const newHumidity = typeof env?.humidity === 'number' ? env.humidity : null;
-    const humidityChanged = newHumidity !== null && newHumidity !== humidityChangeRef.current;
+    const keyChanged = decisionKey !== humidityDecisionKeyRef.current;
+    const valueChanged = newHumidity !== null && newHumidity !== humidityChangeRef.current;
     
-    if (humidityChanged) {
-      humidityChangeRef.current = newHumidity;
-      setShowHumidityLoading(true);
-      setDisplayHumidity('');
-      
-      setShowChangeMessage(true);
-      const messageTimer = setTimeout(() => {
-        setShowChangeMessage(false);
-      }, 3000);
-      
-      const checkT5 = () => {
-        if (motionStateRef.current === 'T5') {
-          setShowHumidityLoading(false);
-          setDisplayHumidity(newHumidity !== null ? `${newHumidity}%` : '');
-        } else {
-          setTimeout(checkT5, 100);
-        }
-      };
-      
-      const timer = setTimeout(checkT5, 3000);
-      
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(messageTimer);
-      };
-    }
-  }, [env?.humidity]);
+    if (!keyChanged && !valueChanged) return;
+    if (newHumidity === null) return;
+
+    humidityChangeRef.current = newHumidity;
+    humidityDecisionKeyRef.current = decisionKey;
+
+    setShowHumidityLoading(true);
+    setDisplayHumidity('');
+    
+    setShowChangeMessage(true);
+    const messageTimer = setTimeout(() => {
+      setShowChangeMessage(false);
+    }, 3000);
+    
+    const checkT5 = () => {
+      if (motionStateRef.current === 'T5') {
+        setShowHumidityLoading(false);
+        setDisplayHumidity(`${newHumidity}%`);
+      } else {
+        setTimeout(checkT5, 100);
+      }
+    };
+    
+    const timer = setTimeout(checkT5, 3000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(messageTimer);
+    };
+  }, [env?.humidity, decisionKey]);
   
   // Header loading logic (respects T4 state)
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import * as S from './styles';
 import { useSW2Logic } from './logic/mainlogic';
 import { getEmotionEntry } from './logic/emotionDB';
@@ -69,9 +69,16 @@ export default function SW2Controls() {
     blobRefs,
     timelineState,
     tempo,
+    decisionTick,
   } = useSW2Logic();
 
   const prevTimelineRef = useRef(timelineState);
+  const prevTitleRef = useRef('');
+  const prevArtistRef = useRef('');
+  const lastDecisionRef = useRef(0);
+  const [captionState, setCaptionState] = useState('idle'); // 'idle' | 'waiting' | 'enter'
+  const [displayTitle, setDisplayTitle] = useState('');
+  const [displayArtist, setDisplayArtist] = useState('');
 
   // 인풋(실제 사용자 감정 키워드) 유무 판단
   const hasRealKeywords = useMemo(
@@ -275,37 +282,80 @@ export default function SW2Controls() {
     } catch {}
   }, [timelineState, hasRealKeywords]);
 
-  // Album dominant color → root-level CSS vars (non-blocking)
+  // Album dominant color → root-level CSS vars (TV2와 동일한 기준 사용, 변형 없이 매핑)
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     (async () => {
       try {
-        if (coverSrc) {
-          const c = await getDominantColorFromImage(coverSrc);
-          const root = document.documentElement;
-          // 기본 앨범 컬러 HSL
-          let h = Math.round(c?.h ?? 340);
-          const s = Math.round(c?.s ?? 70);
-          const l = Math.round(c?.l ?? 70);
-          // 대략 90~150도(연두~그린~청록) 구간이면, 명/채도는 그대로 두고 hue만 블루 계열로 스냅
-          if (h >= 90 && h <= 150) {
-            h = 210; // 시안~블루 계열 대표 값
-          }
-          root.style.setProperty('--album-h', String(h));
-          root.style.setProperty('--album-s', `${s}%`);
-          root.style.setProperty('--album-l', `${l}%`);
-          // 중앙 곡명/가수 텍스트용 그림자 컬러: 앨범 컬러보다 훨씬 어두운 톤
-          const shadowL = Math.max(0, Math.round((c.l ?? 40) - 32));
-          const shadowColor = `hsla(${Math.round(c.h)}, ${Math.round(c.s)}%, ${shadowL}%, 0.9)`;
-          root.style.setProperty('--sw2-caption-shadow', shadowColor);
-        }
-      } catch {}
+        if (!coverSrc) return;
+        const c = await getDominantColorFromImage(coverSrc);
+        if (!c) return;
+        const root = document.documentElement;
+        const h = Math.round(c.h ?? 340);
+        const s = Math.round(c.s ?? 70);
+        const l = Math.round(c.l ?? 70);
+        // TV2와 동일하게, 앨범에서 뽑은 H/S/L을 그대로 CSS 변수에 넣는다.
+        root.style.setProperty('--album-h', String(h));
+        root.style.setProperty('--album-s', `${s}%`);
+        root.style.setProperty('--album-l', `${l}%`);
+        // 중앙 캡션 텍스트용 그림자 컬러: 앨범 컬러보다 훨씬 어두운 톤
+        const shadowL = Math.max(0, Math.round((c.l ?? 40) - 32));
+        const shadowColor = `hsla(${Math.round(c.h)}, ${Math.round(c.s)}%, ${shadowL}%, 0.9)`;
+        root.style.setProperty('--sw2-caption-shadow', shadowColor);
+      } catch {
+        // ignore sampling failures
+      }
     })();
   }
 
   // 백엔드에서 곡 정보가 안 온 초기 상태에서는
   // 실제 곡명/가수명 대신 '...' 플레이스홀더만 애니메이션으로 노출
-  const displayTitle = title || '';
-  const displayArtist = artist || '';
+  // 곡/아티스트가 바뀔 때마다 2초간 '...' 상태를 보여준 뒤,
+  // 블러 + 오퍼시티 + 업(translateY) 애니메이션으로 새 텍스트를 표시한다.
+  useEffect(() => {
+    // 렌딩(처음) 상태에서는 중앙 캡션 대신 블롭 키워드 쪽에서만 '...'을 보여주므로 스킵
+    if (isLanding) return;
+    const newTitle = title || '';
+    const newArtist = artist || '';
+
+    // 실질적인 내용이 없으면 초기화
+    if (!newTitle && !newArtist) {
+      setCaptionState('idle');
+      setDisplayTitle('');
+      setDisplayArtist('');
+      prevTitleRef.current = '';
+      prevArtistRef.current = '';
+      lastDecisionRef.current = decisionTick;
+      return;
+    }
+
+    const sameContent =
+      newTitle === prevTitleRef.current && newArtist === prevArtistRef.current;
+    const sameDecision = decisionTick === lastDecisionRef.current;
+
+    // 곡명/가수도 같고, 마지막으로 처리한 디시전 토큰도 동일하면 재애니메이션 생략
+    if (sameContent && sameDecision) {
+      return;
+    }
+
+    setCaptionState('waiting'); // 2초 동안 '...' 상태
+    let cancelled = false;
+    const currentDecision = decisionTick;
+
+    const t = setTimeout(() => {
+      if (cancelled) return;
+      prevTitleRef.current = newTitle;
+      prevArtistRef.current = newArtist;
+      setDisplayTitle(newTitle);
+      setDisplayArtist(newArtist);
+      setCaptionState('enter'); // 블러 + 업 애니메이션 시작
+      lastDecisionRef.current = currentDecision;
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [title, artist, isLanding, decisionTick]);
 
   // 감정 헤더: 가장 최신 키워드를 그대로 사용 (필터링 없이)
   const emotionHeader = useMemo(() => {
@@ -497,7 +547,7 @@ export default function SW2Controls() {
         )}
       </S.AlbumCard>
       <S.CaptionWrap>
-        {isLanding ? (
+        {isLanding || captionState === 'waiting' ? (
           <>
             <S.HeadText><S.MiniEllipsis>...</S.MiniEllipsis></S.HeadText>
             <S.SubText><S.MiniEllipsis>...</S.MiniEllipsis></S.SubText>
@@ -505,8 +555,8 @@ export default function SW2Controls() {
         ) : (
           <>
             {/* 상단: 곡명, 하단: 가수명 – 감정 인풋(키워드)은 메인 캡션에 노출하지 않는다 */}
-            <S.HeadText>{displayTitle}</S.HeadText>
-            <S.SubText>{displayArtist}</S.SubText>
+            <S.HeadText $state={captionState}>{displayTitle}</S.HeadText>
+            <S.SubText $state={captionState}>{displayArtist}</S.SubText>
           </>
         )}
       </S.CaptionWrap>

@@ -281,18 +281,19 @@ export const FinalCenterWhiteBlob = styled.div`
   border-radius: 50%;
   pointer-events: none;
   z-index: 4; /* 키워드(5)보다 한 단계 아래: 텍스트 아래, 블롭 레이어 상단 */
-  opacity: 0.96;
+  opacity: 1;
   background: radial-gradient(
     circle at 50% 50%,
     rgba(255, 255, 255, 1.0) 0%,
-    rgba(255, 255, 255, 0.92) 26%,
-    rgba(255, 255, 255, 0.09) 74%,
+    rgba(255, 255, 255, 0.98) 24%,
+    rgba(255, 255, 255, 0.72) 52%,
     rgba(255, 255, 255, 0.0) 100%
   );
-  filter: blur(72px);
+  /* iOS에서는 블러/섀도 양을 줄여 GPU 부하를 낮춘다 */
+  filter: ${(p) => `blur(${p.$isIOS ? 52 : 72}px)`};
   box-shadow:
-    0 0 110px rgba(255, 255, 255, 0.9),
-    0 0 240px rgba(255, 255, 255, 0.85);
+    0 0 ${(p) => (p.$isIOS ? '80px' : '110px')} rgba(255, 255, 255, 0.9),
+    0 0 ${(p) => (p.$isIOS ? '180px' : '240px')} rgba(255, 255, 255, 0.85);
 `;
 
 export const BGGlow = styled.div`
@@ -305,8 +306,14 @@ export const BGGlow = styled.div`
   transform: translate(-50%, -50%);
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, rgba(235,201,255,0.42) 0%, rgba(235,201,255,0.26) 40%, rgba(235,201,255,0) 72%);
-  filter: blur(70px);
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(235, 201, 255, 0.42) 0%,
+    rgba(235, 201, 255, 0.26) 40%,
+    rgba(235, 201, 255, 0) 72%
+  );
+  /* iOS에서는 블러 반경을 줄여서 페인트 비용을 낮춘다 */
+  filter: ${(p) => `blur(${p.$isIOS ? 40 : 70}px)`};
   will-change: opacity, transform;
   transform: translate3d(0, 0, 0);
 `;

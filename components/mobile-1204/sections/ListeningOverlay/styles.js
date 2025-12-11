@@ -15,7 +15,7 @@ export const TopLabel = styled.div`
   transform: translateX(-50%);
   color: ${colors.textSecondary};
   font-family: ${fonts.ui};
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 600;
   opacity: 0.8;
 `;

@@ -336,7 +336,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           $brightness={brightnessIncrease}
             style={{ '--cluster-offset-y': showFinalOrb ? '0%' : '14%', '--wobble-strength': wobbleStrength }}
         >
-          {!showFinalOrb && <S.BGGlow />}
+          {!showFinalOrb && <S.BGGlow $isIOS={isIOS} />}
           {/* showOrbits가 true인 동안에는 항상 회전.
               최종 키워드 단계(hasShownKeywords=true)에서는 회전 속도를 살짝 올린다. */}
           <S.Cluster
@@ -415,7 +415,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           )}
           {/* T5: 중앙에 고정된 화이트 블롭 레이어 (회전 없이 빛만 남도록) */}
           {showFinalOrb && (
-            <S.FinalCenterWhiteBlob $d={Math.round(blobSize * 0.86)} />
+            <S.FinalCenterWhiteBlob $d={Math.round(blobSize * 0.86)} $isIOS={isIOS} />
           )}
           {/* Mirrored mask blob: same size and levers as the main blob, opposite rim direction */}
           <div
