@@ -16,7 +16,12 @@ export const Title = styled.h1`
   line-height: ${typography.heroTitleLineHeight};
   font-family: ${fonts.ui};
   opacity: ${(p) => p.$opacity};
-  transition: ${(p) => `opacity ${p.$fadeMs}ms ease`};
+  transform: ${(p) => (p.$opacity ? 'translateY(0)' : 'translateY(12px)')};
+  filter: ${(p) => (p.$opacity ? 'blur(0px)' : 'blur(12px)')};
+  transition: ${(p) =>
+    `opacity ${p.$fadeMs}ms ease, transform ${p.$fadeMs + 150}ms cubic-bezier(0.22, 1, 0.36, 1), filter ${
+      p.$fadeMs + 150
+    }ms ease`};
 `;
 
 export const Sub = styled.p`
@@ -27,7 +32,12 @@ export const Sub = styled.p`
   text-align: ${(p) => (p.$isModal ? 'center' : 'left')};
   font-family: ${fonts.ui};
   opacity: ${(p) => p.$opacity};
-  transition: ${(p) => `opacity ${p.$fadeMs}ms ease`};
+  transform: ${(p) => (p.$opacity ? 'translateY(0)' : 'translateY(10px)')};
+  filter: ${(p) => (p.$opacity ? 'blur(0px)' : 'blur(10px)')};
+  transition: ${(p) =>
+    `opacity ${p.$fadeMs}ms ease, transform ${p.$fadeMs + 150}ms cubic-bezier(0.22, 1, 0.36, 1), filter ${
+      p.$fadeMs + 150
+    }ms ease`};
 `;
 
 

@@ -336,7 +336,8 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
             style={{ '--cluster-offset-y': showFinalOrb ? '0%' : '14%', '--wobble-strength': wobbleStrength }}
         >
           <S.BGGlow />
-          <S.Cluster $spin={clusterSpin}>
+          {/* showOrbits가 true인 동안에는 항상 회전하도록 보정 */}
+          <S.Cluster $spin={clusterSpin || showOrbits}>
             {showOrbits && (
               <>
                 {/* Orbit A - Figma spec: linear gradient #000 -> #0D3664 -> #E096E2 with 50px blur */}

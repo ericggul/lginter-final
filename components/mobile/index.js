@@ -165,7 +165,8 @@ export default function MobileControls() {
   const [showPress, setShowPress] = useState(false);
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
   const [orchestratingLock, setOrchestratingLock] = useState(false);
-  const orchestrateMinMs = 5500;
+  // 최소 약 5초 동안 오케스트레이션 블롭 + 텍스트가 유지되도록 홀드 시간 설정
+  const orchestrateMinMs = 5000;
   const [showTextFallback, setShowTextFallback] = useState(false);
   // Final keyword timings (from BackgroundCanvas/styles.js):
   // Last item delay ~3900ms + item transition 900ms = 4800ms to fully visible
@@ -236,6 +237,19 @@ export default function MobileControls() {
     setShowEmpathy(true);
     setEmpathyDone(false);
     setEmpathyFading(false);
+    // 공감 문장 동안에는 메인 블롭만 유지하고,
+    // 회전 오빗/최종 오브는 아직 등장하지 않도록 정리
+    if (typeof window !== 'undefined') {
+      try {
+        window.mainBlobFade = false;
+        window.blobOpacityMs = 800;
+        window.blobOpacity = 1;
+        window.showOrbits = false;
+        window.clusterSpin = false;
+        window.showFinalOrb = false;
+        window.showCenterGlow = true;
+      } catch {}
+    }
     let t2 = null;
     const t1 = setTimeout(() => {
       setEmpathyDone(true);

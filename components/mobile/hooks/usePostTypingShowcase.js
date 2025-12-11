@@ -98,6 +98,9 @@ export default function usePostTypingShowcase({
     const t1 = setTimeout(() => {
       setFadeText(true);
       if (typeof window !== 'undefined') {
+        // 최종 결과 쇼케이스 시작 시점: 메인 블롭은 사라지고,
+        // 회전하는 오빗/파이널 오브만 보이도록 전환
+        window.mainBlobFade = true;
         window.showFinalOrb = true;
         window.showCenterGlow = true;
         window.clusterSpin = true;

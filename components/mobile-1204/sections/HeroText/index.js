@@ -7,7 +7,7 @@ export default function HeroText({ isModal = false, onFinalPhase, forceFinal }) 
   const [phase, setPhase] = useState('hidden');
   const [opacity, setOpacity] = useState(0);
 
-  const fadeMs = 450; // fade duration
+  const fadeMs = 650; // fade duration (조금 더 여유 있게 페이드 인/아웃)
   const visibleMs = 2000; // time to wait before next change
 
   const timersRef = useRef([]);
@@ -19,8 +19,14 @@ export default function HeroText({ isModal = false, onFinalPhase, forceFinal }) 
   useEffect(() => {
     // Start timeline after mount
     const t1 = setTimeout(() => {
+      // 먼저 greet1 상태로 전환 후, opacity를 0 -> 1로 올리면서
+      // 실제 텍스트가 부드럽게 페이드 인되도록 분리
       setPhase('greet1');
-      setOpacity(1);
+      setOpacity(0);
+      const t2 = setTimeout(() => {
+        setOpacity(1);
+      }, 120); // 한두 프레임 정도 여유를 두고 트리거
+      timersRef.current.push(t2);
     }, 2000); // first appearance within 2 seconds after entering
     timersRef.current.push(t1);
     return clearTimers;
@@ -65,13 +71,19 @@ export default function HeroText({ isModal = false, onFinalPhase, forceFinal }) 
 
   const { line1, line2, subText } = useMemo(() => {
     if (phase === 'greet1') {
-      return { line1: '만나서', line2: '반가워요!', subText: '저는 퓨론이라고 합니다.' };
+      // 만나서 반가워요 화면: 퓨론 자기소개 문구는 제거
+      return { line1: '만나서', line2: '반가워요!', subText: null };
     }
     if (phase === 'greet2') {
       return { line1: '오늘도', line2: '수고하셨어요.', subText: null };
     }
     if (phase === 'final') {
-      return { line1: '오늘 하루는', line2: '어땠나요?', subText: '아래 중앙의 원을 1초간 길게 눌러 말해주세요.' };
+      return {
+        line1: '오늘 하루는',
+        line2: '어땠나요?',
+        // 안내 문구 카피 수정: 아래 중앙의 원을 1초간 길게 눌러 말해주세요 → 아래의 원을 1초 눌러 말해주세요
+        subText: '아래의 원을 1초 눌러 말해주세요.',
+      };
     }
     // hidden
     return { line1: '', line2: '', subText: null };

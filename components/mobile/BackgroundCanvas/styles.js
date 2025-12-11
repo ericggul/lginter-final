@@ -110,8 +110,11 @@ export const KeywordItem = styled.div`
   font-family: ${fonts.ui};
   font-weight: 800;
   font-size: clamp(1.3rem, 5.5vw, 2.4rem);
-  color: #000;
+  /* 최종 결과 키워드(온도, 곡명, 조명, 습도)는
+     별도 쉐도우 없이, 블랙 텍스트에 네거티브 블렌드 모드만 적용 */
+  color: #000000;
   text-shadow: none;
+  mix-blend-mode: difference;
   will-change: opacity;
   opacity: ${(p) => p.$visible ? 1 : 0};
   transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
