@@ -91,9 +91,14 @@ export default function usePostTypingShowcase({
     const t1 = setTimeout(() => {
       setFadeText(true);
       if (typeof window !== 'undefined') {
+        // T5 시작: 메인 블롭은 중앙에 정지시키고(mainBlobStatic=true),
+        // 배경 오빗만 회전하도록 구성
+        window.mainBlobFade = false;
+        window.mainBlobStatic = true;
+        window.wobbleTarget = 0;
         window.showFinalOrb = true;
         window.showCenterGlow = true;
-        window.clusterSpin = true;
+        window.clusterSpin = false; // 클러스터 전체 회전 OFF
         window.showOrbits = true;
         window.showKeywords = false;
       }
@@ -107,6 +112,7 @@ export default function usePostTypingShowcase({
             musicLabel,
           ];
           window.showKeywords = true;
+          window.mainBlobFade = true; // 키워드 등장 시점에는 메인 블롭을 서서히 사라지게
         }
 
         const t3 = setTimeout(() => {

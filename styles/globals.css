@@ -117,11 +117,19 @@ code {
   100% { opacity: 1; }
 }
 
-/* Appears then fades out */
+/* Appears, holds, then softly fades out (used for mobile Orchestrating label) */
 @keyframes orchestrateLabel {
-  0% { opacity: 0; }
-  25% { opacity: 1; }
-  65% { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 

@@ -124,6 +124,7 @@ export default function MobileControls() {
       window.showCenterGlow = false;
       window.orbitRadiusScale = 1;
       window.wobbleTarget = 1;
+      window.mainBlobStatic = false;
       window.blobSettings = {
         color0: '#F7F7E8', color1: '#F4E9D7', color2: '#F79CBF', color3: '#C5F7EA', color4: '#C8F4E9'
       };
@@ -162,7 +163,8 @@ export default function MobileControls() {
   const [showPress, setShowPress] = useState(false);
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
   const [orchestratingLock, setOrchestratingLock] = useState(false);
-  const orchestrateMinMs = 5500;
+  // 최소 약 5초 동안 오케스트레이션 블롭 + 텍스트가 유지되도록 홀드 시간 설정
+  const orchestrateMinMs = 5000;
   const [showTextFallback, setShowTextFallback] = useState(false);
   // Final keyword timings (from BackgroundCanvas/styles.js):
   // Last item delay ~3900ms + item transition 900ms = 4800ms to fully visible
@@ -233,6 +235,22 @@ export default function MobileControls() {
     setShowEmpathy(true);
     setEmpathyDone(false);
     setEmpathyFading(false);
+    // 공감 문장 동안에는 중앙 메인 블롭은 살짝 투명하게 "정지"하고,
+    // 배경 회전 블롭(오빗)은 계속 동작하도록 전환
+    if (typeof window !== 'undefined') {
+      try {
+        window.mainBlobFade = false;
+        window.mainBlobStatic = true;
+        window.blobOpacityMs = 800;
+        window.blobOpacity = 0.78; // 살짝 투명하게
+        window.showOrbits = true;  // 배경 회전 블롭 유지
+        // 공감 문구 동안에는 메인 블롭이 함께 회전하지 않도록,
+        // 클러스터 전체 회전(spin)은 비활성화
+        window.clusterSpin = false;
+        window.showFinalOrb = false;
+        window.showCenterGlow = true;
+      } catch {}
+    }
     let t2 = null;
     const t1 = setTimeout(() => {
       setEmpathyDone(true);
@@ -240,6 +258,11 @@ export default function MobileControls() {
       // latch the current full text to avoid mid-run changes cutting the animation
       try { setTypeText(fullTypedText || ''); } catch {}
       setTypingStarted(true);
+      if (typeof window !== 'undefined') {
+        try {
+          window.mainBlobStatic = false;
+        } catch {}
+      }
       t2 = setTimeout(() => {
         setShowEmpathy(false);
         setEmpathyFading(false);

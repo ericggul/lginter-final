@@ -7,6 +7,7 @@ export default function usePostTypingShowcase({
   setOrchestratingLock,
   isIOS = false,
   typingDone,
+  empathyDone = false,
 }) {
   const [fadeText, setFadeText] = useState(false);
   const [localShowResults, setLocalShowResults] = useState(false);
@@ -25,6 +26,7 @@ export default function usePostTypingShowcase({
   useEffect(() => {
     if (!fullTypedText) return;
     if (!recommendations) return;
+    if (!empathyDone) return;       // T4(공감/타이핑) 단계가 끝나기 전에는 T5를 시작하지 않음
     if (orbShowcaseStarted) return;
 
     // non‑iOS: 기존처럼 문자열 길이 기반으로 완료 여부 판단
@@ -98,15 +100,22 @@ export default function usePostTypingShowcase({
     const t1 = setTimeout(() => {
       setFadeText(true);
       if (typeof window !== 'undefined') {
+        // 1단계: 공감/타이핑 이후 바로 직전 구간(T5 시작점)에서는
+        // 메인 블롭은 중앙에 정지(mainBlobStatic=true)시키고,
+        // 배경 오빗만 회전하도록 한다.
+        window.mainBlobFade = false;
+        window.mainBlobStatic = true;
+        window.wobbleTarget = 0;
         window.showFinalOrb = true;
         window.showCenterGlow = true;
-        window.clusterSpin = true;
+        window.clusterSpin = false; // 클러스터 전체 회전은 끄고, 개별 오빗 애니메이션만 유지
         window.showOrbits = true;
         window.showKeywords = false;
-        console.log('[Showcase] finale start', {
+        console.log('[Showcase] finale pre-keyword stage', {
           showFinalOrb: window.showFinalOrb,
           showOrbits: window.showOrbits,
           showKeywords: window.showKeywords,
+          mainBlobStatic: window.mainBlobStatic,
         });
       }
 
@@ -121,6 +130,9 @@ export default function usePostTypingShowcase({
             musicLabel || '음악',
           ];
           window.showKeywords = true;
+          // 2단계: 실제 결과 키워드/수치가 등장하는 순간에는
+          // 메인 블롭을 서서히 사라지게 하여 값들이 더 잘 읽히도록 한다.
+          window.mainBlobFade = true;
           console.log('[Showcase] keywords set', {
             labels: window.keywordLabels,
             showKeywords: window.showKeywords,
@@ -151,6 +163,7 @@ export default function usePostTypingShowcase({
     setOrchestratingLock,
     isIOS,
     typingDone,
+    empathyDone,
   ]);
 
   useEffect(() => {

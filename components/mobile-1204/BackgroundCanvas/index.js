@@ -258,6 +258,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
     }
   }, [showKeywords])
 
+
   // After staggered reveal completes, run one-time group pulse (fade to 0 then back to 1)
   useEffect(() => {
     if (!hasShownKeywords || keywordsPulse) return
@@ -303,7 +304,7 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const uiScaleTransitionMs = 240
   // Figma-provided orbit shapes scale helpers
   const designBase = 350
-  const blurBase = 50
+  const blurBase = hasShownKeywords ? 40 : 50
   const blurPx = Math.round(blurBase * (baseBlobSize / designBase))
   const shape1W = baseBlobSize * 0.534 // ≈ 187/350
   const shape1H = baseBlobSize * 0.554 // ≈ 194/350
@@ -335,8 +336,12 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           $brightness={brightnessIncrease}
             style={{ '--cluster-offset-y': showFinalOrb ? '0%' : '14%', '--wobble-strength': wobbleStrength }}
         >
-          <S.BGGlow />
-          <S.Cluster $spin={clusterSpin}>
+          {!showFinalOrb && <S.BGGlow />}
+          {/* showOrbits가 true인 동안에는 항상 회전.
+              최종 키워드 단계(hasShownKeywords=true)에서는 회전 속도를 살짝 올린다. */}
+          <S.Cluster
+            $spin={false}  // 메인 블롭이 중심축을 기준으로 회전하지 않도록 클러스터 회전은 항상 비활성화
+          >
             {showOrbits && (
               <>
                 {/* Orbit A - Figma spec: linear gradient #000 -> #0D3664 -> #E096E2 with 50px blur */}
@@ -407,6 +412,10 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           </S.Cluster>
           {showCenterGlow && (
             <S.CenterGlow $d={Math.round(blobSize * 1.10)} />
+          )}
+          {/* T5: 중앙에 고정된 화이트 블롭 레이어 (회전 없이 빛만 남도록) */}
+          {showFinalOrb && (
+            <S.FinalCenterWhiteBlob $d={Math.round(blobSize * 0.86)} />
           )}
           {/* Mirrored mask blob: same size and levers as the main blob, opposite rim direction */}
           <div

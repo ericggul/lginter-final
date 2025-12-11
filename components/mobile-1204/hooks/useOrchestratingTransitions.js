@@ -10,11 +10,14 @@ export default function useOrchestratingTransitions({ loading, orchestratingLock
       console.log('[Orchestrating] loading started – fade blob in and lock orchestrating');
       window.blobOpacityMs = 2000;
       window.blobOpacity = 1;
-      window.showOrbits = true;
-      window.blobScale = 1; window.blobScaleMs = 300;
+      // 오케스트레이션 텍스트 단계에서는 회전 오빗/파이널 오브가 보이지 않도록 유지
+      window.showOrbits = false;
       window.clusterSpin = false;
       window.mainBlobFade = false;
       window.newOrbEnter = false;
+      window.showFinalOrb = false;
+      window.showCenterGlow = false;
+      window.blobScale = 1; window.blobScaleMs = 300;
       window.orbitRadiusScale = 1;
       startAtRef.current = Date.now();
       setOrchestratingLock(true);
@@ -28,15 +31,8 @@ export default function useOrchestratingTransitions({ loading, orchestratingLock
       const elapsed = Date.now() - startAtRef.current;
       const remaining = Math.max(0, orchestrateMinMs - elapsed);
       const runMerge = () => {
-        console.log('[Orchestrating] runMerge called – triggering final blob merge');
-        window.blobOpacityMs = 900;
-        window.mainBlobFade = true;
-        window.newOrbEnter = true;
-        window.clusterSpin = true;
-        setTimeout(() => {
-          console.log('[Orchestrating] merge animation complete – unlocking orchestrating');
-          setOrchestratingLock(false);
-        }, 1000);
+        console.log('[Orchestrating] runMerge called – unlocking orchestrating (no visual change)');
+        setOrchestratingLock(false);
       };
       if (remaining > 0) {
         const t = setTimeout(runMerge, remaining);
