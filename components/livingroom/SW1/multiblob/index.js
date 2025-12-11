@@ -290,12 +290,12 @@ export default function SW1Controls() {
     const H = Math.round(animHue);
     // animHue 기반 톤을 유지하되, 전체 배경은 약간 푸른 회색 계열로 스냅
     const coolH = Math.round((H + 210) / 2); // 원래 hue 와 블루톤(≈210)을 섞어서 너무 튀지 않게
-    // 상단/베이스: 살짝 파란기가 도는 밝은 회색
-    const top = wrap(coolH, 10, 82, 1);
-    // 중간부: 약간 더 채도가 있는 푸른 회색
-    const midTone = wrap(coolH, 14, 74, 1);
-    // 하단: 가장 어두운 푸른 회색
-    const bottom = wrap(coolH, 20, 66, 1);
+    // 상단/베이스: 매우 옅은 푸른 회색 (거의 흰색에 가까운 톤)
+    const top = wrap(coolH, 6, 94, 1);
+    // 중간부: 살짝 더 진한 푸른기
+    const midTone = wrap(coolH, 8, 92, 1);
+    // 하단: 중앙부보다만 약간 더 어두운 톤
+    const bottom = wrap(coolH, 10, 90, 1);
 
     // 화면 중앙 쪽은 살짝 더 푸른 기가 돌도록, 중심부에만 얇은 블루톤 레이어를 한 겹 추가
     const centerCool1 = wrap(coolH + 8, 24, 78, 0.9);
@@ -304,6 +304,12 @@ export default function SW1Controls() {
     return {
       backgroundColor: top,
       backgroundImage: `
+        radial-gradient(
+          150% 150% at 50% 50%,
+          rgba(255, 255, 255, 0) 35%,
+          rgba(255, 255, 255, 0.85) 75%,
+          rgba(255, 255, 255, 1) 100%
+        ),
         radial-gradient(
           70% 70% at 50% 45%,
           ${centerCool1} 0%,
@@ -384,47 +390,64 @@ export default function SW1Controls() {
                     : (b.bottomValue || b.bottomLabel || ''))
                 : '...';
 
+              const commonStyle = {
+                // 초기(인풋 전)에는 내부/외곽 모두 기본 핑크 톤을 사용
+                '--blob-h': hasDecision ? Math.round(animHue) : miniColor.h,
+                '--blob-s': `${miniColor.s}%`,
+                '--blob-l': `${miniColor.l}%`,
+                // 외곽 컬러: 디시전 이후에는 각 미니 블롭의 temp 기반, 그 전에는 기본 warmH 사용
+                '--blob-warm-h': hasDecision
+                  ? computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp)
+                  : miniColor.warmH,
+                '--blob-warm-s1': `${miniColor.warmS1}%`,
+                '--blob-warm-l1': '85%',
+                '--blob-warm-s2': `${miniColor.warmS2}%`,
+                '--blob-warm-l2': '88%',
+                '--blob-warm-start': '60%',
+                '--size-boost': b.sizeBoost ?? 1,
+                // 각 블롭마다 호흡 강도를 미세하게 다르게
+                '--orbit-radius-amp': (() => {
+                  const base =
+                    b.depthLayer === 0 ? 0.24 :
+                    b.depthLayer === 1 ? 0.19 : 0.16;
+                  const noise = ((b.zSeed ?? 0) - 0.5) * 0.06; // ±0.03
+                  const v = Math.max(0.12, Math.min(0.30, base + noise));
+                  return String(v);
+                })(),
+              };
+
               return (
-                <Component
-                  key={b.id}
-                  $angleDeg={b.angleDeg}
-                  $depthLayer={b.depthLayer}
-                  $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
-                  $zSeed={b.zSeed}
-                  $order={index}
-                  data-stage={timelineState}
-                  style={{
-                    // 초기(인풋 전)에는 내부/외곽 모두 기본 핑크 톤을 사용
-                    '--blob-h': hasDecision ? Math.round(animHue) : miniColor.h,
-                    '--blob-s': `${miniColor.s}%`,
-                    '--blob-l': `${miniColor.l}%`,
-                    // 외곽 컬러: 디시전 이후에는 각 미니 블롭의 temp 기반, 그 전에는 기본 warmH 사용
-                    '--blob-warm-h': hasDecision
-                      ? computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp)
-                      : miniColor.warmH,
-                    '--blob-warm-s1': `${miniColor.warmS1}%`,
-                    '--blob-warm-l1': '85%',
-                    '--blob-warm-s2': `${miniColor.warmS2}%`,
-                    '--blob-warm-l2': '88%',
-                    '--blob-warm-start': '60%',
-                    '--size-boost': b.sizeBoost ?? 1,
-                    // 각 블롭마다 호흡 강도를 미세하게 다르게
-                    '--orbit-radius-amp': (() => {
-                      const base =
-                        b.depthLayer === 0 ? 0.24 :
-                        b.depthLayer === 1 ? 0.19 : 0.16;
-                      const noise = ((b.zSeed ?? 0) - 0.5) * 0.06; // ±0.03
-                      const v = Math.max(0.12, Math.min(0.30, base + noise));
-                      return String(v);
-                    })(),
-                  }}
-                >
-                  {/* 신규 블롭도 T4에서 별도 화이트 오버레이 없이 동일 룩 유지 */}
-                  <S.ContentRotator $duration={animation.rotationDuration}>
-                    <S.MiniTopText $visible={miniTextVisible}>{topText}</S.MiniTopText>
-                    <S.MiniBottomText $visible={miniTextVisible}>{bottomText}</S.MiniBottomText>
-                  </S.ContentRotator>
-                </Component>
+                <>
+                  {/* 회전하는 원 뒤쪽에 살짝 남는 잔상 레이어 */}
+                  {b.componentKey === 'Sw1OrbitBlob' && (
+                    <S.Sw1OrbitBlobTrail
+                      key={`${b.id}-trail`}
+                      $angleDeg={b.angleDeg}
+                      $depthLayer={b.depthLayer}
+                      $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
+                      $zSeed={b.zSeed}
+                      $order={index}
+                      data-stage={timelineState}
+                      style={commonStyle}
+                    />
+                  )}
+                  <Component
+                    key={b.id}
+                    $angleDeg={b.angleDeg}
+                    $depthLayer={b.depthLayer}
+                    $radiusFactor={b.radiusFactorDynamic ?? b.radiusFactor}
+                    $zSeed={b.zSeed}
+                    $order={index}
+                    data-stage={timelineState}
+                    style={commonStyle}
+                  >
+                    {/* 신규 블롭도 T4에서 별도 화이트 오버레이 없이 동일 룩 유지 */}
+                    <S.ContentRotator $duration={animation.rotationDuration}>
+                      <S.MiniTopText $visible={miniTextVisible}>{topText}</S.MiniTopText>
+                      <S.MiniBottomText $visible={miniTextVisible}>{bottomText}</S.MiniBottomText>
+                    </S.ContentRotator>
+                  </Component>
+                </>
               );
             })}
           {/* 데이터와 무관하게 항상 함께 도는 작은 장식용 원 3개 */}

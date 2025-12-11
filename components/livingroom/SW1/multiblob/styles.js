@@ -1425,6 +1425,44 @@ export const Sw1OrbitBlob = styled(BlobBase)`
   }
 `;
 
+/* Sw1OrbitBlob 전용 잔상(트레일) – 메인 블롭보다 살짝 뒤에서 따라오며 퍼지는 흐릿한 복제본 */
+export const Sw1OrbitBlobTrail = styled(Sw1OrbitBlob)`
+  pointer-events: none;
+  /* 메인 블롭보다 한 단계 뒤 레이어에서 보이도록 z-index 살짝 낮춤 */
+  z-index: 1;
+  opacity: 0.45;
+  filter: blur(1.4vw);
+
+  /* 잔상은 내용 텍스트 없이 순수한 빛/색만 남도록 내부 콘텐츠 숨김 */
+  & > * {
+    display: none;
+  }
+
+  /* 기존 zPulse 대신, 약간 더 큰 스케일에서 서서히 사라지는 전용 모션을 사용 */
+  animation-name: ${blobInnerParallax}, ${zPulseNew}, ${orbitRadiusPulse}, ${floatDrift};
+
+  /* 잔상 스케일은 항상 메인보다 살짝 크게 */
+  --z-scale-base: calc(var(--z-scale-base) * 1.08);
+
+  /* 메인 블롭보다 살짝 뒤에 오도록 전체 애니메이션에 시간차를 준다 */
+  animation-delay:
+    0.6s,
+    ${({ $zSeed = 0 }) => `${0.6 + Math.round($zSeed * 4)}s`},
+    ${({ $zSeed = 0 }) => `${1.2 + Math.round($zSeed * 5)}s`},
+    ${({ $zSeed = 0 }) => `${0.8 + Math.round($zSeed * 7)}s`};
+
+  /* 트레일 하이라이트는 외곽 halo 쪽만 남기고, 안쪽 코어는 더 옅게 */
+  &::before {
+    opacity: 0.5;
+    filter: blur(calc(var(--z-blur-base) * 3.8));
+  }
+
+  &::after {
+    opacity: 0.3;
+    filter: blur(calc(var(--z-blur-base) * 2.0));
+  }
+`;
+
 /* T4: 새 미니 블롭이 처음 등장할 때의 흰색 본체 + 핑크 스트로크 오버레이 */
 const sw1NewFade = keyframes`
   0%   { opacity: 0.0; }
