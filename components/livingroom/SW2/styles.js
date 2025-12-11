@@ -78,6 +78,10 @@ export const TopWaveLayer = styled.div`
   /* CenterGlow(2) 위, AlbumCard(4) 아래에서 얇은 링들이 지나가도록 */
   z-index: 3;
   overflow: hidden;
+  /* 상단 파동 전체를 별도 합성 레이어로 올려서
+     필터/블렌드 효과가 화면 전체에 번쩍이는 느낌을 줄이는 데 도움을 준다. */
+  backface-visibility: hidden;
+  transform: translateZ(0);
 `;
 
 export const TopWaveCircle = styled.div`
@@ -133,6 +137,11 @@ export const TopWaveCircle = styled.div`
   opacity: 0;
   transform-origin: 50% 50%;
   mix-blend-mode: screen;
+  /* transform / opacity / filter 애니메이션이 자주 일어나므로
+     브라우저가 미리 별도 레이어로 올려둘 수 있게 힌트를 준다. */
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
   /* 속도 변화 없이 일정한 파동 흐름을 위해 linear 타이밍 사용
      - duration 은 $duration prop 으로 조정 (기본 12초) */
   animation: ${topRadialWave} ${({ $duration = 12 }) => `${$duration}s`} linear infinite;
@@ -187,7 +196,8 @@ export const TopLinearWaveCircle = styled.div`
   opacity: 0;
   transform-origin: 50% 45%;
   mix-blend-mode: screen;
-  animation: ${topLinearWave} ${({ $duration = 9 }) => `${$duration}s`} ease-in-out infinite;
+  /* 속도가 앞뒤에서 멈칫거리지 않고, 일정한 흐름으로 위로 퍼져 나가도록 linear 이징 사용 */
+  animation: ${topLinearWave} ${({ $duration = 9 }) => `${$duration}s`} linear infinite;
 
   /* 같은 링 안에서도 위로 갈수록 더 퍼져 보이도록,
      상단 방향으로만 추가 블러/광이 번지는 오버레이 */
@@ -886,6 +896,40 @@ const entryMoveUp = keyframes`
   }
 `;
 
+/* t3 전용: 중앙 하단에서 올라오는 엔트리 원에 잔상(트레일) 효과를 주기 위한 halo 펄스
+ * - 메인 원의 모션/디자인은 그대로 두고
+ * - 이미 존재하는 ::before / ::after 레이어에만 부드러운 스케일·투명도 애니메이션을 얹는다.
+ */
+const entryTrailInner = keyframes`
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+`;
+
+const entryTrailOuter = keyframes`
+  0% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.24);
+  }
+`;
+
 /* t4: 상단 근처에 도달한 원이 안쪽으로 말려 들어가며 빛나는 모션 */
 const entryCollapse = keyframes`
   0% {
@@ -1155,9 +1199,16 @@ export const Sw2VividBox = styled(Sw2BlobBase)`
 export const EntryCircle = styled(Sw2BlobBase)`
   top: var(--entry-top, 78%);
   left: 50%;
-  transform: translate(-50%, -50%);
+  /* 3D 변환 힌트를 줘서 GPU 합성 레이어로 올려, t3 구간의 강한 블러/밝기 변화에도
+     화면 전체가 하얗게 깜빡이지 않도록 안정성을 높인다. */
+  transform: translate3d(-50%, -50%, 0);
   /* 앨범 카드(4), 캡션(6)보다 뒤에 위치시키기 위해 z-index를 낮춘다. */
   z-index: 3;
+  /* EntryCircle 자체를 하나의 페인트 컨테이너로 만들어
+     잔상/halo 가 주변 레이어까지 번져서 영향을 주는 것을 줄인다. */
+  contain: paint;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
   /* 엔트리 전용 모션을 쓰기 위해 기본 depth 펄스 애니메이션은 제거 */
   animation: none;
   /* 상단 interest 블롭보다 더 크게 – 중앙 메인 원처럼 보이도록 스케일 업 */
@@ -1196,6 +1247,8 @@ export const EntryCircle = styled(Sw2BlobBase)`
     pointer-events: none;
     transform: none;
     animation: none;
+    will-change: opacity, transform, filter;
+    backface-visibility: hidden;
   }
 
   &::after {
@@ -1215,14 +1268,45 @@ export const EntryCircle = styled(Sw2BlobBase)`
     pointer-events: none;
     transform: none;
     animation: none;
+    will-change: opacity, transform, filter;
+    backface-visibility: hidden;
   }
 
   &[data-stage='t3'] {
     animation: ${entryMoveUp} 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    /* t3 구간에서만, 기존 halo 레이어에 잔상 펄스를 얹어서
+       하단에서 상단으로 올라오는 동안 자연스러운 트레일이 남도록 한다. */
+    &::before {
+      animation: ${entryTrailInner} 1.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
+    &::after {
+      animation: ${entryTrailOuter} 1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
   }
 
   &[data-stage='t4'] {
     animation: ${entryCollapse} 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+`;
+
+/* t3 전용: 엔트리 서클의 지난 경로에 잔상처럼 남는 트레일 원
+ * - EntryCircle 과 동일한 모션(entryMoveUp)을 사용하되
+ *   약간의 animation-delay, 더 옅은 불투명도, 강한 blur 를 적용한다.
+ * - 여러 개를 서로 다른 delay/blur 로 겹쳐서 실제 잔상이 남는 듯한 느낌을 만든다.
+ */
+export const EntryCircleTrail = styled(EntryCircle)`
+  z-index: 2; /* 메인 EntryCircle(3) 뒤쪽에 위치 */
+  pointer-events: none;
+  opacity: ${({ $opacity = 0.55 }) => $opacity};
+  filter: ${({ $blur = 2.4 }) => `blur(${$blur}vw)`};
+  /* 트레일도 transform/opacity/filter 를 계속 변경하므로
+     별도 합성 레이어에 올려 번쩍이는 아티팩트를 줄인다. */
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+
+  &[data-stage='t3'] {
+    /* t3 구간에서만, 메인 원보다 약간 뒤에 오도록 딜레이를 준다. */
+    animation-delay: ${({ $delay = 0.18 }) => `${$delay}s`};
   }
 `;
 
