@@ -566,27 +566,31 @@ const driftGradient = keyframes`
    Now we use a separate scale animation on the container to scale everything together.
 */
 
+/* 주변 5개의 원이 화면 안에서 천천히 날아다니는 느낌을 주기 위한 드리프트 경로.
+ * - 시작/끝은 항상 중앙(anchor)로 돌아오되,
+ * - 중간 구간에서 더 넓은 궤적을 그리며 부드럽게 이동하도록 수정했다.
+ */
 const interestDrift = keyframes`
   0%   { transform: translate(-50%, -50%) scale(1); }
-  30%  { transform: translate(calc(-50% + 2.5vw), calc(-50% + 1.2vw)) scale(1.375); } /* 22/16 ≈ 1.375 */
-  60%  { transform: translate(calc(-50% - 1.8vw), calc(-50% + 1vw)) scale(0.875); }   /* 14/16 ≈ 0.875 */
-  85%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 1.6vw)) scale(1.125); }  /* 18/16 ≈ 1.125 */
+  20%  { transform: translate(calc(-50% + 3.4vw), calc(-50% - 1.6vw)) scale(1.22); }
+  45%  { transform: translate(calc(-50% + 1.0vw), calc(-50% + 3.0vw)) scale(0.92); }
+  70%  { transform: translate(calc(-50% - 3.0vw), calc(-50% - 0.6vw)) scale(1.18); }
   100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
 const wonderDrift = keyframes`
   0%   { transform: translate(-50%, -50%) scale(1); }
-  35%  { transform: translate(calc(-50% + 2vw), calc(-50% - 1.4vw)) scale(1.375); }    /* 22/16 */
-  60%  { transform: translate(calc(-50% + 2.4vw), calc(-50% + 1.5vw)) scale(0.875); }    /* 14/16 */
-  85%  { transform: translate(calc(-50% - 1.6vw), calc(-50% + 1.3vw)) scale(1.1875); }   /* 19/16 */
+  25%  { transform: translate(calc(-50% - 3.6vw), calc(-50% + 1.8vw)) scale(1.18); }
+  55%  { transform: translate(calc(-50% + 2.8vw), calc(-50% + 3.2vw)) scale(0.9); }
+  80%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 2.4vw)) scale(1.2); }
   100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
 const happyDrift = keyframes`
   0%   { transform: translate(-50%, -50%) scale(1); }
-  30%  { transform: translate(calc(-50% + 2.1vw), calc(-50% + 2.6vw)) scale(1.375); }    /* 22/16 */
-  60%  { transform: translate(calc(-50% - 2.4vw), calc(-50% + 1.1vw)) scale(0.875); }    /* 14/16 */
-  90%  { transform: translate(calc(-50% + 1.4vw), calc(-50% - 2.2vw)) scale(1.156); }    /* 18.5/16 */
+  22%  { transform: translate(calc(-50% + 3.0vw), calc(-50% + 3.4vw)) scale(1.24); }
+  50%  { transform: translate(calc(-50% - 3.8vw), calc(-50% + 1.2vw)) scale(0.9); }
+  82%  { transform: translate(calc(-50% + 2.0vw), calc(-50% - 2.8vw)) scale(1.16); }
   100% { transform: translate(-50%, -50%) scale(1); }
 `;
 
@@ -1147,7 +1151,7 @@ export const Sw2InterestBox = styled(Sw2BlobBase)`
   background-size: 320% 320%;
   /* 상단 interest 원: 부드럽게 궤도를 돌면서 크기가 바뀌어
      다른 두 원과 자리를 주고받는 듯한 깊이감을 만든다. */
-  animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${interestDrift} 22s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   /* 중앙 상단 메인 원은 다른 블롭보다 조금 더 선명하게 보이도록
      기본 투명도를 살짝 올려 준다. */
   opacity: 0.95;
@@ -1159,7 +1163,7 @@ export const Sw2WonderBox = styled(Sw2BlobBase)`
   background-size: 320% 320%;
   /* 좌측 wonder 원: interest / happy 와 타이밍을 어긋나게 해
      서로가 앞뒤로 교차하며 도는 느낌을 강화한다. */
-  animation: ${wonderDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${wonderDrift} 26s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -6s;
 `;
 
@@ -1169,7 +1173,7 @@ export const Sw2HappyBox = styled(Sw2BlobBase)`
   background-size: 320% 320%;
   /* 우측 happy 원: 세 원 중 가장 긴 주기로 움직여
      전체가 느리게 회전하는 삼각 궤도처럼 보이게 한다. */
-  animation: ${happyDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${happyDrift} 30s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -12s;
 `;
 
@@ -1181,7 +1185,7 @@ export const Sw2CalmBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 26vw);
   left: var(--blob-left, 30vw);
   background-size: 320% 320%;
-  animation: ${wonderDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${wonderDrift} 24s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -3s;
 `;
 
@@ -1189,7 +1193,7 @@ export const Sw2VividBox = styled(Sw2BlobBase)`
   top: var(--blob-top, 26vw);
   left: var(--blob-left, 70vw);
   background-size: 320% 320%;
-  animation: ${interestDrift} 18s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: ${interestDrift} 28s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   animation-delay: -9s;
 `;
 
