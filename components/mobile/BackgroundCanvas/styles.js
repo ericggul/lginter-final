@@ -40,15 +40,18 @@ export const BlobWrapper = styled.div`
   height: ${(p) => p.$size}px;
   filter: ${(p) => `brightness(${p.$brightness || 1})`};
   opacity: ${(p) => p.$opacity};
-  transition: ${(p) => `opacity ${p.$opacityMs}ms ease`};
+  transition:
+    top 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity ${(p) => p.$opacityMs}ms ease;
   pointer-events: none;
-  will-change: opacity, transform;
+  will-change: opacity, top, transform;
 `;
 
 export const Cluster = styled.div`
   position: absolute;
   inset: 0;
-  animation: ${(p) => (p.$spin ? 'clusterSpin 6s linear infinite' : 'none')};
+  z-index: 2;
+  animation: ${(p) => (p.$spin ? 'clusterSpin var(--cluster-spin-duration, 6s) linear infinite' : 'none')};
   pointer-events: none;
 `;
 
@@ -267,6 +270,31 @@ export const CenterGlow = styled.div`
   transform: translate3d(0, 0, 0);
 `;
 
+// T5(최종 결과) 단계 전용: 중앙에 고정된 화이트 블롭 (회전 없음, 최상단 레이어에서 빛만 남도록)
+export const FinalCenterWhiteBlob = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: ${(p) => (p.$d != null ? `${p.$d}px` : 'auto')};
+  height: ${(p) => (p.$d != null ? `${p.$d}px` : 'auto')};
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 4; /* 키워드(5)보다 한 단계 아래: 텍스트 아래, 블롭 레이어 상단 */
+  opacity: 0.96;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 1.0) 0%,
+    rgba(255, 255, 255, 0.92) 26%,
+    rgba(255, 255, 255, 0.09) 74%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
+  filter: blur(72px);
+  box-shadow:
+    0 0 110px rgba(255, 255, 255, 0.9),
+    0 0 240px rgba(255, 255, 255, 0.85);
+`;
+
 export const BGGlow = styled.div`
   position: absolute;
   width: 80vmin;
@@ -386,12 +414,12 @@ export const KeyframesGlobal = createGlobalStyle`
   @keyframes clusterSpin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
 
   @keyframes orbitCW {
-    0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.6}px); }
-    100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${(p) => p.$blobSize * 0.6}px); }
+    0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.6 * (p.$orbitRadiusScale || 1)}px); }
+    100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${(p) => p.$blobSize * 0.6 * (p.$orbitRadiusScale || 1)}px); }
   }
   @keyframes orbitCCW {
-    0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.5}px); }
-    100% { transform: translate(-50%, -50%) rotate(-360deg) translateX(${(p) => p.$blobSize * 0.5}px); }
+    0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.5 * (p.$orbitRadiusScale || 1)}px); }
+    100% { transform: translate(-50%, -50%) rotate(-360deg) translateX(${(p) => p.$blobSize * 0.5 * (p.$orbitRadiusScale || 1)}px); }
   }
 
   @keyframes newOrbEnter {
