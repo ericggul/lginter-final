@@ -258,12 +258,15 @@ export const TopStatus = styled.div`
   top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
-  color: #334155;
+  color: #FFFFFF;
   font-weight: 600;
   letter-spacing: -0.005208vw;
   text-align: center;
   font-size: clamp(0.651042vw, 3.6vmin, 1.119792vw);
-  text-shadow: 0 0.052083vw 0.3125vw rgba(0,0,0,0.08);
+  /* TV2/SW2 캡션 계열의 화이트 + 글로우 텍스트 쉐도우 */
+  text-shadow:
+    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
   pointer-events: none;
   z-index: 10;
 `;
@@ -432,6 +435,19 @@ export const CaptionWrap = styled.div`
   z-index: 6;
 `;
 
+const captionEnter = keyframes`
+  0% {
+    opacity: 0;
+    transform: translateY(0.6vw);
+    filter: blur(0.5vw);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+`;
+
 export const HeadText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 600; /* Semi Bold */
@@ -442,6 +458,13 @@ export const HeadText = styled.div`
   text-shadow:
     0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
     0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
+  will-change: opacity, transform, filter;
+  ${({ $state }) =>
+    $state === 'enter' &&
+    css`
+      /* 앨범 명이 조금 더 천천히 스윽 올라오도록 duration 을 늘린다 */
+      animation: ${captionEnter} 1300ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+    `}
 `;
 
 export const SubText = styled.div`
@@ -456,6 +479,13 @@ export const SubText = styled.div`
     0 0.22vw 0.72vw rgba(0, 0, 0, 0.7),
     0 0.46vw 1.45vw rgba(255, 255, 255, 0.82);
   line-height: 1.2;
+  will-change: opacity, transform, filter;
+  ${({ $state }) =>
+    $state === 'enter' &&
+    css`
+      /* 가수 이름도 제목과 비슷한 속도로 부드럽게 등장 */
+      animation: ${captionEnter} 1200ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+    `}
 `;
 
 /* SW2 중앙 곡명/가수 타이포 – TV2 TrackTitle / Artist 스타일을 축소해서 사용 */

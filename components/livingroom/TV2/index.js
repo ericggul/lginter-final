@@ -8,7 +8,7 @@ import { useTV2Logic, useTV2DisplayLogic } from './logic';
 import { playTv2Transition } from '@/utils/data/soundeffect';
 
 export default function TV2Controls() {
-  const { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword } = useTV2Logic();
+  const { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword, decisionToken } = useTV2Logic();
   const scalerRef = useRef(null);
   const audioRef = useRef(null);
   const lastTransitionKeyRef = useRef(null);
@@ -154,6 +154,7 @@ export default function TV2Controls() {
     audioSrc,
     reason,
     emotionKeyword,
+    decisionToken,
     levaControls: {
       edgeBlurAmount,
       edgeBlurWidth,
@@ -518,16 +519,7 @@ export default function TV2Controls() {
                 {showArtistLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : displayArtist}
               </S.FadeSlideText>
             </S.Artist>
-            {/* 음악 파형 인디케이터 */}
-            <S.WaveformIndicator $pulseIntensity={waveformPulseIntensity} $isT5={isT5}>
-              {waveformData.map((height, i) => (
-                <S.WaveformBar
-                  key={i}
-                  $height={height}
-                  $pulseIntensity={waveformPulseIntensity}
-                />
-              ))}
-            </S.WaveformIndicator>
+            {/* 음악 파형 인디케이터 (임시 비활성화) */}
             {/* 숨김 오디오 요소 */}
             {audioSrc ? (
               <audio
@@ -555,6 +547,13 @@ export default function TV2Controls() {
               $isT4={isT4}
               $triggerT4={triggerT4Animations}
             >
+              {/* 우측 블롭 중심 기준으로 아주 은은하게 퍼지는 파동 표현 (SW2 파형 느낌 포팅) */}
+              <S.RightCenterPulse
+                $right={rightCircleRight}
+                $top={rightCircleTop}
+                $width={rightCircleWidth * rightCircleScale}
+                $height={rightCircleHeight * rightCircleScale}
+              />
               <S.RightEllipseMark 
                 src="/figma/Ellipse%202767.png" 
                 alt=""

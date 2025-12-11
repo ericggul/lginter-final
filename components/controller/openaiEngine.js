@@ -1,7 +1,7 @@
 import { decideEnv } from '@/src/services/openai.service';
 import { DEFAULT_ENV } from './stateStore';
 import { normalizeEnv } from './logic/controllerMerge';
-import { CONTROLLER_SYSTEM_PROMPT, SW2_MAPPING_PROMPT } from '@/ai/prompts/controller';
+import { CONTROLLER_SYSTEM_PROMPT, USER_PREFERENCE_PROMPT, SW2_MAPPING_PROMPT } from '@/ai/prompts/controller';
 
 function clamp(n, min, max) {
   const v = Number(n);
@@ -118,8 +118,9 @@ export async function requestControllerDecision({ userId, userContext, lastDecis
                             '';
   
   const result = await decideEnv({
-    // Prefer provided override; default to SW2 mapping prompt for strict pipeline
-    systemPrompt: systemPrompt || SW2_MAPPING_PROMPT,
+    // Prefer provided override; default to USER_PREFERENCE_PROMPT so that
+    // SW2 개인 결정도 컨트롤러용 기본 프롬프트를 공유한다.
+    systemPrompt: systemPrompt || USER_PREFERENCE_PROMPT,
     latestConversation: [],
     currentProgram: {
       version: lastDecision?.version || 0,

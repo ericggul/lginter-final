@@ -1,5 +1,17 @@
 import styled, { keyframes, css } from 'styled-components';
 
+// SW2에서 사용 중인 텍스트 쉐도우 계열을 TV2에도 맞춰 사용하기 위한 공통 프리셋
+// - 3840px 기준 0.26vw ≈ 10px, 0.80vw ≈ 31px 등을 px 단위로 변환한 값
+const tv2Sw2PrimaryShadow = `
+  0 10px 32px rgba(0,0,0,0.7),
+  0 20px 64px rgba(255,255,255,0.85)
+`;
+
+const tv2Sw2SecondaryShadow = `
+  0 8px 28px rgba(0,0,0,0.7),
+  0 18px 56px rgba(255,255,255,0.82)
+`;
+
 export const Viewport = styled.div`
   position: fixed; inset: 0;
   overflow: hidden;
@@ -96,10 +108,10 @@ const headerPush = keyframes`
   100% { background-position: 0% 0; opacity: 1; filter: blur(0px); }
 `;
 
-/* T4: Top gradient left-to-right animation (3 seconds) - 좌에서 우로 들어옴 */
+/* T4: Top gradient fade-in (3 seconds) - 위치 이동 없이, 컬러만 부드럽게 드러나도록 */
 const t4HeaderSlide = keyframes`
-  0%   { background-position: -100% 0; opacity: 0.6; }
-  100% { background-position: 0% 0; opacity: 1; }
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 `;
 
 /* T4: Left gradient fade-in */
@@ -179,13 +191,27 @@ export const Header = styled.div`
     ${props => props.$gradientEnd || '#ffffff'} 100%);
   /* 컬러 영역을 넓혀 자연스럽게 - 잘림 방지를 위해 더 크게 설정 */
   background-size: 300% 100%;
-  /* T4: Left-to-right slide animation (3 seconds) - 좌에서 우로 들어옴 */
+  /* 조명 컬러가 바뀐 뒤에는 좌측을 살짝 더 어둡게 눌러주는 비네트 느낌 */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.22) 0%,
+      rgba(0, 0, 0, 0.10) 24%,
+      rgba(0, 0, 0, 0.00) 44%
+    );
+    mix-blend-mode: soft-light;
+  }
+  /* T4: 위치 이동 없이, 컬러가 부드럽게 드러나는 페이드 인 */
   ${props => props.$isT4 && props.$triggerT4 ? css`
-    background-position: -100% 0;
-    animation: ${t4HeaderSlide} 3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+    opacity: 0;
+    animation: ${t4HeaderSlide} 3s ease-in-out forwards;
   ` : css`
-    /* 기본 상태: T5 이후 위치 유지 또는 초기 위치 (왼쪽 밖) */
-    background-position: ${props => props.$isT5 ? '0% 0' : '-100% 0'};
+    opacity: 1;
   `}
   /* Removed will-change to prevent potential flickering */
   box-shadow:
@@ -235,12 +261,13 @@ export const HeaderIcon = styled.div`
   border-radius: 50%;
   display: grid; place-items: center;
   color: #fff;
+  /* 텍스트와 동일 계열의 2단 그림자를 아이콘에도 적용 */
   svg {
     width: 70%;
     height: 70%;
     filter:
-      drop-shadow(0 0 ${props => (props.$shadowBlur || 6)}px ${props => props.$glowColor || 'rgba(255,255,255,0.7)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 3}px ${props => (props.$shadowBlur || 6)}px ${props => props.$shadowColor || 'rgba(0,0,0,0.55)'});
+      drop-shadow(0 10px 32px rgba(0,0,0,0.7))
+      drop-shadow(0 20px 64px rgba(255,255,255,0.85));
   }
   img {
     width: 70%;
@@ -248,8 +275,8 @@ export const HeaderIcon = styled.div`
     object-fit: contain;
     display: block;
     filter:
-      drop-shadow(0 0 ${props => (props.$shadowBlur || 6)}px ${props => props.$glowColor || 'rgba(255,255,255,0.7)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 3}px ${props => (props.$shadowBlur || 6)}px ${props => props.$shadowColor || 'rgba(0,0,0,0.55)'});
+      drop-shadow(0 10px 32px rgba(0,0,0,0.7))
+      drop-shadow(0 20px 64px rgba(255,255,255,0.85));
   }
 `;
 
@@ -259,10 +286,9 @@ export const HeaderTitle = styled.div`
   font-weight: 400;
   letter-spacing: 0.02em;
   text-align: left;
-  color: rgba(255,255,255,0.9);
-  text-shadow:
-    0 0 10px rgba(0,0,0,0.18),
-    0 0 16px rgba(255,255,255,0.32);
+  color: rgba(255,255,255,0.96);
+  /* SW2 메인 캡션과 동일 계열의 텍스트 쉐도우를 사용 */
+  text-shadow: ${tv2Sw2PrimaryShadow};
 `;
 
 export const Content = styled.div`
@@ -300,11 +326,8 @@ export const LeftPanel = styled.div`
     transform-origin: 50% 50%;
     transform: matrix(1, 0, 0, -1, 0, 0) rotate(0deg);
     animation: conicTurn 28s linear infinite;
-    /* 블러를 10~200 사이로 클램프 */
-    filter: blur(${props => {
-      const v = props.$blur ?? 30;
-      return Math.min(200, Math.max(10, v));
-    }}px);
+    /* 좌측 패널 메인 그라디언트 블러: 고정 70px */
+    filter: blur(70px);
     will-change: transform, filter;
     pointer-events: none;
     z-index: 0;
@@ -461,10 +484,8 @@ export const MusicRow = styled.div`
   font-weight: 400;
   text-transform: uppercase;
   color: rgba(255,255,255,1);
-  text-shadow: 
-    0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+  /* 상단 BRIGHT/장르 텍스트도 SW2 스타일 계열의 쉐도우 적용 */
+  text-shadow: ${tv2Sw2PrimaryShadow};
   z-index: 10;
 `;
 
@@ -472,25 +493,23 @@ export const MusicIcon = styled.div`
   width: 180px;
   height: 180px;
   display: grid; place-items: center;
-  /* 음악 아이콘도 중간 크기로 */
+  /* 음악 아이콘도 텍스트와 동일 계열의 그림자 사용 */
   svg { 
     width: 90%; 
     height: 90%; 
     color: #fff; 
-    filter: 
-      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
-      drop-shadow(0 0 12px rgba(255,255,255,0.7));
+    filter:
+      drop-shadow(0 9px 28px rgba(0,0,0,0.7))
+      drop-shadow(0 18px 56px rgba(255,255,255,0.82));
   }
   img { 
     width: 90%; 
     height: 90%; 
     object-fit: contain; 
     display: block; 
-    filter: 
-      drop-shadow(0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.6)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 3}px ${props => props.$shadowColor || 'rgba(0,0,0,0.45)'})
-      drop-shadow(0 0 12px rgba(255,255,255,0.7));
+    filter:
+      drop-shadow(0 9px 28px rgba(0,0,0,0.7))
+      drop-shadow(0 18px 56px rgba(255,255,255,0.82));
   }
 `;
 
@@ -627,14 +646,17 @@ export const AlbumGlow = styled.div`
   pointer-events: none;
 `;
 
+/* SW2의 captionEnter 스타일을 TV2에 맞게 적용: 업 + 블러 + 오퍼시티 */
 const fadeSlideUp = keyframes`
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(32px) scale(0.985);
+    transform: translateY(18px);
+    filter: blur(12px);
   }
-  to {
+  100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
+    filter: blur(0px);
   }
 `;
 
@@ -709,19 +731,13 @@ const textGlowPulse = keyframes`
 `;
 
 export const FadeSlideText = styled.div`
-  /* T5: Roulette slide right-to-left animation */
-  ${props => props.$isT5 && props.$triggerT5 ? css`
-    animation: ${t5RouletteSlide} 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  ` : props.$slideLR ? css`
-    animation: ${slideInLR} 0.6s ease;
-  ` : props.$roulette ? css`
-    animation: ${rouletteIn} 0.6s ease;
-  ` : css`
-    animation: ${fadeSlideUp} 0.6s ease;
-  `}
-  will-change: opacity, transform;
+  /* 모든 텍스트 변경 시: SW2 앨범명과 동일한 업 + 블러 + 오퍼시티 트랜지션 적용 */
+  animation: ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity, transform, filter;
   ${props => props.$shouldGlow ? css`
-    animation: ${fadeSlideUp} 0.6s ease, ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
+    animation:
+      ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+      ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
   ` : ''}
 `;
 
@@ -748,20 +764,19 @@ export const LoadingDots = styled.div`
 export const TrackTitle = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 앨범 위로 띄워 간격 확보 */
-  top: calc(var(--album-y) - 640px);
+  /* 앨범 커버 바로 아래에 위치하도록 하단으로 이동 */
+  top: calc(var(--album-y) + 420px);
   transform: translateX(-50%);
   /* 음악 제목 폰트 약간 더 키움 */
   font-size: 80px;
   text-transform: uppercase;
   font-weight: 500;
-  color: ${props => props.$color || 'rgba(255,255,255,1)'};
+  color: ${props => props.$color || 'rgba(255,255,255,0.98)'};
   mix-blend-mode: normal;
   /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
   will-change: opacity;
-  text-shadow:
-    0 0 10px rgba(0,0,0,0.18),
-    0 0 16px rgba(255,255,255,0.32);
+  /* SW2 헤드라인과 동일 계열의 텍스트 쉐도우 */
+  text-shadow: ${tv2Sw2PrimaryShadow};
   z-index: 20;
   pointer-events: none;
 `;
@@ -769,19 +784,17 @@ export const TrackTitle = styled.div`
 export const Artist = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 트랙 타이틀 아래, 앨범 상단 위쪽 */
-  top: calc(var(--album-y) - 510px);
+  /* 트랙 타이틀 바로 아래, 간격을 약간 더 좁혀 배치 */
+  top: calc(var(--album-y) + 520px);
   transform: translateX(-50%);
   /* 아티스트 텍스트 폰트 키움 */
   font-size: 64px;
   font-weight: 500;
-  color: ${props => props.$color || 'rgba(255,255,255,1)'};
+  color: ${props => props.$color || 'rgba(255,255,255,0.94)'};
   mix-blend-mode: normal;
   /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
   will-change: opacity;
-  text-shadow:
-    0 0 10px rgba(0,0,0,0.18),
-    0 0 16px rgba(255,255,255,0.32);
+  text-shadow: ${tv2Sw2SecondaryShadow};
   z-index: 20;
   pointer-events: none;
 `;
@@ -822,11 +835,9 @@ export const EmotionFlow = styled.div`
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.9);
-    text-shadow:
-      0 0 10px rgba(255,255,255,0.5),
-      0 0 22px rgba(255,255,255,0.35),
-      0 2px 10px rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.96);
+    /* 감정 라벨에도 SW2 서브 계열 쉐도우 적용 */
+    text-shadow: ${tv2Sw2SecondaryShadow};
     animation: ${emotionFlow} 10s linear infinite;
     white-space: nowrap;
   }
@@ -951,10 +962,10 @@ const tv2RightPulseWave = keyframes`
 
 export const RightCenterPulse = styled.div`
   position: absolute;
-  right: -2%;
-  top: 18%;
-  width: 2000px;
-  height: 2000px;
+  right: ${props => props.$right ?? -2}%;
+  top: ${props => props.$top ?? 18}%;
+  width: ${props => props.$width || 2000}px;
+  height: ${props => props.$height || 2000}px;
   border-radius: 50%;
   pointer-events: none;
   z-index: 1;
@@ -998,28 +1009,24 @@ export const ClimateRow = styled.div`
   /* 온도/습도 텍스트도 중간 수준으로 */
   font-size: 85px;
   font-weight: 400;
-  color: rgba(255,255,255,1);
+  color: rgba(255,255,255,0.98);
   animation: ${climatePush} 0.8s ease-out;
   will-change: transform, opacity;
-  text-shadow: 
-    0 0 ${props => props.$shadowBlur || 4}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => props.$shadowBlur || 4}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'},
-    ${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 2}px ${props => (props.$shadowBlur || 4) * 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.3)'};
+  /* 온도/습도 값: SW2 서브 계열 쉐도우 */
+  text-shadow: ${tv2Sw2SecondaryShadow};
 `;
 
 export const NoticeTyping = styled.div`
   margin-top: 8px;
-  font-size: 32px;
+  font-size: 52px;
   font-weight: 400;
   letter-spacing: 0.02em;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255,255,255,0.96);
   overflow: hidden;
   white-space: nowrap;
   animation: ${noticeTyping} 5s steps(32, end) infinite;
   pointer-events: none;
-  text-shadow:
-    0 0 10px rgba(0,0,0,0.28),
-    0 0 18px rgba(255,255,255,0.45);
+  text-shadow: ${tv2Sw2SecondaryShadow};
 `;
 
 // 선택 이유(감정 설명) 인라인 키워드 (값 우측에 작게 배치)
@@ -1029,11 +1036,9 @@ export const ReasonCaption = styled.span`
   padding-top: 6px;
   font-size: 34px;
   line-height: 1.2;
-  color: rgba(255,255,255,0.92);
-  opacity: 0.96;
-  text-shadow:
-    0 0 10px rgba(0,0,0,0.28),
-    0 0 18px rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.96);
+  opacity: 0.98;
+  text-shadow: ${tv2Sw2SecondaryShadow};
 `;
 
 export const ClimateIcon = styled.div`
@@ -1042,18 +1047,18 @@ export const ClimateIcon = styled.div`
     width: 126px; 
     height: 126px; 
     color: #fff; 
-    filter: 
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+    filter:
+      drop-shadow(0 8px 24px rgba(0,0,0,0.7))
+      drop-shadow(0 16px 52px rgba(255,255,255,0.82));
   }
   img { 
     width: 126px; 
     height: 126px; 
     object-fit: contain; 
     display: block; 
-    filter: 
-      drop-shadow(0 0 ${props => props.$shadowBlur || 2}px ${props => props.$glowColor || 'rgba(255,255,255,0.5)'})
-      drop-shadow(${props => props.$shadowOffsetX || 0}px ${props => props.$shadowOffsetY || 1}px ${props => props.$shadowBlur || 2}px ${props => props.$shadowColor || 'rgba(0,0,0,0.4)'});
+    filter:
+      drop-shadow(0 8px 24px rgba(0,0,0,0.7))
+      drop-shadow(0 16px 52px rgba(255,255,255,0.82));
   }
 `;
 

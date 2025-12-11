@@ -122,6 +122,8 @@ export function useSW2Logic() {
   const [coverSrc, setCoverSrc] = useState('');
   const [audioSrc, setAudioSrc] = useState('');
   const [tempo, setTempo] = useState(100);
+  // 새로운 오케스트레이션 결정이 들어올 때마다 1씩 증가하는 토큰
+  const [decisionTick, setDecisionTick] = useState(0);
   const audioRef = useRef(null);
   const [activeUsers, setActiveUsers] = useState(new Set());
   const switchTimerRef = useRef(null);
@@ -234,6 +236,8 @@ export function useSW2Logic() {
       const data = { device: 'sw2', lightColor: env.lightColor, song: env.music };
       // Overwrite completely to avoid stale song persisting from previous events
       setAmbienceData(data);
+      // 중앙 오케스트레이션 값이 새로 결정될 때마다 토큰 증가
+      setDecisionTick((prev) => prev + 1);
     },
     onDeviceNewVoice: (payload) => {
       const uid = payload?.userId ? String(payload.userId) : null;
@@ -370,5 +374,6 @@ export function useSW2Logic() {
     timelineState,
     lightColor,
     tempo,
+    decisionTick,
   };
 }
