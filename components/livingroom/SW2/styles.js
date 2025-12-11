@@ -26,23 +26,28 @@ export const ContentRotator = styled(SharedContentRotator)`
  */
 const topRadialWave = keyframes`
   0% {
-    /* 앨범 카드 중심에서 조금만 위로 시작 */
+    /* 앨범 카드 중심에서 조금만 위로 시작
+       - 중앙에 가까울 때는 또렷하게 보이도록 blur 0 유지 */
     transform: translate(-50%, -52%) scale(0.55);
     opacity: 0;
+    filter: blur(0vw);
   }
-  12% {
+  20% {
     /* 초반에만 서서히 나타난 뒤 바로 최대 밝기 도달 */
     opacity: 0.95;
+    filter: blur(0vw);
   }
   70% {
-    /* 위로 올라가며 부드럽게 확대 */
+    /* 화면 상단 쪽으로 멀어지면서 살짝 흐려지기 시작 */
     transform: translate(-50%, -72%) scale(1.55);
     opacity: 0.8;
+    filter: blur(0.75vw);
   }
   100% {
-    /* 더 위쪽에서 크게 퍼지며 사라짐 */
+    /* 더 위쪽에서 크게 퍼지며 사라짐 – 가장자리 근처에서는 경계를 더 부드럽게 */
     transform: translate(-50%, -86%) scale(1.9);
     opacity: 0;
+    filter: blur(1.4vw);
   }
 `;
 
@@ -100,8 +105,13 @@ export const TopWaveCircle = styled.div`
     }
     if ($variant === 3) {
       return css`
-        width: 73.8vw;
-        height: 73.8vw;
+        /* 가장 바깥 큰 원:
+           - 살짝 더 작은 반지름으로 줄이고
+           - 시작 위치를 약간 위로 올려서
+             중간 원과 엑스자로 겹쳐 보이는 구간을 줄인다. */
+        width: 70vw;
+        height: 70vw;
+        top: 40%;
         background: radial-gradient(
           62.46% 62.47% at 50% 50%,
           rgba(217, 217, 217, 0.00) 43.91%,
@@ -120,8 +130,6 @@ export const TopWaveCircle = styled.div`
     `;
   }}
   border-radius: 50%;
-  /* 블러를 한 번 더 줄여 거의 선에 가까운 또렷한 링 느낌으로 */
-  filter: blur(0.10vw);
   opacity: 0;
   transform-origin: 50% 50%;
   mix-blend-mode: screen;
@@ -333,9 +341,11 @@ export const CenterGlow = styled.div`
   /* 더 위쪽에 중심을 두어 앨범 커버 상단 위로 감싸지도록 기본값 조정 */
   top: ${({ $topPercent = 20 }) => `${$topPercent}%`};
   left: 50%;
-  /* Figma 스펙에서 살짝 축소 (더 작게). Leva에서 전달된 scale 로 추가 조절 */
-  width: ${({ $scale = 1 }) => `calc(100vw * ${2200 * $scale} / 3840)`};
-  height: ${({ $scale = 1 }) => `calc(100vw * ${2200 * $scale} / 3840)`};
+  /* Figma 스펙 대비 조금 더 크게 시작해서,
+     상단으로 퍼져 나가는 작은/중간 원형 파동과의 경계가 시각적으로 겹치지 않도록
+     기본 반지름을 살짝 키워 준다. (모션 스펙은 그대로 유지) */
+  width: ${({ $scale = 1 }) => `calc(100vw * ${2400 * $scale} / 3840)`};
+  height: ${({ $scale = 1 }) => `calc(100vw * ${2400 * $scale} / 3840)`};
   transform: translate(-50%, -50%) rotate(-47.8deg) scale(1);
   transform-origin: center;
   border-radius: 50%;
