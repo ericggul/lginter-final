@@ -11,6 +11,7 @@ const hexToRgb = (hex) => {
 
 export default function LightTestPage() {
   const [color, setColor] = useState("#ff8800");
+  const [brightnessBri, setBrightnessBri] = useState(200);
   const [pendingAction, setPendingAction] = useState(null);
   const [status, setStatus] = useState("대기 중");
 
@@ -53,6 +54,12 @@ export default function LightTestPage() {
     });
 
   const handleOnOff = (on) => sendCommand({ action: on ? "on" : "off" });
+
+  const handleBrightnessApply = () =>
+    sendCommand({
+      action: "brightness",
+      brightness: brightnessBri,
+    });
 
   return (
     <div style={styles.page}>
@@ -104,6 +111,66 @@ export default function LightTestPage() {
               disabled={pendingAction === "off"}
             >
               {pendingAction === "off" ? "끄는 중..." : "OFF"}
+            </button>
+          </div>
+        </section>
+
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>3. 밝기</h2>
+          <p style={styles.subtext}>
+            Hue 밝기(bri): {brightnessBri} / 254 (약{" "}
+            {Math.round((brightnessBri / 254) * 100)}%)
+          </p>
+          <div style={styles.brightnessRow}>
+            <input
+              type="range"
+              min={1}
+              max={254}
+              value={brightnessBri}
+              onChange={(e) => setBrightnessBri(Number(e.target.value))}
+              style={styles.brightnessSlider}
+            />
+            <input
+              type="number"
+              min={1}
+              max={254}
+              value={brightnessBri}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                if (!Number.isFinite(next)) return;
+                setBrightnessBri(Math.min(254, Math.max(1, Math.round(next))));
+              }}
+              style={styles.brightnessInput}
+            />
+          </div>
+          <div style={styles.buttonRow}>
+            <button
+              style={styles.secondaryButton}
+              onClick={() => setBrightnessBri(254)}
+              disabled={pendingAction === "brightness"}
+            >
+              100%
+            </button>
+            <button
+              style={styles.secondaryButton}
+              onClick={() => setBrightnessBri(128)}
+              disabled={pendingAction === "brightness"}
+            >
+              50%
+            </button>
+            <button
+              style={styles.secondaryButton}
+              onClick={() => setBrightnessBri(32)}
+              disabled={pendingAction === "brightness"}
+            >
+              12%
+            </button>
+            <button
+              style={styles.primaryButton}
+              onClick={handleBrightnessApply}
+              disabled={pendingAction === "brightness"}
+            >
+              {pendingAction === "brightness" ? "적용 중..." : "밝기 적용"}
             </button>
           </div>
         </section>
@@ -196,6 +263,24 @@ const styles = {
     display: "flex",
     gap: "1vw",
     flexWrap: "wrap",
+  },
+  brightnessRow: {
+    display: "grid",
+    gridTemplateColumns: "1fr 7vw",
+    gap: "1vw",
+    alignItems: "center",
+  },
+  brightnessSlider: {
+    width: "100%",
+  },
+  brightnessInput: {
+    width: "100%",
+    fontSize: "1.1vw",
+    padding: "0.8vw 0.9vw",
+    borderRadius: "0.8vw",
+    border: "0.15vw solid rgba(255, 255, 255, 0.4)",
+    background: "transparent",
+    color: "#f5f7ff",
   },
   primaryButton: {
     fontSize: "1.1vw",

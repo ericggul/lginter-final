@@ -208,6 +208,37 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   const headerText = friendlyName || env.lightLabel || hexColor || '조명 색상';
   
   const isIdle = !title && !artist && !coverSrc && (!env || env.music === 'ambient');
+
+  // TV2 → Hue sync:
+  // When the TV2 top-panel color (env.lightColor) changes, softly apply it to Hue.
+  // - Debounced to avoid spamming when the UI animates/updates rapidly
+  // - Fire-and-forget (never blocks or mutates existing TV2 logic)
+  const hueSyncTimerRef = useRef(null);
+  const lastHueSyncedColorRef = useRef('');
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const next = String(hexColor || '').trim();
+    if (!/^#[0-9A-F]{6}$/i.test(next)) return;
+    if (next === lastHueSyncedColorRef.current) return;
+
+    if (hueSyncTimerRef.current) clearTimeout(hueSyncTimerRef.current);
+    hueSyncTimerRef.current = setTimeout(() => {
+      lastHueSyncedColorRef.current = next;
+      try {
+        fetch('/api/lighttest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'color', color: next }),
+          // keepalive helps in kiosk-ish environments during navigation
+          keepalive: true,
+        }).catch(() => {});
+      } catch {}
+    }, 350);
+
+    return () => {
+      if (hueSyncTimerRef.current) clearTimeout(hueSyncTimerRef.current);
+    };
+  }, [hexColor]);
   
   // T3/T4/T5 Motion State Management
   // T3: Input exists but no decision yet (default waiting)
