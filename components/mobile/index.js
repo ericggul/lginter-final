@@ -153,13 +153,19 @@ export default function MobileControls() {
         // ignore stale broadcasts if user hasn't submitted in this session
         return;
       }
-      // payload: { userId, params: { temp, humidity, lightColor, music }, reason }
+      // payload (server): { userId, params: { temp, humidity, lightColor, music }, individual?: { temp, humidity, lightColor, music }, reason, emotionKeyword, decisionId }
+      // IMPORTANT: TV2 uses the personal (individual) decision. Mobile should mirror TV2.
+      const chosen = (payload?.individual && typeof payload.individual === 'object')
+        ? payload.individual
+        : payload?.params || {};
       const rec = {
-        temperature: payload?.params?.temp,
-        humidity: payload?.params?.humidity,
-        lightColor: payload?.params?.lightColor,
-        song: payload?.params?.music,
-        reason: payload?.reason
+        temperature: chosen?.temp,
+        humidity: chosen?.humidity,
+        lightColor: chosen?.lightColor,
+        song: chosen?.music,
+        reason: payload?.reason,
+        emotionKeyword: payload?.emotionKeyword,
+        decisionId: payload?.decisionId,
       };
       setRecommendations(rec);
       try {
