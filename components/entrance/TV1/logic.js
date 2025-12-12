@@ -326,9 +326,9 @@ const ROW_HEIGHT = 4.8322915; // (spawn point top - 짜증 블롭 top) / 2 = (26
 const RIGHT_MARGIN = 7.817708; // Now와 화면 왼쪽 거리
 const MAX_RIGHT = 100 - RIGHT_MARGIN; // 92.182292vw - 블롭의 오른쪽 면이 이 값을 넘으면 안됨
 
-// 시간 표시 관련 상수 (더 이상 사용하지 않음 - 각 열의 top 값 사용)
-const FIRST_TIME_MARKER_TOP = 35.354167; // 12:00가 있던 자리 (vw) - 레거시
-const TIME_MARKER_ROW_HEIGHT = 4.8322915; // 시간 표시 간 간격 (vw) - 레거시
+// 좌측 시간 라벨 최대 개수
+// - 이 개수를 넘으면 가장 오래된(가장 위에 위치한) 시간 라벨을 점진적으로 숨긴다.
+const MAX_TIME_MARKERS = 3;
 
 // 고정 블롭 18개 초기화 함수 (2,3,4열에 각각 6개씩)
 // 1열은 visibleBlobs로 이미 렌더링되므로 제외
@@ -629,8 +629,10 @@ function shiftColumn5To4(prevBlobs) {
       return {
         ...blob,
         column: 1,
-        top: COLUMN_TOPS[1],
-        visible: true,
+        // 1열로 올라온 순간부터는 "가장 오래된 블롭 열"로 간주하고
+        // 살짝 위로 이동시키면서 fadeout 플래그를 건다.
+        top: COLUMN_TOPS[1] - 2,
+        visible: false,
         isNew: false,
       };
     }
@@ -868,11 +870,32 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
           setTimeMarkers((prevMarkers) => {
             // 이전 시간대의 열에 시간 표시 생성
             const marker = createTimeMarker(currentHour, previousHour, prevMarkers, finalBlobs);
-            if (marker) {
-              // 시간 표시 추가 (이전 시간대의 열에 배치됨)
-              return [...prevMarkers, marker];
+            if (!marker) return prevMarkers;
+
+            // 새 마커를 추가한 뒤, 최대 표시 개수를 초과하면
+            // 가장 오래된(위쪽에 남아 있던) 마커를 서서히 숨긴다.
+            let next = [...prevMarkers, marker];
+
+            if (next.length > MAX_TIME_MARKERS) {
+              // timestamp 기준으로 가장 오래된 마커 찾기
+              let oldestIndex = 0;
+              let oldestTs = typeof next[0].timestamp === 'number' ? next[0].timestamp : 0;
+              for (let i = 1; i < next.length; i += 1) {
+                const ts = typeof next[i].timestamp === 'number' ? next[i].timestamp : oldestTs;
+                if (ts < oldestTs) {
+                  oldestTs = ts;
+                  oldestIndex = i;
+                }
+              }
+
+              next = next.map((m, idx) => (
+                idx === oldestIndex
+                  ? { ...m, visible: false }
+                  : m
+              ));
             }
-            return prevMarkers;
+
+            return next;
           });
         }
         
