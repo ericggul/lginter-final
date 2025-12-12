@@ -38,8 +38,6 @@ export default function LightTestPage() {
       });
       const data = await response.json();
       console.log("data", data);
-      console.log("response", response);
-      console.log("body", body);
 
       
       if (data.disabled) {

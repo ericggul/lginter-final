@@ -1,5 +1,6 @@
 import {
   initHue,
+  listLights,
   setLightBrightness,
   setLightColor,
   setLightOnOff,
@@ -65,6 +66,10 @@ export default async function handler(req, res) {
 
     let result;
     switch (action) {
+      case "list-lights": {
+        result = await listLights({ configOverride });
+        break;
+      }
       case "color": {
         if (!color) {
           return res.status(400).json({ ok: false, error: "Color value is required" });
