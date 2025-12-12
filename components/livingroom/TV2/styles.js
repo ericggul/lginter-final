@@ -204,7 +204,7 @@ export const Header = styled.div`
     position: absolute;
     inset: 0;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
     background: linear-gradient(
       90deg,
       rgba(0, 0, 0, 0.22) 0%,
@@ -220,7 +220,7 @@ export const Header = styled.div`
     position: absolute;
     inset: -2px;
     pointer-events: none;
-    z-index: 1;
+    z-index: 2;
     /* 단순하면서도 자연스럽게 섞이는 4-스톱 그라디언트
        - 메인 ≈72% / 화이트 ≈12% / 진한 강조 컬러(앨범 다크 톤) ≈16% (마지막까지)
        → CSS가 각 구간을 선형 보간하면서 부드러운 그라데이션을 만들어준다. */

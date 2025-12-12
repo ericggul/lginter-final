@@ -245,6 +245,8 @@ export default function TV2Controls() {
     headerGradientStartRgba,
     headerGradientMidRgba,
     headerGradientEndRgba,
+    prevHeaderGradient,
+    prevHeaderVisible,
     headerSweepMainColor,
     headerSweepContrastColor,
     headerSweepWhiteColor,
@@ -391,6 +393,25 @@ export default function TV2Controls() {
             $sweepWhite={headerSweepWhiteColor}
             $sweepActive={headerSweepActive}
           >
+            {prevHeaderGradient ? (
+              <div
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  pointerEvents: "none",
+                  zIndex: 0,
+                  opacity: prevHeaderVisible ? 1 : 0,
+                  transition: "opacity 900ms ease",
+                  background: `linear-gradient(90deg,
+                    ${prevHeaderGradient.start} 0%,
+                    ${prevHeaderGradient.mid} ${prevHeaderGradient.midPos}%,
+                    ${prevHeaderGradient.end} ${prevHeaderGradient.endPos}%,
+                    ${prevHeaderGradient.end} 100%)`,
+                  backgroundSize: "300% 100%",
+                }}
+              />
+            ) : null}
             <S.HeaderIcon
               $glowColor={iconGlowColorRgba}
               $shadowColor={iconShadowColorRgba}
@@ -555,9 +576,6 @@ export default function TV2Controls() {
                 style={{ display: 'none' }}
               />
             ) : null}
-            {showChangeMessage && (
-              <S.ChangeMessage>값이 변경되는 것에 3초 소요</S.ChangeMessage>
-            )}
             </S.LeftPanel>
             <S.RightPanel
               style={cssVars}
@@ -646,7 +664,6 @@ export default function TV2Controls() {
                     )}
                   </S.FadeSlideText>
                 </S.ClimateRow>
-              <S.NoticeTyping>3초 뒤 기기 작동을 시작합니다</S.NoticeTyping>
               </S.ClimateGroup>
               <S.RightSw1Ellipse
                 $right={rightCircleRight}

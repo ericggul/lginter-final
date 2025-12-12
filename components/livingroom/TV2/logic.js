@@ -909,6 +909,60 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   const headerGradientMidRgba = hexToRgba(headerMidColor, levaControls?.headerGradientOpacity || 1);
   const headerGradientEndRgba = hexToRgba(headerEndColor, levaControls?.headerGradientOpacity || 1);
 
+  // Smooth header gradient transition:
+  // Crossfade from the previous gradient to the new one (cheap: opacity only, debounced by React render).
+  const prevHeaderGradientRef = useRef(null);
+  const prevHeaderFadeTimerRef = useRef(null);
+  const [prevHeaderGradient, setPrevHeaderGradient] = useState(null);
+  const [prevHeaderVisible, setPrevHeaderVisible] = useState(false);
+
+  useEffect(() => {
+    const next = {
+      start: headerGradientStartRgba,
+      mid: headerGradientMidRgba,
+      end: headerGradientEndRgba,
+      midPos: levaControls?.headerGradientMidPos ?? 10,
+      endPos: levaControls?.headerGradientEndPos ?? 90,
+    };
+    const prev = prevHeaderGradientRef.current;
+
+    // First paint: just store.
+    if (!prev) {
+      prevHeaderGradientRef.current = next;
+      return;
+    }
+
+    const changed =
+      prev.start !== next.start ||
+      prev.mid !== next.mid ||
+      prev.end !== next.end ||
+      prev.midPos !== next.midPos ||
+      prev.endPos !== next.endPos;
+
+    if (changed) {
+      setPrevHeaderGradient(prev);
+      setPrevHeaderVisible(true);
+
+      // Trigger fade-out on next frame so CSS transition kicks in.
+      if (typeof window !== 'undefined') {
+        requestAnimationFrame(() => setPrevHeaderVisible(false));
+      } else {
+        setPrevHeaderVisible(false);
+      }
+
+      if (prevHeaderFadeTimerRef.current) clearTimeout(prevHeaderFadeTimerRef.current);
+      prevHeaderFadeTimerRef.current = setTimeout(() => {
+        setPrevHeaderGradient(null);
+      }, 900);
+    }
+
+    prevHeaderGradientRef.current = next;
+    return () => {
+      if (prevHeaderFadeTimerRef.current) clearTimeout(prevHeaderFadeTimerRef.current);
+    };
+    // Intentionally include raw values to match actual paint inputs.
+  }, [headerGradientStartRgba, headerGradientMidRgba, headerGradientEndRgba, levaControls?.headerGradientMidPos, levaControls?.headerGradientEndPos]);
+
   // 앨범 컬러 중 가장 어두운 컬러를 상단 패널 스윕의 좌측 시작 컬러로 사용
   const albumDarkSweepColor = useMemo(() => {
     const opacity = levaControls?.headerGradientOpacity || 0.95;
@@ -1076,6 +1130,8 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     headerGradientStartRgba,
     headerGradientMidRgba,
     headerGradientEndRgba,
+    prevHeaderGradient,
+    prevHeaderVisible,
     rightCircleColor1Rgba,
     rightCircleColor2Rgba,
     rightCircleColor3Rgba,
