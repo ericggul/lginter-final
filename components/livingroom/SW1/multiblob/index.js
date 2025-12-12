@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useControls } from "leva";
 import { KeyframesGlobal as BGKeyframesGlobal, BlobCssGlobal as BGBlobCssGlobal } from "@/components/mobile/BackgroundCanvas/styles";
 import * as S from './styles';
 import { useSW1Logic } from "../logic/mainlogic";
 import { computeBigBlobHues, computeBackgroundHsl, computeMiniWarmHue, pulseMidAlpha, toHsla } from "../logic/color";
+import { playSw1BackgroundLoop } from '@/utils/data/soundeffect';
 
 // 중앙 화이트 영역을 약간 일렁이는 유기적 형태로 만드는 SVG Path 생성 유틸
 function useOrganicCenterPath() {
@@ -127,6 +128,26 @@ export default function SW1Controls() {
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centerTemp, hasDecision]);
+
+  // ---------------------------------------------------------------------------
+  // SW1 화면용 백그라운드 음악 (lg_sw1_01_251211.mp3)
+  // - 화면이 마운트된 동안 아주 낮은 볼륨으로 loop 재생
+  // ---------------------------------------------------------------------------
+  const bgAudioRef = useRef(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (bgAudioRef.current) return; // 이미 재생 중이면 중복 방지
+    const audio = playSw1BackgroundLoop(0.2);
+    bgAudioRef.current = audio || null;
+    return () => {
+      try {
+        if (bgAudioRef.current) {
+          bgAudioRef.current.pause();
+        }
+      } catch {}
+      bgAudioRef.current = null;
+    };
+  }, []);
 
   // Leva controls (HSL) for live-tuning center glow & background gradient
   const centerGlow = useControls('SW1 Center Glow (HSL)', {

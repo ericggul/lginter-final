@@ -146,6 +146,114 @@ export const SOUND_EFFECTS = {
       'SW2: timeline t3 진입 시, EntryCircle 이 화면 밖 하단에서 상단으로 이동하기 시작할 때 1회 재생',
     ],
   },
+
+  /**
+   * Mobile 전체 화면용 은은한 백그라운드 음악
+   *
+   * 파일: utils/data/soundeffect/lg_mobile_251211.mp3
+   * 라우트: /api/sfx?name=lg_mobile_251211  또는  /api/sfx?file=lg_mobile_251211.mp3
+   *
+   * 사용 위치:
+   *   - components/mobile/index.js
+   *     - 모바일 앱이 마운트된 동안, 아주 낮은 볼륨으로 loop 재생
+   */
+  MOBILE_BG_MUSIC: {
+    id: 'lg_mobile_251211',
+    file: 'lg_mobile_251211.mp3',
+    pages: ['Mobile (components/mobile)'],
+    triggers: [
+      'Mobile: 앱이 마운트되어 있는 동안, 은은한 백그라운드 음악으로 loop 재생',
+    ],
+  },
+
+  /**
+   * SW1 전체 화면용 은은한 백그라운드 음악
+   *
+   * 파일: utils/data/soundeffect/lg_sw1_01_251211.mp3
+   * 라우트: /api/sfx?name=lg_sw1_01_251211  또는  /api/sfx?file=lg_sw1_01_251211.mp3
+   *
+   * 사용 위치:
+   *   - components/livingroom/SW1
+   *     - SW1 화면이 열려 있는 동안, 아주 낮은 볼륨으로 loop 재생
+   */
+  SW1_BG_MUSIC: {
+    id: 'lg_sw1_01_251211',
+    file: 'lg_sw1_01_251211.mp3',
+    pages: ['SW1 (components/livingroom/SW1)'],
+    triggers: [
+      'SW1: 화면이 마운트되어 있는 동안, 은은한 백그라운드 음악으로 loop 재생',
+    ],
+  },
+
+  /**
+   * TV1 전체 화면용 은은한 백그라운드 음악
+   *
+   * 파일: utils/data/soundeffect/lg_tv1_251211.mp3
+   * 라우트: /api/sfx?name=lg_tv1_251211  또는  /api/sfx?file=lg_tv1_251211.mp3
+   *
+   * 사용 위치:
+   *   - components/entrance/TV1
+   *     - TV1 화면이 열려 있는 동안, 아주 낮은 볼륨으로 loop 재생
+   */
+  TV1_BG_MUSIC: {
+    id: 'lg_tv1_251211',
+    file: 'lg_tv1_251211.mp3',
+    pages: ['TV1 (components/entrance/TV1)'],
+    triggers: [
+      'TV1: 화면이 마운트되어 있는 동안, 은은한 백그라운드 음악으로 loop 재생',
+    ],
+  },
+
+  /**
+   * SBM1 입구 화면용 은은한 백그라운드 음악
+   *
+   * 파일: utils/data/soundeffect/lg_sbm1_251211.mp3
+   * 라우트: /api/sfx?name=lg_sbm1_251211  또는  /api/sfx?file=lg_sbm1_251211.mp3
+   *
+   * 사용 위치:
+   *   - components/entrance/SBM1
+   *     - SBM1 화면이 열려 있는 동안, 아주 낮은 볼륨으로 loop 재생
+   */
+  SBM1_BG_MUSIC: {
+    id: 'lg_sbm1_251211',
+    file: 'lg_sbm1_251211.mp3',
+    pages: ['SBM1 (components/entrance/SBM1)'],
+    triggers: [
+      'SBM1: 화면이 마운트되어 있는 동안, 은은한 백그라운드 음악으로 loop 재생',
+    ],
+  },
+
+  /**
+   * MW1 영상 디스플레이용 백그라운드 음악 (Idle / Active)
+   *
+   * 파일:
+   *   - utils/data/soundeffect/mw1_idle.mp3
+   *   - utils/data/soundeffect/mw1_active.mp3
+   * 라우트:
+   *   - /api/sfx?name=mw1_idle   또는 /api/sfx?file=mw1_idle.mp3
+   *   - /api/sfx?name=mw1_active 또는 /api/sfx?file=mw1_active.mp3
+   *
+   * 사용 위치:
+   *   - components/entrance/MW1
+   *     - idle 영상 재생 중: mw1_idle.mp3 loop
+   *     - active 영상 재생 중: mw1_active.mp3 loop
+   */
+  MW1_IDLE_BG: {
+    id: 'mw1_idle',
+    file: 'mw1_idle.mp3',
+    pages: ['MW1 (components/entrance/MW1)'],
+    triggers: [
+      'MW1: idle 레이어 영상이 재생되는 동안 은은한 bg 음악(loop)',
+    ],
+  },
+  MW1_ACTIVE_BG: {
+    id: 'mw1_active',
+    file: 'mw1_active.mp3',
+    pages: ['MW1 (components/entrance/MW1)'],
+    triggers: [
+      'MW1: active 레이어 영상이 재생되는 동안 은은한 bg 음악(loop)',
+    ],
+  },
 };
 
 // 필요하다면 개별 상수로도 사용 가능:
@@ -156,6 +264,12 @@ export const SFX_IDS = {
   MOBILE_ORCHESTRATING: SOUND_EFFECTS.MOBILE_ORCHESTRATING.id,
   TV2_TRANSITION: SOUND_EFFECTS.TV2_TRANSITION.id,
   SW12_BLOB_APPEARANCE: SOUND_EFFECTS.SW12_BLOB_APPEARANCE.id,
+  MOBILE_BG_MUSIC: SOUND_EFFECTS.MOBILE_BG_MUSIC.id,
+   SW1_BG_MUSIC: SOUND_EFFECTS.SW1_BG_MUSIC.id,
+   TV1_BG_MUSIC: SOUND_EFFECTS.TV1_BG_MUSIC.id,
+   SBM1_BG_MUSIC: SOUND_EFFECTS.SBM1_BG_MUSIC.id,
+  MW1_IDLE_BG: SOUND_EFFECTS.MW1_IDLE_BG.id,
+  MW1_ACTIVE_BG: SOUND_EFFECTS.MW1_ACTIVE_BG.id,
 };
 
 // ---------------------------------------------------------------------------
@@ -191,6 +305,36 @@ export function playSwBlobBurstForNewUsers(count, volume = 0.6, intervalMs = 80)
 // Mobile: ORCHESTRATING 화면이 시작될 때 1회 재생
 export function playMobileOrchestratingStart(volume = 1.0) {
   return playSfx(SFX_IDS.MOBILE_ORCHESTRATING, { volume });
+}
+
+// Mobile: 앱이 켜져 있는 동안 은은한 백그라운드 음악 loop 재생
+export function playMobileBackgroundLoop(volume = 0.25) {
+  return playSfx(SFX_IDS.MOBILE_BG_MUSIC, { volume, loop: true });
+}
+
+// SW1: 화면이 켜져 있는 동안 은은한 백그라운드 음악 loop 재생
+export function playSw1BackgroundLoop(volume = 0.22) {
+  return playSfx(SFX_IDS.SW1_BG_MUSIC, { volume, loop: true });
+}
+
+// TV1: 화면이 켜져 있는 동안 은은한 백그라운드 음악 loop 재생
+export function playTv1BackgroundLoop(volume = 0.22) {
+  return playSfx(SFX_IDS.TV1_BG_MUSIC, { volume, loop: true });
+}
+
+// SBM1: 화면이 켜져 있는 동안 은은한 백그라운드 음악 loop 재생
+export function playSbm1BackgroundLoop(volume = 0.22) {
+  return playSfx(SFX_IDS.SBM1_BG_MUSIC, { volume, loop: true });
+}
+
+// MW1: Idle 영상 재생 중 백그라운드 음악 loop
+export function playMw1IdleBackgroundLoop(volume = 0.22) {
+  return playSfx(SFX_IDS.MW1_IDLE_BG, { volume, loop: true });
+}
+
+// MW1: Active 영상 재생 중 백그라운드 음악 loop
+export function playMw1ActiveBackgroundLoop(volume = 0.24) {
+  return playSfx(SFX_IDS.MW1_ACTIVE_BG, { volume, loop: true });
 }
 
 // TV2: 새로운 결정으로 T4 전체 화면 전환이 시작될 때 1회 재생

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import useSocketTV1 from "@/utils/hooks/useSocketTV1";
+import { playTv1BackgroundLoop } from '@/utils/data/soundeffect';
 import * as S from './styles';
 import * as B from './blobtextbox/@boxes';
 import { calculateBlobWidth } from './blobtextbox/@boxes';
@@ -238,6 +239,26 @@ export default function TV1Controls() {
       setDotCount((count) => (count >= 3 ? 0 : count + 1));
     }, 500);
     return () => clearInterval(intervalId);
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // TV1 화면용 백그라운드 음악 (lg_tv1_251211.mp3)
+  // - 화면이 마운트된 동안 아주 낮은 볼륨으로 loop 재생
+  // ---------------------------------------------------------------------------
+  const bgAudioRef = useRef(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (bgAudioRef.current) return; // 이미 재생 중이면 중복 방지
+    const audio = playTv1BackgroundLoop(0.2);
+    bgAudioRef.current = audio || null;
+    return () => {
+      try {
+        if (bgAudioRef.current) {
+          bgAudioRef.current.pause();
+        }
+      } catch {}
+      bgAudioRef.current = null;
+    };
   }, []);
 
   // 자동 스크롤 애니메이션 제거됨 - 화면은 고정된 채로 블롭만 움직임
