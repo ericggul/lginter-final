@@ -11,7 +11,7 @@ export default function MW1Controls() {
   const activeBgRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [showTip, setShowTip] = useState(false);
-  const { play } = useTTS({ voice: 'alloy', model: 'gpt-4o-mini-tts', format: 'mp3' });
+  const { play } = useTTS({ voice: 'marin', model: 'gpt-4o-mini-tts', format: 'mp3' });
 
   // Keep idle video & idle bg music playing continuously (until active triggered)
   useEffect(() => {

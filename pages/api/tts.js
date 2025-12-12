@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { text, voice = 'alloy', model = 'gpt-4o-mini-tts', format = 'mp3' } = req.body || {};
+    const { text, voice = 'marin', model = 'gpt-4o-mini-tts', format = 'mp3' } = req.body || {};
     const trimmed = (text || '').trim();
     if (!trimmed) {
       res.status(400).json({ error: 'text is required' });
