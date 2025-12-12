@@ -12,6 +12,7 @@ export default function MW1Controls() {
   const [isActive, setIsActive] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const { play } = useTTS({ voice: 'marin', model: 'gpt-4o-mini-tts', format: 'mp3' });
+  const hasWelcomedRef = useRef(false);
 
   // Keep idle video & idle bg music playing continuously (until active triggered)
   useEffect(() => {
@@ -52,7 +53,6 @@ export default function MW1Controls() {
         setShowTip(true);
         setTimeout(() => setShowTip(false), 8000);
       }, 2000);
-      try { play('안녕하세요! 반갑습니다!'); } catch {}
       const a = activeRef.current;
       if (a) {
         try { a.currentTime = 0; a.play(); } catch {}
@@ -63,6 +63,17 @@ export default function MW1Controls() {
       activeBgRef.current = bg || null;
     }
   });
+
+  // isActive 상승 시점(T1)에만 환영 멘트 재생; 비활성화 시 리셋
+  useEffect(() => {
+    if (isActive && !hasWelcomedRef.current) {
+      hasWelcomedRef.current = true;
+      try { play('환영합니다. 조율된 공간을 경험해보세요.'); } catch {}
+    }
+    if (!isActive) {
+      hasWelcomedRef.current = false;
+    }
+  }, [isActive, play]);
 
   // When active finishes (not looping), fade out to idle
   useEffect(() => {
