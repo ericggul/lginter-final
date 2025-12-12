@@ -142,7 +142,8 @@ function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCou
   // 단계별 컬러 제어
   // - T1(empty), T3(text): 감정 고유 그라데이션 사용 (blob.gradient)
   // - T2(dots): 고유색을 제거한 중립 그라데이션 사용
-  const neutralGradient = 'linear-gradient(253deg, hsl(328, 95%, 77%) 0%, hsl(295, 84%, 97%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)';
+  //   → 중앙은 화이트 글로우, 우측 끝에는 옅은 핑크가 남도록 조정
+  const neutralGradient = 'linear-gradient(253deg, hsl(345, 92%, 72%) 0%, hsl(10, 100%, 97%) 32%, hsl(345, 92%, 75%) 100%)';
   const gradientForPhase =
     contentPhase === 'dots'
       ? neutralGradient
@@ -194,37 +195,37 @@ export default function TV1Controls() {
     Annoyed: {
       visible: true,
       text: '짜증나',
-      gradient: 'linear-gradient(220deg, hsl(328, 95%, 77%) 0%, hsl(0, 100%, 60%) 10%, hsl(328, 95%, 77%) 55%, hsl(297, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(220deg, hsl(345, 92%, 72%) 0%, hsl(0, 100%, 60%) 10%, hsl(345, 92%, 72%) 55%, hsl(10, 100%, 94%) 95%)',
       timestamp: Date.now()
     },
     Sad: {
       visible: false,
       text: '무기력',
-      gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(242, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(226deg, hsl(345, 92%, 72%) 0%, hsl(242, 100%, 60%) 16%, hsl(345, 92%, 72%) 55%, hsl(10, 100%, 94%) 95%)',
       timestamp: Date.now()
     },
     Happy: {
       visible: false,
       text: '설렘',
-      gradient: 'linear-gradient(249deg, hsl(328, 95%, 77%) 0%, hsl(302, 100%, 68.6%) 10%, hsl(328, 95%, 77%) 55%, hsl(262, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(249deg, hsl(345, 92%, 72%) 0%, hsl(302, 100%, 68.6%) 10%, hsl(345, 92%, 72%) 55%, hsl(10, 100%, 94%) 95%)',
       timestamp: Date.now()
     },
     Interest: {
       visible: true,
       text: '지금 날씨 되게 맑아',
-      gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(156, 75%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(226deg, hsl(345, 92%, 72%) 0%, hsl(156, 75%, 60%) 16%, hsl(345, 92%, 72%) 55%, hsl(10, 100%, 94%) 95%)',
       timestamp: Date.now()
     },
     Playful: {
       visible: true,
       text: '여기 공기가 되게 상쾌함',
-      gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(242, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(226deg, hsl(345, 92%, 72%) 0%, hsl(242, 100%, 60%) 16%, hsl(345, 92%, 72%) 55%, hsl(10, 100%, 94%) 95%)',
       timestamp: Date.now()
     },
     SelfConfident: {
       visible: false,
       text: '자기확신',
-      gradient: 'linear-gradient(226deg, hsl(328, 95%, 77%) 0%, hsl(86, 100%, 60%) 16%, hsl(328, 95%, 77%) 55%, hsl(295, 84%, 97%) 95%)',
+      gradient: 'linear-gradient(226deg, hsl(345, 92%, 72%) 0%, hsl(86, 100%, 60%) 16%, hsl(345, 92%, 72%) 55%, hsl(10, 100%, 94%) 95%)',
       timestamp: Date.now()
     }
   });
