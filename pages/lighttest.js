@@ -37,6 +37,11 @@ export default function LightTestPage() {
         body: JSON.stringify(body),
       });
       const data = await response.json();
+      console.log("data", data);
+      console.log("response", response);
+      console.log("body", body);
+
+      
       if (data.disabled) {
         setStatus("Hue 비활성화 상태입니다. .env 설정을 확인하세요.");
       } else if (!data.ok) {
