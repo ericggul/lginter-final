@@ -308,6 +308,12 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   // T5(최종 결과)에서는 미니 블롭(오빗)이 더 잘 보이도록 블러를 조금 더 줄인다.
   const blurBase = hasShownKeywords ? 30 : 50
   const blurPx = Math.round(blurBase * (baseBlobSize / designBase))
+  // T5: make orbits more vivid (slightly less blur, higher saturation/brightness, higher opacity)
+  const t5Phase = showFinalOrb || hasShownKeywords
+  const orbitBlur = Math.max(18, blurPx - (t5Phase ? 10 : 0))
+  const orbitSat = t5Phase ? 1.28 : 1.0
+  const orbitBright = t5Phase ? 1.08 : 1.0
+  const orbitOpacity = t5Phase ? 0.96 : 0.85
   const shape1W = baseBlobSize * 0.534 // ≈ 187/350
   const shape1H = baseBlobSize * 0.554 // ≈ 194/350
   const shape2W = baseBlobSize * 0.735 // ≈ 257/350
@@ -348,11 +354,29 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
               <>
                 {/* Orbit A - Figma spec: linear gradient #000 -> #0D3664 -> #E096E2 with 50px blur */}
                 <S.OrbitWrap $d={blobSize * 0.92} $anim={'orbitCW 12s linear infinite'}>
-                  <S.OrbitShape $rotate={-176.444} $w={shape1W} $h={shape1H} $blur={blurPx} $bg={'linear-gradient(180deg, #000000 0%, #0D3664 50%, #E096E2 98.08%)'} />
+                  <S.OrbitShape
+                    $rotate={-176.444}
+                    $w={shape1W}
+                    $h={shape1H}
+                    $blur={orbitBlur}
+                    $saturate={orbitSat}
+                    $bright={orbitBright}
+                    $opacity={orbitOpacity}
+                    $bg={'linear-gradient(180deg, #000000 0%, #0D3664 50%, #E096E2 98.08%)'}
+                  />
                 </S.OrbitWrap>
                 {/* Orbit B - Figma spec: pink gradient with 50px blur */}
                 <S.OrbitWrap $d={blobSize * 0.84} $anim={'orbitCCW 14s linear infinite'}>
-                  <S.OrbitShape $rotate={-144.552} $w={shape2W} $h={shape2H} $blur={blurPx} $bg={'linear-gradient(180deg, #FC8AD6 0%, #FFD8E0 75.48%)'} />
+                  <S.OrbitShape
+                    $rotate={-144.552}
+                    $w={shape2W}
+                    $h={shape2H}
+                    $blur={orbitBlur}
+                    $saturate={orbitSat}
+                    $bright={orbitBright}
+                    $opacity={orbitOpacity}
+                    $bg={'linear-gradient(180deg, #FC8AD6 0%, #FFD8E0 75.48%)'}
+                  />
                 </S.OrbitWrap>
                 {/* New entering orb (from outside, then joins rotation) */}
                 {newOrbEnter && (
@@ -364,7 +388,12 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
                 {/* Final phase: extra orb and center glow */}
                 {showFinalOrb && (
                   <S.FinalOrbWrap $w={blobSize * 1.02} $h={blobSize * 1.06}>
-                    <S.FinalOrbShape $w={Math.round(blobSize * 1.01)} $h={Math.round(blobSize * 1.05)} $br={Math.round(blobSize * 1.05)} />
+                    <S.FinalOrbShape
+                      $w={Math.round(blobSize * 1.01)}
+                      $h={Math.round(blobSize * 1.05)}
+                      $br={Math.round(blobSize * 1.05)}
+                      $strong={t5Phase}
+                    />
                   </S.FinalOrbWrap>
                 )}
                 

@@ -8,6 +8,7 @@ import HeroText from "./sections/HeroText";
 import BlobControls from "./sections/BlobControls";
 import useLongPressProgress from "./hooks/useLongPressProgress";
 import useSpeechRecognition from "./hooks/useSpeechRecognition";
+import { generateEmpathyLine } from "@/src/services/openai.service";
 import useTypewriter from "./hooks/useTypewriter";
 import useOrchestratingTransitions from './hooks/useOrchestratingTransitions';
 import usePostTypingShowcase from './hooks/usePostTypingShowcase';
@@ -39,7 +40,13 @@ export default function MobileControls() {
   const submittedRef = useRef(false);
 
   const buildEmpathyLine = (rawMood) => {
-    const s = String(rawMood || '').trim();
+    let s = String(rawMood || '').trim();
+    try {
+      const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
+      s = sanitizeEmotion(s, { strict: true });
+    } catch {
+      s = '불쾌해';
+    }
     if (!s) return '조금 더 편안함을 느끼실 수 있는 공간을 준비해볼게요.';
     if (s.includes('피곤') || s.includes('지침') || s.includes('기진') || s.includes('과로')) {
       return '많이 피곤하셨겠어요. 피로를 풀 수 있는 공간을 준비해볼게요.';
@@ -97,10 +104,18 @@ export default function MobileControls() {
 
   const buildSummaryText = (currentMood, rec) => {
     if (!rec) return '';
+    let safe = '';
+    try {
+      const { sanitizeEmotion, toSpokenEmotion } = require('@/utils/text/sanitizeEmotion');
+      const clean = sanitizeEmotion(String(currentMood || ''), { strict: true });
+      safe = toSpokenEmotion(clean);
+    } catch {
+      safe = '';
+    }
     const musicMood = musicMoodFromSong(rec.song);
     const lightMood = lightMoodFromHex(rec.lightColor);
     const envMood = '편안한';
-    const moodPart = currentMood ? `“${currentMood}”한 감정에 맞춰 ` : '';
+    const moodPart = safe ? `“${safe}”한 감정에 맞춰 ` : '';
     return `${moodPart}음악은 ${musicMood} 무드에 맞추고, 조명은 ${lightMood} 무드, 온도와 습도는 ${rec.temperature}°C, ${rec.humidity}%로 하여 ${envMood} 공간을 조성했어요.`;
   };
 
@@ -190,7 +205,12 @@ export default function MobileControls() {
       setLiveTranscript(text);
     },
     onResult: ({ transcript }) => {
-      setMood(transcript);
+      try {
+        const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
+        setMood(sanitizeEmotion(transcript, { strict: true }));
+      } catch {
+        setMood('불쾌해');
+      }
       setLiveTranscript("");
       if (!name.trim()) setName('사용자');
       // hold final text longer, then fade out
@@ -231,11 +251,17 @@ export default function MobileControls() {
   const isOrchestrating = loading || orchestratingLock;
 
   // Empathy first, then analysis typing (both in orchestrated stage)
+  const [empathyLine, setEmpathyLine] = useState('');
   useEffect(() => {
     if (!recommendations) { setShowEmpathy(false); setEmpathyDone(false); setEmpathyFading(false); setTypingStarted(false); return; }
     if (isOrchestrating) return;
     // Start empathy once when results available
     setShowEmpathy(true);
+    // Choose exactly one line and keep it fixed
+    try {
+      const line = buildEmpathyLine(mood);
+      setEmpathyLine(line);
+    } catch { setEmpathyLine(buildEmpathyLine(mood)); }
     setEmpathyDone(false);
     setEmpathyFading(false);
     // 공감 문장 동안에는 중앙 메인 블롭은 살짝 투명하게 "정지"하고,
@@ -330,8 +356,16 @@ export default function MobileControls() {
       // 방 참가 (타겟 전송을 위해)
       socket?.emit('mobile-init', { userId });
     } catch {}
-    emitNewName(nm, { userId, mood: md });
-    emitNewVoice(md, md, 0.8, { userId, name: nm });
+    // Sanitize before sending
+    let safeMood = md;
+    try {
+      const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
+      safeMood = sanitizeEmotion(md, { strict: true });
+    } catch {
+      safeMood = '불쾌해';
+    }
+    emitNewName(nm, { userId, mood: safeMood });
+    emitNewVoice(safeMood, safeMood, 0.8, { userId, name: nm });
     
     console.log('✅ Mobile: Data emitted successfully');
     
@@ -550,7 +584,19 @@ export default function MobileControls() {
             {(isListening || listeningStage === 'finalHold' || listeningStage === 'fadeOut') && (
               <ListeningOverlay
                 topLabel="듣고 있어요"
-                centerText={(listeningStage === 'finalHold' && mood) ? `“${mood}”` : (liveTranscript ? `“${liveTranscript}”` : undefined)}
+                centerText={(listeningStage === 'finalHold' && mood)
+                  ? `“${mood}”`
+                  : (liveTranscript
+                      ? (() => {
+                          try {
+                            const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
+                            return `“${sanitizeEmotion(liveTranscript, { strict: true })}”`;
+                          } catch {
+                            return '“불쾌해”';
+                          }
+                        })()
+                      : undefined)
+                }
                 stage={listeningStage === 'fadeOut' ? 'fadeOut' : 'live'}
               />
             )}
@@ -563,7 +609,7 @@ export default function MobileControls() {
           <>
             {showEmpathy && (
               <EmpathyWrap $fadeOut={empathyFading}>
-                <p>{buildEmpathyLine(mood)}</p>
+                <p>{empathyLine}</p>
               </EmpathyWrap>
             )}
             {typingStarted && (

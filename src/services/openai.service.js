@@ -82,4 +82,45 @@ export async function decideEnv({ systemPrompt, latestConversation, currentProgr
   }
 }
 
+// Lightweight helper to generate a single empathetic Korean sentence.
+// Uses the same proxy route to keep the API key server-side.
+export async function generateEmpathyLine({ mood = '', userText = '', reason = '', hex = '', song = '' } = {}) {
+  const sanitizedMood = String(mood || '').slice(0, 16);
+  const user = String(userText || '').slice(0, 64);
+  const r = String(reason || '').slice(0, 160);
+  const sys = [
+    'You are a Korean UX copywriter creating ONE empathetic sentence.',
+    'Rules:',
+    '- Output: Korean, 1 short sentence (<= 60 chars).',
+    '- No profanity or abusive/sexual content; never echo profanity.',
+    '- If mood is present, reflect it subtly; avoid repeating the exact word in quotes.',
+    '- Maintain warm, concise tone; avoid imperative/commanding phrasing.',
+  ].join('\n');
+
+  const context = `mood="${sanitizedMood}", userText="${user}", reason="${r}", color="${hex}", music="${song}"`;
+  const body = {
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: sys },
+      { role: 'user', content: `Write one empathetic sentence for: ${context}` },
+    ],
+    max_tokens: 80,
+    temperature: 0.7,
+  };
+
+  try {
+    const resp = await fetch('/api/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data?.error?.message || `OpenAI HTTP ${resp.status}`);
+    const text = data?.choices?.[0]?.message?.content || '';
+    return (text || '').replace(/\s+/g, ' ').trim();
+  } catch (e) {
+    return '';
+  }
+}
+
 

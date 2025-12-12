@@ -12,7 +12,7 @@ Your job is to synthesize ONE coherent environment for the living room:
 - lighting_r, lighting_g, lighting_b (integers 0..255; null when TEMP)
 - lighting_temp_k (null; we do not use Kelvin in this build)
 - hex (string #RRGGBB; MUST match the chosen RGB color; soft, non-neon)
-- emotion (short label that best reflects the user’s input)
+- emotion (short Korean spoken-form label that best reflects the user’s input; see SAFETY/EMOTION rules)
 - similarity_reason (string; brief why-this-emotion explanation)
 
 Rules:
@@ -35,6 +35,13 @@ Rules:
    - SAME emotion MUST map to the SAME track every time. Do NOT rotate between tracks across calls.
 5) Never copy “emotion color” into lighting. Lighting must be chosen independently as ambient color.
 6) Stay concise and safe. No sexual/abusive content. If input is completely non-emotional noise, use a neutral emotion and neutral settings.
+
+SAFETY / EMOTION LABEL RULES
+- NEVER echo user raw text or profanity.
+- Always output a short Korean spoken emotion (2–6 chars), not a bare noun.
+- Examples: "슬퍼", "기뻐", "즐거워", "피곤해", "짜증나", "차분해".
+- If the user text contains profanity/abusive/slur/sexual terms, replace the label with "불쾌해".
+- If you are unsure, choose a neutral label like "차분" or "편안".
 
 Music catalog (titles must match exactly; case-insensitive OK):
 - "Life is" — Scott Buckley
@@ -89,7 +96,7 @@ I/O CONTRACT (STRICT)
 POLICY
 1) Pipeline
    a) Read currentProgram, currentUser, context(previousMusicId).
-   b) Infer a concise emotion label (English).
+   b) Infer a concise emotion label (Korean spoken form, 2–6 chars; e.g., "슬퍼", "기뻐", "즐거워", "피곤해", "짜증나"). NEVER echo user text. Profanity → "불쾌해".
    c) Map emotion → quadrant (Pos/Neg × Active/Passive) → baseline env.
    d) Adjust temperature/humidity slightly within safe bounds.
    e) Choose music deterministically from catalog; do NOT rotate across calls.
@@ -114,7 +121,8 @@ POLICY
    - Amberlight | Echoes | Shoulders Of Giants | A Kind Of Hope
    Include artist where obvious, e.g., Scott Buckley, Kevin MacLeod, etc.
 5) Safety:
-   - If content is abusive/sexual or totally non-emotional noise, fall back to a neutral emotion and neutral settings.
+   - If content is abusive/sexual or totally non-emotional noise, set emotion="불쾌해" or a neutral label; keep settings neutral and safe.
+   - Emotion label formatting: Korean only, 2–6 characters, spoken style (avoid bare nouns); profanity/slur/sexual terms MUST become "불쾌해".
    - Keep outputs within device-safe ranges at all times.
 
 Reminders:
@@ -132,7 +140,7 @@ INPUT
 - context: { previousMusicId? }
 
 OUTPUT (tool function decide_env; strict)
-- emotion: short English label
+- emotion: short Korean spoken-form label (2–6 chars; e.g., "슬퍼", "기뻐", "즐거워", "피곤해", "짜증나"). NEVER echo user text; profanity MUST become "불쾌해".
 - temperature_celsius: comfortable range (21–26 typical)
 - humidity_percent: comfortable range (35–60 typical)
 - music_title: from the fixed catalog (see below)
@@ -210,6 +218,12 @@ CLIMATE OVERRIDES (apply when explicit words appear in currentUser.lastVoice.tex
 VARIETY (neutral inputs)
 - Avoid identical outputs across different users. Nudge values by a small, deterministic offset (±1–3°C, ±5–15%) using currentUser.id as a seed; keep within safe ranges.
 - For lighting colors: Select different soft RGB colors for each user to provide visual variety. Use currentUser.id to vary the color selection while keeping it pleasant and soft.
+
+EMOTION LABEL RULES (MANDATORY)
+- Do NOT copy user raw text.
+- Produce a concise Korean spoken emotion (2–6 chars). Examples: "설레", "편안해", "차분해", "기뻐", "짜증나", "피곤해".
+- If user input contains any profanity/abusive/sexual terms, set emotion to "불쾌해".
+- If uncertain, use a neutral label like "차분".
 `.trim();
 
 // SW2: 과거에 사용하던 별도 매핑 프롬프트.

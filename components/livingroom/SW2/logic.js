@@ -251,7 +251,13 @@ export function useSW2Logic() {
       }
       // 모바일에서 바로 들어오는 사용자 입력 텍스트도 블롭 키워드로 사용
       if (payload?.text || payload?.emotion) {
-        pushKeyword(payload.text || payload.emotion);
+        try {
+          const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
+          const safe = sanitizeEmotion(payload.text || payload.emotion, { strict: true });
+          pushKeyword(safe);
+        } catch {
+          pushKeyword('불쾌해');
+        }
       }
     },
     // 타임라인 스테이지 신호는 SW2 프론트 연출에만 사용 (백엔드는 그대로)

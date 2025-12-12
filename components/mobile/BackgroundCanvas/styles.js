@@ -74,7 +74,8 @@ export const OrbitShape = styled.div`
   width: ${(p) => p.$w}px;
   height: ${(p) => p.$h}px;
   border-radius: 50% / 50%;
-  filter: ${(p) => `blur(${p.$blur}px)`};
+  opacity: ${(p) => (p.$opacity != null ? p.$opacity : 0.85)};
+  filter: ${(p) => `blur(${p.$blur}px) saturate(${p.$saturate || 1}) brightness(${p.$bright || 1})`};
   background: ${(p) => p.$bg};
 `;
 
@@ -247,8 +248,8 @@ export const FinalOrbShape = styled.div`
   width: ${(p) => (p.$w != null ? `${p.$w}px` : 'auto')};
   height: ${(p) => (p.$h != null ? `${p.$h}px` : 'auto')};
   border-radius: ${(p) => (p.$br != null ? `${p.$br}px` : '50%')};
-  filter: blur(50px);
-  opacity: 0.95;
+  filter: ${(p) => `blur(${p.$strong ? 36 : 50}px) saturate(${p.$strong ? 1.22 : 1}) brightness(${p.$strong ? 1.08 : 1})`};
+  opacity: ${(p) => (p.$strong ? 1 : 0.95)};
   animation: finalOrbAppear 900ms ease-out forwards;
   background: linear-gradient(180deg, #E291C7 0%, #FFD8E0 75.48%);
 `;
