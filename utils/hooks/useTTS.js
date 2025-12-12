@@ -6,7 +6,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
  */
 export default function useTTS(options = {}) {
   const {
-    voice = 'alloy',
+    voice = 'marin',
     model = 'gpt-4o-mini-tts',
     format = 'mp3',
     volume = 1.0,

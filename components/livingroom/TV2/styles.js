@@ -177,6 +177,12 @@ const noticeTyping = keyframes`
   100% { width: 100%; opacity: 0; }
 `;
 
+// 상단 패널용 컬러 스윕 모션 (좌측 → 우측으로 부드럽게 루프)
+const headerColorSweep = keyframes`
+  0%   { background-position: -220% 0; }
+  100% { background-position:  220% 0; }
+`;
+
 export const Header = styled.div`
   position: absolute; top: 0; left: 0; right: 0;
   /* 상단 파란 박스를 조금 더 두껍게 */
@@ -191,6 +197,7 @@ export const Header = styled.div`
     ${props => props.$gradientEnd || '#ffffff'} 100%);
   /* 컬러 영역을 넓혀 자연스럽게 - 잘림 방지를 위해 더 크게 설정 */
   background-size: 300% 100%;
+  overflow: hidden;
   /* 조명 컬러가 바뀐 뒤에는 좌측을 살짝 더 어둡게 눌러주는 비네트 느낌 */
   &::before {
     content: '';
@@ -206,6 +213,42 @@ export const Header = styled.div`
     );
     mix-blend-mode: soft-light;
   }
+  /* 모바일 인풋으로 조명 컬러가 갱신될 때,
+     파스텔 메인 컬러 + 보색 + 화이트가 좌측에서 우측으로 흐르는 스윕 모션 */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    pointer-events: none;
+    z-index: 1;
+    /* 단순하면서도 자연스럽게 섞이는 4-스톱 그라디언트
+       - 메인 65% / 화이트 20% / 보색 2% / 마지막은 다시 메인으로 회귀
+       → CSS가 각 구간을 선형 보간하면서 부드러운 그라데이션을 만들어준다. */
+    background: linear-gradient(
+      90deg,
+      /* 0% ~ 55%: 메인 컬러 유지 */
+      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 0%,
+      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 55%,
+      /* 55% ~ 65%: 메인 → 화이트로 부드럽게 이어지는 구간 */
+      ${props => props.$sweepWhite || 'rgba(255,255,255,0.0)'} 65%,
+      /* 65% ~ 82%: 화이트 → 보색으로 넘어가는 구간 */
+      ${props => props.$sweepContrast || 'rgba(255,120,160,0.0)'} 82%,
+      /* 82% ~ 100%: 보색 → 다시 메인 컬러로 스며들며 마무리 */
+      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 100%
+    );
+    background-size: 300% 100%;
+    /* 텍스트와 패널 전체에 직접 적용되는 강한 컬러 스윕 */
+    mix-blend-mode: normal;
+    /* 상단 텍스트/아이콘은 위 레이어(z-index 5)에 있기 때문에,
+       애니메이션 레이어에만 블러를 걸어 부드러운 색 흐름을 만든다. */
+    filter: blur(18px);
+    opacity: ${props => (props.$sweepActive ? 0.9 : 0)};
+    transition: opacity 800ms ease-out;
+    ${props => props.$sweepActive && css`
+      /* 속도를 크게 낮춰, 색이 아주 천천히 흐르도록 조정 (20s → 45s) */
+      animation: ${headerColorSweep} 45s linear infinite;
+    `}
+  }
   /* T4: 위치 이동 없이, 컬러가 부드럽게 드러나는 페이드 인 */
   ${props => props.$isT4 && props.$triggerT4 ? css`
     opacity: 0;
@@ -219,8 +262,8 @@ export const Header = styled.div`
     0 14px 34px rgba(0,0,0,0.05) inset,
     0 -12px 24px rgba(255,255,255,0.15) inset;
   z-index: 3;
-  /* 하단 경계 블러 효과 */
-  &::after {
+  /* 하단 경계 블러 효과 (별도 요소로 분리) */
+  & .header-bottom-blur {
     content: '';
     position: absolute;
     bottom: 0;
@@ -261,6 +304,8 @@ export const HeaderIcon = styled.div`
   border-radius: 50%;
   display: grid; place-items: center;
   color: #fff;
+  position: relative;
+  z-index: 5; /* 컬러 스윕/비네트 레이어보다 항상 위 */
   /* 텍스트와 동일 계열의 2단 그림자를 아이콘에도 적용 */
   svg {
     width: 70%;
@@ -287,6 +332,8 @@ export const HeaderTitle = styled.div`
   letter-spacing: 0.02em;
   text-align: left;
   color: rgba(255,255,255,0.96);
+  position: relative;
+  z-index: 5; /* 상단 컬러 스윕보다 텍스트가 항상 위에 보이도록 */
   /* SW2 메인 캡션과 동일 계열의 텍스트 쉐도우를 사용 */
   text-shadow: ${tv2Sw2PrimaryShadow};
 `;
@@ -919,6 +966,7 @@ export const RightSw1Ellipse = styled.div`
     ${props => props.$color3 || 'rgba(255, 218, 233, 0.48)'} ${props => props.$pos3 || 73.08}%,
     ${props => props.$color4 || 'rgba(255, 255, 255, 0.67)'} 100%
   );
+  /* 원래 비주얼로 복원: 블롭 자체에 부드러운 블러 + 채도 강화 */
   filter: blur(20px) saturate(1.8);
   border-radius: 50%;
   z-index: 1;

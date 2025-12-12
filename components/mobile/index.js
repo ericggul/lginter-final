@@ -22,6 +22,7 @@ import { fonts } from "./sections/styles/tokens";
 import { RingPulse as PressRingPulse, HitArea as PressHitArea } from './sections/PressOverlay/styles';
 
 import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
+import { playMobileBackgroundLoop } from '@/utils/data/soundeffect';
 // public 자산 사용: 문자열 경로로 next/image에 전달
 
 export default function MobileControls() {
@@ -230,6 +231,28 @@ export default function MobileControls() {
       window.blobOpacity = 0; // fade to fully transparent so background만 노출
     }
   }, [listeningStage, loading]);
+
+  // ---------------------------------------------------------------------------
+  // Background ambient music (lg_mobile_251211.mp3)
+  // - 모바일 앱이 열려 있는 동안, 아주 낮은 볼륨으로 loop 재생
+  // - 사용자가 페이지를 벗어나면 자동 정지
+  // ---------------------------------------------------------------------------
+  const bgAudioRef = useRef(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // 이미 재생 중이면 중복 생성 방지
+    if (bgAudioRef.current) return;
+    const audio = playMobileBackgroundLoop(0.22);
+    bgAudioRef.current = audio || null;
+    return () => {
+      try {
+        if (bgAudioRef.current) {
+          bgAudioRef.current.pause();
+        }
+      } catch {}
+      bgAudioRef.current = null;
+    };
+  }, []);
 
   useOrchestratingTransitions({ loading, orchestratingLock, setOrchestratingLock, orchestrateMinMs });
 

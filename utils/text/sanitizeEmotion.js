@@ -11,6 +11,22 @@ const PROFANITY_PATTERNS = [
   /sex|porno|porn|섹스|야동|야사/i,
 ];
 
+// Conservative profane sentiment heuristics (only fire when very clear)
+const PROFANE_POSITIVE = [
+  /(기모찌|개?좋|개?맛|개?쩔|쩐다|지린다|지렸다|오진다|미쳤다|미쳤네|레전드)/i,
+];
+const PROFANE_SURPRISE = [
+  /(와\s*씨발|와\s*시발|와\s*ㅅㅂ|헐\s*씨발|헐\s*시발)/i,
+  /(오진다|대박|미쳤네|미쳤다|쩐다)/i,
+];
+const PROFANE_NEGATIVE = [
+  /(개빡|빡치|짜증|ㅈ같|좆같|뭐야|최악|노답|혐)/i,
+];
+const PROFANE_INSULT_OR_SEXUAL = [
+  // Strong insults/sexual → always fail closed to 불쾌해
+  /(니엄마|니애미|애미죽|씨발년|씨발놈|창녀|강간|성폭력|sex|porno|porn|섹스|야동|야사)/i,
+];
+
 function toNFC(text = '') {
   try { return text.normalize('NFC'); } catch { return text; }
 }
@@ -26,6 +42,17 @@ function stripEmojiAndSymbols(text = '') {
 function containsProfanity(text = '') {
   const s = String(text || '');
   return PROFANITY_PATTERNS.some((re) => re.test(s));
+}
+
+function classifyProfaneSentiment(text = '') {
+  const s = String(text || '');
+  if (!s) return null;
+  // If strong insult/sexual content exists, do not attempt positive mapping
+  if (PROFANE_INSULT_OR_SEXUAL.some((re) => re.test(s))) return null;
+  if (PROFANE_POSITIVE.some((re) => re.test(s))) return '신나';
+  if (PROFANE_SURPRISE.some((re) => re.test(s))) return '놀람';
+  if (PROFANE_NEGATIVE.some((re) => re.test(s))) return '짜증';
+  return null;
 }
 
 
@@ -54,7 +81,12 @@ export function sanitizeEmotion(input, { strict = true } = {}) {
   s = stripEmojiAndSymbols(s);
   if (!s) return '차분';
 
-  if (containsProfanity(s)) return '불쾌해';
+  if (containsProfanity(s)) {
+    // Allow clear positive/neutral excitement mappings; otherwise fail closed
+    const profaneSentiment = classifyProfaneSentiment(s);
+    if (profaneSentiment) return profaneSentiment;
+    return '불쾌해';
+  }
 
   // Quick interjection mapping (Korean emotive tokens)
   const interjection = classifyInterjection(s);

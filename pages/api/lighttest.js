@@ -13,6 +13,13 @@ function normalizeBrightness(value) {
 }
 
 export default async function handler(req, res) {
+  // Debug: 확인용 로그 (서버 콘솔에서 env 값 확인)
+  console.log("HUE DEBUG", {
+    HUE_ENABLED: process.env.HUE_ENABLED,
+    HUE_BRIDGE_IP: process.env.HUE_BRIDGE_IP,
+    HUE_USERNAME_SET: !!process.env.HUE_USERNAME,
+  });
+
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ ok: false, error: "Method Not Allowed" });
