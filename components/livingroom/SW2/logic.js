@@ -340,23 +340,9 @@ export function useSW2Logic() {
   );
 
   useEffect(() => {
-    if (!audioSrc || !audioRef.current) return;
-    try {
-      audioRef.current.load();
-      const p = audioRef.current.play();
-      if (p && typeof p.then === 'function') {
-        p.catch(() => {
-          const resume = () => {
-            try {
-              audioRef.current?.play();
-            } catch {}
-          };
-          window.addEventListener('pointerdown', resume, { once: true });
-          window.addEventListener('keydown', resume, { once: true });
-          window.addEventListener('touchstart', resume, { once: true, passive: true });
-        });
-      }
-    } catch {}
+    // SW2: Background music is intentionally disabled (sound effects only).
+    // Keep updating `title/artist/coverSrc/tempo` as usual, but never load/play the mp3.
+    return;
   }, [audioSrc]);
 
   const participantCount = useMemo(() => {
