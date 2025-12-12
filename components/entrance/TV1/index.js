@@ -34,6 +34,8 @@ function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCou
   // 새 블롭 내용 단계: 'empty' → 'dots' → 'text'
   const [contentPhase, setContentPhase] = useState(isNewBlob ? 'empty' : 'text');
   const announcedRef = useRef(false);
+  // Lightweight typewriter for T3→T4→T5 전환 시 텍스트 표시
+  const [typedText, setTypedText] = useState(isNewBlob ? '' : (blob.text || ''));
   
   useEffect(() => {
     // 새로 생성된 블롭만 하단에서 올라오는 애니메이션 적용
@@ -98,6 +100,28 @@ function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCou
     };
   }, [isNewBlob]);
 
+  // Typewriter: contentPhase가 text로 전환될 때 한 번만 실행
+  useEffect(() => {
+    if (!isNewBlob) {
+      setTypedText(blob.text || '');
+      return;
+    }
+    if (contentPhase !== 'text') return;
+    const full = String(blob.text || '');
+    if (!full) {
+      setTypedText('');
+      return;
+    }
+    setTypedText('');
+    let i = 0;
+    const timer = setInterval(() => {
+      i += 1;
+      setTypedText(full.slice(0, i));
+      if (i >= full.length) clearInterval(timer);
+    }, 60);
+    return () => clearInterval(timer);
+  }, [contentPhase, isNewBlob, blob.text]);
+
   // T4 시점(텍스트 등장)에서 TTS 호출
   useEffect(() => {
     if (contentPhase === 'text' && isNewBlob && !announcedRef.current && typeof onTextVisible === 'function') {
@@ -148,7 +172,7 @@ function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCou
         </span>
       )}
       {contentPhase === 'text' && (
-        <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{blob.text}</span>
+        <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{typedText}</span>
       )}
     </BlobComponent>
   );
