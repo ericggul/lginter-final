@@ -21,6 +21,13 @@ function hexToRgb(hex) {
   };
 }
 
+function hexToRgbaString(hex, opacity = 1) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const a = Math.max(0, Math.min(1, Number(opacity)));
+  return `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+}
+
 function rgbToHsl(r, g, b) {
   const R = r / 255;
   const G = g / 255;
@@ -63,6 +70,7 @@ export default function SW2Controls() {
     title,
     artist,
     coverSrc,
+    lightColor,
     participantCount,
     blobRefs,
     timelineState,
@@ -241,7 +249,22 @@ export default function SW2Controls() {
     ' hsla(340, 86%, 86%, 0.55) 58%,' +
     ' hsla(340, 90%, 88%, 1.0) 100%' +
     ')';
-  const centerGlowBackground = coverSrc ? albumInnerBackground : levaPinkBackground;
+  // TV2/모바일과 동일한 "결정(lightColor)"를 SW2 중앙에도 아주 은은하게 반영한다.
+  // - 앨범 기반 룩은 유지
+  // - 비용이 큰 애니메이션/루프 없이 background transition만 사용
+  const lightTint = useMemo(() => {
+    const raw = String(lightColor || '').trim();
+    if (!raw) return null;
+    if (!/^#?([0-9a-f]{6})$/i.test(raw)) return null;
+    const normalized = raw.startsWith('#') ? raw : `#${raw}`;
+    return hexToRgbaString(normalized, 0.22);
+  }, [lightColor]);
+
+  const centerGlowBackground = useMemo(() => {
+    const base = coverSrc ? albumInnerBackground : levaPinkBackground;
+    if (!lightTint) return base;
+    return `radial-gradient(65% 65% at 50% 50%, ${lightTint} 0%, rgba(0,0,0,0) 72%), ${base}`;
+  }, [coverSrc, albumInnerBackground, levaPinkBackground, lightTint]);
 
   // 하단 배경 그라디언트: 상단은 고정 화이트, 하단은 "앨범 컬러 기반의 아주 연한 파스텔 톤"만 사용
   // (조명(lightColor)이나 감정 키워드 색에는 더 이상 반응하지 않음)
