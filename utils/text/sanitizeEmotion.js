@@ -1,8 +1,8 @@
 // Simple sanitizer for emotion labels (Korean UI)
 // - normalize to NFC
 // - remove emoji/symbols
-// - detect profanity/abusive/sexual words → replace with "불쾌해"
-// - clamp to 2–5 Korean characters; fallback to "불쾌해" if empty
+// - detect profanity/abusive/sexual words → map to sentiment or "불쾌해"
+// - otherwise return the original text (no shortening/mapping)
 
 const PROFANITY_PATTERNS = [
   // Korean common profanities/slurs (partial, case-insensitive Latin variants included)
@@ -55,7 +55,6 @@ function classifyProfaneSentiment(text = '') {
   return null;
 }
 
-
 function clampLenKorean(text = '') {
   // Keep 2–5 visible chars. If shorter than 2, try to pad/reduce smartly.
   const s = toNFC(String(text || '').trim());
@@ -81,18 +80,18 @@ export function sanitizeEmotion(input, { strict = true } = {}) {
   s = stripEmojiAndSymbols(s);
   if (!s) return '차분';
 
+  // Profanity/sexual content → map or fail-closed
   if (containsProfanity(s)) {
-    // Allow clear positive/neutral excitement mappings; otherwise fail closed
     const profaneSentiment = classifyProfaneSentiment(s);
     if (profaneSentiment) return profaneSentiment;
     return '불쾌해';
   }
 
-  // Quick interjection mapping (Korean emotive tokens)
-  const interjection = classifyInterjection(s);
-  if (interjection) return interjection;
+  // Non-problematic text: return as-is (normalized, emoji-stripped)
+  return s;
+}
 
-  // If contains any Latin-only or numbers-only
+// Retained for potential future use (not used by sanitizeEmotion)
 function classifyInterjection(text = '') {
   const s = String(text || '').trim();
   if (!s) return '';
@@ -115,32 +114,6 @@ function classifyInterjection(text = '') {
   // Affection/love
   if (/(사랑|좋아해|호감|설레|두근)/.test(s)) return '설렘';
   return '';
-}
-  const hasKorean = /[가-힣]/.test(s);
-  if (!hasKorean && strict) {
-    // Try simple English cues
-    const ls = s.toLowerCase();
-    if (/sad|sorrow|depress|blue|cry/.test(ls)) return '슬픔';
-    if (/happy|joy|glad|lol|haha|lmao/.test(ls)) return '기쁨';
-    if (/angry|mad|annoy|rage/.test(ls)) return '짜증';
-    if (/anx|worry|nerv|tense/.test(ls)) return '불안';
-    if (/tired|exhaust|sleepy|fatigue/.test(ls)) return '피곤';
-    if (/bored|dull/.test(ls)) return '지루함';
-    if (/surprise|omg|wow/.test(ls)) return '놀람';
-    // Unknown non-Korean → neutral
-    return '차분';
-  }
-
-  // Common conversational endings → noun-ish
-  s = s
-    .replace(/(같아|같음|같다|같네요|같아요|같음)$/u, '')
-    .replace(/(해요|했어요|했음|할래|하고싶|하고 싶|하고 싶다)$/u, '')
-    .replace(/(기분|느낌|마음|상태)$/u, '') // reduce to core emotion
-    .trim();
-
-  s = clampLenKorean(s);
-  if (!s) s = '차분';
-  return s;
 }
 
 // Convert noun-ish labels to spoken/adjective style for UI
@@ -175,5 +148,3 @@ export function toSpokenEmotion(label = '') {
 }
 
 export default sanitizeEmotion;
-
-
