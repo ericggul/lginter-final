@@ -63,8 +63,6 @@ export default function SW2Controls() {
     title,
     artist,
     coverSrc,
-    audioSrc,
-    audioRef,
     participantCount,
     blobRefs,
     timelineState,
@@ -553,8 +551,7 @@ export default function SW2Controls() {
         )}
       </S.CaptionWrap>
 
-      {/* Hidden audio element */}
-      {audioSrc ? <audio ref={audioRef} src={audioSrc} autoPlay loop playsInline preload="auto" /> : null}
+      {/* NOTE: BGM intentionally disabled on SW2 (sound effects only) */}
     </S.Root>
   );
 }

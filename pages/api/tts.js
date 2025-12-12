@@ -20,6 +20,9 @@ export default async function handler(req, res) {
       return;
     }
 
+    // TTS speaking style (kept separate from `input` so the spoken content stays the same)
+    const instructions = 'Speak calm and kind. Like an exhibition docent. Bright tone.';
+
     const upstream = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
@@ -31,6 +34,7 @@ export default async function handler(req, res) {
         input: trimmed,
         voice,
         format,
+        instructions,
       }),
     });
 
