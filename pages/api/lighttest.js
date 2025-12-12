@@ -5,14 +5,12 @@ import {
   setLightOnOff,
 } from "../../lib/hue/hueClient";
 
-
-
 // NOTE: Hardcoding secrets in source code is risky.
-// Prefer `.env.local` in the project root. If you still want a fallback,
-// set these to your local values (and DO NOT commit).
-const HUE_ENABLED_FALLBACK = true; // true/false
-const HUE_BRIDGE_IP_FALLBACK = "172.20.10.3"; // e.g. "192.168.x.x"
-const HUE_USERNAME_FALLBACK = "3o0JbZdgvZ8c3XayXnDuSs2N-1qxFta3laQKRz7Q";
+// Prefer `.env.local` in the project root.
+// (Fallbacks intentionally left empty to avoid secrets in source.)
+const HUE_ENABLED_FALLBACK = undefined; // true/false
+const HUE_BRIDGE_IP_FALLBACK = ""; // e.g. "192.168.x.x"
+const HUE_USERNAME_FALLBACK = "";
 
 function resolveHueConfig() {
   const enabledRaw =
@@ -46,16 +44,6 @@ function normalizeBrightness(value) {
 
 export default async function handler(req, res) {
   const configOverride = resolveHueConfig();
-  if (process.env.NODE_ENV !== "production") {
-    console.log("HUE DEBUG", {
-      enabled: configOverride.enabled,
-      ipSet: !!configOverride.ip,
-      usernameSet: !!configOverride.username,
-      groupId: configOverride.groupId,
-      lightIdsCount: configOverride.lightIds?.length || 0,
-      envEnabledRaw: process.env.HUE_ENABLED,
-    });
-  }
 
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
