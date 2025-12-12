@@ -6,14 +6,17 @@ import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { useTV2Logic, useTV2DisplayLogic } from './logic';
 import { playTv2Transition } from '@/utils/data/soundeffect';
+import useTTS from "@/utils/hooks/useTTS";
 
 export default function TV2Controls() {
   const { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword, decisionToken } = useTV2Logic();
   const scalerRef = useRef(null);
   const audioRef = useRef(null);
   const lastTransitionKeyRef = useRef(null);
+  const t5SpokenRef = useRef(-1);
 
   const cssVars = useBlobVars(env);
+  const { play: playTts } = useTTS({ voice: 'marin', model: 'gpt-4o-mini-tts', format: 'mp3', volume: 0.9 });
 
   // Leva 컨트롤
   const {
@@ -266,6 +269,18 @@ export default function TV2Controls() {
     waveformPulseIntensity,
     headerSweepActive,
   } = displayLogic;
+
+  // T5 안내: 음악/조명/기후 정보 포함
+  useEffect(() => {
+    try {
+      if (triggerT5Animations && isT5 && decisionKey !== t5SpokenRef.current) {
+        const musicName = (displayTitle || env.music || '음악').trim();
+        const colorName = (displayHeaderTextValue || displayHeaderText || env.lightColor || '조명').trim();
+        t5SpokenRef.current = decisionKey;
+        playTts(`${musicName}, ${colorName}에 맞추어 조율된 공간을 경험해 보세요.`);
+      }
+    } catch {}
+  }, [triggerT5Animations, isT5, decisionKey, displayTitle, env.music, displayHeaderTextValue, displayHeaderText, env.lightColor, playTts]);
 
   // TV2: 새로운 모바일 input으로 env가 바뀌어 T4 전체 화면 전환이 시작될 때 효과음 1회 재생
   useEffect(() => {
