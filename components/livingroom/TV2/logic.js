@@ -293,7 +293,8 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   const reasonChangeRef = useRef(reason || '');
   
   const [showChangeMessage, setShowChangeMessage] = useState(false);
-  
+  // 상단 헤더 컬러 스윕 모션 활성화 여부 (조명 컬러가 존재하는 동안 항상 루프)
+  const headerSweepActive = !!env?.lightColor;
   const albumVisualKey = (showAlbumCover && coverSrc) ? coverSrc : 'placeholder';
   
   // Album tone extraction
@@ -316,7 +317,7 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     })();
     return () => { cancelled = true; };
   }, [coverSrc]);
-  
+
   // Title/Artist/Cover loading logic (respects T4 state)
   useEffect(() => {
     const newTitle = title || '';
@@ -869,6 +870,29 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   const headerGradientStartRgba = hexToRgba(headerStartColor, levaControls?.headerGradientOpacity || 1);
   const headerGradientMidRgba = hexToRgba(headerMidColor, levaControls?.headerGradientOpacity || 1);
   const headerGradientEndRgba = hexToRgba(headerEndColor, levaControls?.headerGradientOpacity || 1);
+
+  // 헤더 상단 패널용 컬러 스윕(좌→우 루프) 색상 세트
+  // - 메인 컬러: 모바일 인풋에서 온 조명 컬러를 약간 더 파스텔 톤으로 보정
+  // - 대비 컬러: 메인 컬러의 보색(180deg 회전)을 기반으로, 명도/채도를 조정해 가장 대비되는 색감으로 사용
+  // - 화이트: 끝단을 정리하는 하이라이트
+  let headerSweepMainColor = headerStartBase;
+  let headerSweepContrastColor = 'hsla(200, 80%, 60%, 0.95)';
+  const headerSweepWhiteColor = 'rgba(255,255,255,0.98)';
+
+  const baseHsl = hexToHsl(headerStartBase);
+  if (baseHsl) {
+    const { h, s, l } = baseHsl;
+    // 메인 컬러: 살짝 더 밝고 파스텔 느낌으로 보정
+    const mainL = Math.min(92, l + 14);
+    const mainS = Math.min(100, s + 4);
+    headerSweepMainColor = hsla(h, mainS, mainL, levaControls?.headerGradientOpacity || 0.95);
+
+    // 대비 컬러: 색상환에서 180deg 회전 + 명도 반전 느낌으로 강한 대비 확보
+    const contrastH = (h + 180) % 360;
+    const contrastS = Math.min(100, s + 18);
+    const contrastL = l > 50 ? Math.max(20, l - 38) : Math.min(82, l + 38);
+    headerSweepContrastColor = hsla(contrastH, contrastS, contrastL, levaControls?.headerGradientOpacity || 0.95);
+  }
   
   const rightCircleColor1Rgba = hexToRgba(levaControls?.rightCircleColor1 || '#f8e9eb', levaControls?.rightCircleColor1Opacity || 1);
   const rightCircleColor2Base = levaControls?.rightCircleColor2 || '#e8adbe';
@@ -977,5 +1001,11 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     iconShadowColorRgba,
     textGlowColorRgba,
     iconGlowColorRgba,
+
+    // Header color sweep (상단 패널 컬러 루프 모션용)
+    headerSweepMainColor,
+    headerSweepContrastColor,
+    headerSweepWhiteColor,
+    headerSweepActive,
   };
 }

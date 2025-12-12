@@ -242,6 +242,9 @@ export default function TV2Controls() {
     headerGradientStartRgba,
     headerGradientMidRgba,
     headerGradientEndRgba,
+    headerSweepMainColor,
+    headerSweepContrastColor,
+    headerSweepWhiteColor,
     rightCircleColor1Rgba,
     rightCircleColor2Rgba,
     rightCircleColor3Rgba,
@@ -261,6 +264,7 @@ export default function TV2Controls() {
     triggerT4Animations,
     triggerT5Animations,
     waveformPulseIntensity,
+    headerSweepActive,
   } = displayLogic;
 
   // TV2: 새로운 모바일 input으로 env가 바뀌어 T4 전체 화면 전환이 시작될 때 효과음 1회 재생
@@ -367,6 +371,10 @@ export default function TV2Controls() {
             $edgeBlurWidth={edgeBlurWidth}
             $isT4={isT4}
             $triggerT4={triggerT4Animations}
+            $sweepMain={headerSweepMainColor}
+            $sweepContrast={headerSweepContrastColor}
+            $sweepWhite={headerSweepWhiteColor}
+            $sweepActive={headerSweepActive}
           >
             <S.HeaderIcon
               $glowColor={iconGlowColorRgba}
