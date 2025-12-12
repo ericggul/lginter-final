@@ -1,12 +1,5 @@
 import { useMemo, useState } from "react";
 
-const percentToBri = (percent) => {
-  const num = Number(percent);
-  if (!Number.isFinite(num)) return 200;
-  const clamped = Math.min(100, Math.max(0, num));
-  return Math.max(1, Math.round((clamped / 100) * 254));
-};
-
 const hexToRgb = (hex) => {
   const value = hex?.replace("#", "");
   if (!value || value.length !== 6) return { r: 255, g: 136, b: 0 };
@@ -18,7 +11,6 @@ const hexToRgb = (hex) => {
 
 export default function LightTestPage() {
   const [color, setColor] = useState("#ff8800");
-  const [brightnessPercent, setBrightnessPercent] = useState(70);
   const [pendingAction, setPendingAction] = useState(null);
   const [status, setStatus] = useState("대기 중");
 
@@ -58,18 +50,9 @@ export default function LightTestPage() {
     sendCommand({
       action: "color",
       color,
-      brightness: percentToBri(brightnessPercent),
     });
 
   const handleOnOff = (on) => sendCommand({ action: on ? "on" : "off" });
-
-  const handleQuickBrightness = (percent) => {
-    setBrightnessPercent(percent);
-    return sendCommand({
-      action: "brightness",
-      brightness: percentToBri(percent),
-    });
-  };
 
   return (
     <div style={styles.page}>
@@ -121,33 +104,6 @@ export default function LightTestPage() {
               disabled={pendingAction === "off"}
             >
               {pendingAction === "off" ? "끄는 중..." : "OFF"}
-            </button>
-          </div>
-        </section>
-
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>3. 조도 (Light / Dark)</h2>
-          <p style={styles.subtext}>
-            현재 밝기: {brightnessPercent.toFixed(0)}%
-          </p>
-          <div style={styles.buttonRow}>
-            <button
-              style={styles.secondaryButton}
-              onClick={() => handleQuickBrightness(80)}
-              disabled={pendingAction === "brightness" && brightnessPercent === 80}
-            >
-              {pendingAction === "brightness" && brightnessPercent === 80
-                ? "Light 적용 중..."
-                : "Light (80%)"}
-            </button>
-            <button
-              style={styles.secondaryButton}
-              onClick={() => handleQuickBrightness(25)}
-              disabled={pendingAction === "brightness" && brightnessPercent === 25}
-            >
-              {pendingAction === "brightness" && brightnessPercent === 25
-                ? "Dark 적용 중..."
-                : "Dark (25%)"}
             </button>
           </div>
         </section>
