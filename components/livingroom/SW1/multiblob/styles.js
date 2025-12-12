@@ -786,19 +786,29 @@ export const CenterMark = styled.img`
 `;
 
 export const CenterTemp = styled.div`
-  font-size: clamp(0.9vw, 5.5vmin, 2.3vw);
-  line-height: 1.08;
-  font-weight: 600;
-  color: #111827;
-  text-shadow: 0 0.026042vw 0 rgba(0,0,0,0.64), 0 0.078125vw 0.3125vw rgba(0,0,0,0.48);
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 600; /* SW2 HeadText와 동일한 두께 */
+  font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
+  line-height: 1.12;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.98);
+  /* SW2 앨범 타이틀과 동일 계열의 화이트 글로우 섀도우 */
+  text-shadow:
+    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
 `;
 
 export const CenterMode = styled.div`
   margin-top: 0.6vmin;
-  font-size: clamp(0.8vw, 4.8vmin, 2.0vw);
-  font-weight: 500;
-  color: #0F172A;
-  text-shadow: 0 0.026042vw 0 rgba(0,0,0,0.48), 0 0.078125vw 0.3125vw rgba(0,0,0,0.36);
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: clamp(0.520833vw, 3.0vmin, 1.8vw);
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.94);
+  /* SW2 앨범 서브타이틀과 동일 계열의 섀도우 */
+  text-shadow:
+    0 0.22vw 0.72vw rgba(0, 0, 0, 0.7),
+    0 0.46vw 1.45vw rgba(255, 255, 255, 0.82);
 `;
 
 // TV2와 완전히 동일한 반투명 흰색 로딩 점 스타일

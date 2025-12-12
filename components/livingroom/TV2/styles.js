@@ -214,7 +214,7 @@ export const Header = styled.div`
     mix-blend-mode: soft-light;
   }
   /* 모바일 인풋으로 조명 컬러가 갱신될 때,
-     파스텔 메인 컬러 + 보색 + 화이트가 좌측에서 우측으로 흐르는 스윕 모션 */
+     파스텔 메인 컬러 + 진한 강조 컬러 + 화이트가 좌측에서 우측으로 흐르는 스윕 모션 */
   &::after {
     content: '';
     position: absolute;
@@ -222,28 +222,26 @@ export const Header = styled.div`
     pointer-events: none;
     z-index: 1;
     /* 단순하면서도 자연스럽게 섞이는 4-스톱 그라디언트
-       - 메인 65% / 화이트 20% / 보색 2% / 마지막은 다시 메인으로 회귀
+       - 메인 ≈72% / 화이트 ≈12% / 진한 강조 컬러(앨범 다크 톤) ≈16% (마지막까지)
        → CSS가 각 구간을 선형 보간하면서 부드러운 그라데이션을 만들어준다. */
     background: linear-gradient(
       90deg,
-      /* 0% ~ 55%: 메인 컬러 유지 */
+      /* 0% ~ 72%: 메인 컬러 유지 */
       ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 0%,
-      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 55%,
-      /* 55% ~ 65%: 메인 → 화이트로 부드럽게 이어지는 구간 */
-      ${props => props.$sweepWhite || 'rgba(255,255,255,0.0)'} 65%,
-      /* 65% ~ 82%: 화이트 → 보색으로 넘어가는 구간 */
-      ${props => props.$sweepContrast || 'rgba(255,120,160,0.0)'} 82%,
-      /* 82% ~ 100%: 보색 → 다시 메인 컬러로 스며들며 마무리 */
-      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 100%
+      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 72%,
+      /* 72% ~ 84%: 메인 → 화이트로 부드럽게 이어지는 구간 */
+      ${props => props.$sweepWhite || 'rgba(255,255,255,0.0)'} 84%,
+      /* 84% ~ 100%: 화이트 → 진한 강조 컬러(앨범 다크 톤)가 보다 넓게 지나가는 구간 */
+      ${props => props.$sweepContrast || 'rgba(255,120,160,0.0)'} 100%
     );
-    background-size: 300% 100%;
-    /* 텍스트와 패널 전체에 직접 적용되는 강한 컬러 스윕 */
-    mix-blend-mode: normal;
+    background-size: 340% 100%;
+    /* 텍스트/아이콘과 자연스럽게 섞이도록, 강한 덮어쓰기 대신 soft-light 블렌드 사용 */
+    mix-blend-mode: soft-light;
     /* 상단 텍스트/아이콘은 위 레이어(z-index 5)에 있기 때문에,
-       애니메이션 레이어에만 블러를 걸어 부드러운 색 흐름을 만든다. */
-    filter: blur(18px);
-    opacity: ${props => (props.$sweepActive ? 0.9 : 0)};
-    transition: opacity 800ms ease-out;
+       애니메이션 레이어에만 더 넓은 블러를 걸어 그라디언트 경계를 부드럽게 풀어준다. */
+    filter: blur(32px);
+    opacity: ${props => (props.$sweepActive ? 0.8 : 0)};
+    transition: opacity 800ms ease-out, filter 800ms ease-out;
     ${props => props.$sweepActive && css`
       /* 속도를 크게 낮춰, 색이 아주 천천히 흐르도록 조정 (20s → 45s) */
       animation: ${headerColorSweep} 45s linear infinite;
@@ -814,6 +812,12 @@ export const TrackTitle = styled.div`
   /* 앨범 커버 바로 아래에 위치하도록 하단으로 이동 */
   top: calc(var(--album-y) + 420px);
   transform: translateX(-50%);
+  /* 긴 제목도 앨범을 기준으로 중앙 정렬되도록 폭/정렬 지정 */
+  width: 70%;
+  max-width: 1600px;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.16;
   /* 음악 제목 폰트 약간 더 키움 */
   font-size: 80px;
   text-transform: uppercase;
@@ -834,6 +838,12 @@ export const Artist = styled.div`
   /* 트랙 타이틀 바로 아래, 간격을 약간 더 좁혀 배치 */
   top: calc(var(--album-y) + 520px);
   transform: translateX(-50%);
+  /* 아티스트 이름도 항상 중앙 정렬 */
+  width: 60%;
+  max-width: 1400px;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.2;
   /* 아티스트 텍스트 폰트 키움 */
   font-size: 64px;
   font-weight: 500;
@@ -1001,11 +1011,24 @@ export const RightEllipseMark = styled.img`
   opacity: 0.95;
 `;
 
-/* 중앙 파동(얇은 링) - SW1 CenterPulse 참고, 위치/크기는 기존 블롭과 동일 */
+/* 중앙 파동(얇은 링) - SW1 CenterPulse 참고, 위치/크기는 기존 블롭과 동일
+   → 퍼지는 범위와 밝기를 더 강하게 해서 파동이 또렷하게 보이도록 강화 */
 const tv2RightPulseWave = keyframes`
-  0%   { transform: scale(0.9); opacity: 0.0; }
-  18%  { opacity: 0.75; }
-  100% { transform: scale(1.35); opacity: 0.0; }
+  0% {
+    transform: scale(0.85);
+    opacity: 0.0;
+  }
+  18% {
+    opacity: 0.95;
+  }
+  55% {
+    transform: scale(1.4);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0.0;
+  }
 `;
 
 export const RightCenterPulse = styled.div`
@@ -1020,12 +1043,14 @@ export const RightCenterPulse = styled.div`
   background: radial-gradient(
     circle,
     rgba(255, 255, 255, 0.0) 0%,
-    rgba(255, 255, 255, 0.0) 64%,
-    rgba(255, 255, 255, 0.95) 72%,
-    rgba(255, 255, 255, 0.0) 88%,
-    rgba(255, 255, 255, 0.0) 100%
+    rgba(255, 255, 255, 0.0) 60%,
+    /* 링 두께를 더 넓히고 밝기를 살짝 올려 파동이 더 잘 보이도록 조정 */
+    rgba(255, 255, 255, 0.98) 70%,
+    rgba(255, 255, 255, 0.6) 82%,
+    rgba(255, 255, 255, 0.0) 96%
   );
-  filter: blur(6px);
+  /* 퍼지는 느낌을 위해 블러 강도도 살짝 증가 */
+  filter: blur(10px);
   transform-origin: 50% 50%;
   animation: ${tv2RightPulseWave} 9s ease-out infinite;
   &::before,
