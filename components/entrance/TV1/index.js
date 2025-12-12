@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import useSocketTV1 from "@/utils/hooks/useSocketTV1";
 import { playTv1BackgroundLoop } from '@/utils/data/soundeffect';
+import useTTS from "@/utils/hooks/useTTS";
 import * as S from './styles';
 import * as B from './blobtextbox/@boxes';
 import { calculateBlobWidth } from './blobtextbox/@boxes';
@@ -8,7 +9,7 @@ import { createSocketHandlers, initializeFixedBlobs } from './logic';
 
 // 새로 생성된 블롭을 화면 밖(하단)에서 위로 슬라이딩하며 나타나게 하는 래퍼 컴포넌트
 // + 내용 단계: T1(빈 블롭, 감정 컬러, 최소 폭) 2초 → T2('...' 모션, 중립 컬러, 최소 폭 유지) 4초 → T3(감정 텍스트, 감정 컬러, 텍스트 길이에 맞게 오른쪽으로 확장)
-function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCount }) {
+function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCount, onTextVisible }) {
   // visible이 false면 렌더링하지 않음 (fadeout)
   if (blob.visible === false) {
     return null;
@@ -32,6 +33,7 @@ function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCou
 
   // 새 블롭 내용 단계: 'empty' → 'dots' → 'text'
   const [contentPhase, setContentPhase] = useState(isNewBlob ? 'empty' : 'text');
+  const announcedRef = useRef(false);
   
   useEffect(() => {
     // 새로 생성된 블롭만 하단에서 올라오는 애니메이션 적용
@@ -95,6 +97,14 @@ function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCou
       clearTimeout(t4);
     };
   }, [isNewBlob]);
+
+  // T4 시점(텍스트 등장)에서 TTS 호출
+  useEffect(() => {
+    if (contentPhase === 'text' && isNewBlob && !announcedRef.current && typeof onTextVisible === 'function') {
+      announcedRef.current = true;
+      try { onTextVisible(blob.text); } catch {}
+    }
+  }, [contentPhase, isNewBlob, onTextVisible, blob.text]);
   
   // 새 블롭: isAnimating이 true면 targetTop으로, false면 startTop 위치에 있음
   // 기존 블롭: 항상 targetTop 위치 (CSS transition으로 이동)
@@ -149,6 +159,7 @@ export default function TV1Controls() {
   const [tv2Color, setTv2Color] = useState('#FFD166');
   const [dotCount, setDotCount] = useState(0);
   const unifiedFont = '\'Pretendard\', \'Pretendard Variable\', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+  const { play: playTts } = useTTS({ voice: 'marin', model: 'gpt-4o-mini-tts', format: 'mp3' });
   // Top row 4 containers (left→right) dynamic texts; newest always goes to first
   const [topTexts, setTopTexts] = useState([]);
   
@@ -322,6 +333,14 @@ export default function TV1Controls() {
     };
   }, [newBlobs, timeMarkers]); // newBlobs나 timeMarkers가 변경되면 높이 재계산
 
+  const speakKeyword = useCallback((kw) => {
+    const txt = String(kw || '').trim();
+    if (!txt) return;
+    try {
+      playTts(`새로운 데이터가 추가되었어요. ${txt}`);
+    } catch {}
+  }, [playTts]);
+
   const handlers = useMemo(
     () => createSocketHandlers({ 
       setKeywords, 
@@ -331,7 +350,7 @@ export default function TV1Controls() {
       setVisibleBlobs,
       setNewBlobs,
       calculateBlobWidth,
-      setTimeMarkers
+      setTimeMarkers,
     }),
     [setKeywords, unifiedFont, setTv2Color, setTopTexts, setVisibleBlobs]
   );
@@ -481,6 +500,7 @@ export default function TV1Controls() {
               unifiedFont={unifiedFont}
               canvasRef={canvasRef}
               dotCount={dotCount}
+              onTextVisible={speakKeyword}
             />
           );
         })}
