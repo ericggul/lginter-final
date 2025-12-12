@@ -867,48 +867,98 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
     };
   }, [trackGradient, albumTone]);
   
-  // Color conversions (헤더: 좌측 앨범, 가운데 조명, 우측 화이트)
+  // Color conversions (헤더: 좌측 조명 컬러, 가운데 조명, 우측 화이트)
   const headerStartBase = hexColor && hexColor.match(/^#[0-9A-F]{6}$/i) ? hexColor : levaControls?.headerGradientStart || '#4880e2';
-  const headerStartColor = albumPalette?.left1 || headerStartBase;
+  // 상단 기본 헤더 그라디언트는 "조명 컬러(lightColor)"만 기준으로 사용
+  // (앨범 컬러는 별도의 스윕 레이어에서만 일부 사용)
+  const headerStartColor = headerStartBase;
   const headerMidColor = headerStartBase;
   const headerEndColor = '#ffffff';
   const headerGradientStartRgba = hexToRgba(headerStartColor, levaControls?.headerGradientOpacity || 1);
   const headerGradientMidRgba = hexToRgba(headerMidColor, levaControls?.headerGradientOpacity || 1);
   const headerGradientEndRgba = hexToRgba(headerEndColor, levaControls?.headerGradientOpacity || 1);
 
+  // 앨범 컬러 중 가장 어두운 컬러를 상단 패널 스윕의 좌측 시작 컬러로 사용
+  const albumDarkSweepColor = useMemo(() => {
+    const opacity = levaControls?.headerGradientOpacity || 0.95;
+
+    // 1) 곡별 그라디언트가 있으면, 그 중 "가장 어두운" 컬러를 사용
+    if (trackGradient && Array.isArray(trackGradient.colors) && trackGradient.colors.length > 0) {
+      let darkest = null;
+      let darkestL = 101;
+      trackGradient.colors.forEach((c) => {
+        const hsl = hexToHsl(c);
+        if (hsl && typeof hsl.l === 'number' && hsl.l < darkestL) {
+          darkestL = hsl.l;
+          darkest = hsl;
+        }
+      });
+      if (darkest) {
+        return hsla(darkest.h, darkest.s, darkest.l, opacity);
+      }
+    }
+
+    // 2) 그라디언트가 없으면, 앨범 톤에서 살짝 더 눌린 다크 톤 사용
+    if (albumTone) {
+      const l = Math.max(0, albumTone.l - 12);
+      return hsla(albumTone.h, albumTone.s, l, opacity);
+    }
+
+    // 3) 마지막으로 조명 컬러를 기준으로 가장 어두운 톤 뽑기
+    const baseHsl = hexToHsl(headerStartBase);
+    if (baseHsl) {
+      const l = Math.max(0, baseHsl.l - 20);
+      return hsla(baseHsl.h, baseHsl.s, l, opacity);
+    }
+
+    // 어떤 정보도 없으면 기존 값 그대로
+    return headerStartBase;
+  }, [trackGradient, albumTone, headerStartBase, levaControls?.headerGradientOpacity]);
+  
   // 헤더 상단 패널용 컬러 스윕(좌→우 루프) 색상 세트
-  // - 메인 컬러: 모바일 인풋에서 온 조명 컬러를 약간 더 파스텔 톤으로 보정
-  // - 대비 컬러: 메인 컬러의 보색(180deg 회전)을 기반으로, 명도/채도를 조정해 가장 대비되는 색감으로 사용
+  // - 메인 컬러: "조명 컬러(lightColor)"를 기반으로 한 파스텔 톤 (긴 구간을 담당)
+  // - 대비 컬러: 앨범 컬러 중 가장 어두운 톤 (아주 짧은 구간만 스쳐 지나가도록)
   // - 화이트: 끝단을 정리하는 하이라이트
   let headerSweepMainColor = headerStartBase;
-  let headerSweepContrastColor = 'hsla(200, 80%, 60%, 0.95)';
-  const headerSweepWhiteColor = 'rgba(255,255,255,0.98)';
-
-  const baseHsl = hexToHsl(headerStartBase);
-  if (baseHsl) {
-    const { h, s, l } = baseHsl;
-    // 메인 컬러: 살짝 더 밝고 파스텔 느낌으로 보정
-    const mainL = Math.min(92, l + 14);
-    const mainS = Math.min(100, s + 4);
+  const baseSweepHsl = hexToHsl(headerStartBase);
+  if (baseSweepHsl) {
+    const { h, s, l } = baseSweepHsl;
+    const mainL = Math.min(96, l + 10);
+    const mainS = Math.max(5, Math.min(100, s - 8));
     headerSweepMainColor = hsla(h, mainS, mainL, levaControls?.headerGradientOpacity || 0.95);
-
-    // 대비 컬러: 색상환에서 180deg 회전 + 명도 반전 느낌으로 강한 대비 확보
-    const contrastH = (h + 180) % 360;
-    const contrastS = Math.min(100, s + 18);
-    const contrastL = l > 50 ? Math.max(20, l - 38) : Math.min(82, l + 38);
-    headerSweepContrastColor = hsla(contrastH, contrastS, contrastL, levaControls?.headerGradientOpacity || 0.95);
   }
+
+  const headerSweepContrastColor = albumDarkSweepColor || headerSweepMainColor;
+  const headerSweepWhiteColor = 'rgba(255,255,255,0.98)';
   
-  const rightCircleColor1Rgba = hexToRgba(levaControls?.rightCircleColor1 || '#f8e9eb', levaControls?.rightCircleColor1Opacity || 1);
-  const rightCircleColor2Base = levaControls?.rightCircleColor2 || '#e8adbe';
-  const rightCircleColor2Rgba = hexToRgba(albumPalette?.left2 || rightCircleColor2Base, levaControls?.rightCircleColor2Opacity || 0.69);
+  // 우측 블롭 컬러 구성
+  // - color1 / color2 / color4: 기본 Figma/Leva 색상의 명도·채도를 유지하면서,
+  //   앨범 팔레트 색을 살짝 섞어 "톤만" 따라가도록 조정 (앨범 때문에 너무 칙칙/튀지 않도록)
+  // - color3: SW1의 온도 기반 컬러를 그대로 사용 (중앙 핵심 온도 컬러)
+  const baseRightColor1 = levaControls?.rightCircleColor1 || '#f8e9eb';
+  const baseRightColor2 = levaControls?.rightCircleColor2 || '#e8adbe';
+  const baseRightColor4 = levaControls?.rightCircleColor4 || '#fff3ed';
+  const albumMixRatio = 0.7; // 0.7: 기본 색 70% + 앨범 색 30%
+
+  const rightCircleColor1Base = albumPalette?.left1
+    ? mixHex(baseRightColor1, albumPalette.left1, albumMixRatio)
+    : baseRightColor1;
+  const rightCircleColor1Rgba = hexToRgba(rightCircleColor1Base, levaControls?.rightCircleColor1Opacity || 1);
+
+  const rightCircleColor2Base = albumPalette?.left2
+    ? mixHex(baseRightColor2, albumPalette.left2, albumMixRatio)
+    : baseRightColor2;
+  const rightCircleColor2Rgba = hexToRgba(rightCircleColor2Base, levaControls?.rightCircleColor2Opacity || 0.69);
   const tempC = typeof env?.temp === 'number' ? env.temp : 24;
   const warmHue = computeMiniWarmHue(tempC);
   const tempBasedColor3 = toHslaSW1(warmHue, 65, 75, levaControls?.rightCircleColor3Opacity || 0.37);
-  const blobCenterBase = albumPalette?.left3 || tempBasedColor3;
-  // 중앙 컬러를 약간 더 연하게 고정
-  const rightCircleColor3Rgba = hexToRgba(mixHex(blobCenterBase, '#ffffff', 0.35), levaControls?.rightCircleColor3Opacity || 0.37);
-  const rightCircleColor4Rgba = hexToRgba(levaControls?.rightCircleColor4 || '#fff3ed', levaControls?.rightCircleColor4Opacity || 0.60);
+  // 중앙 color3은 온도 기반 색상을 그대로 사용 (앨범 팔레트/화이트와 섞지 않음)
+  const rightCircleColor3Rgba = tempBasedColor3;
+
+  const rightCircleColor4Base = albumPalette?.left4
+    ? mixHex(baseRightColor4, albumPalette.left4, albumMixRatio)
+    : baseRightColor4;
+  const rightCircleColor4Rgba = hexToRgba(rightCircleColor4Base, levaControls?.rightCircleColor4Opacity || 0.60);
   
   const rightPanelBgColor1Rgba = hexToRgba(levaControls?.rightPanelBgColor1 || '#ffffff', levaControls?.rightPanelBgColor1Opacity || 0.95);
   const rightPanelBgColor2Rgba = hexToRgba(levaControls?.rightPanelBgColor2 || '#efebe1', levaControls?.rightPanelBgColor2Opacity || 0.78);

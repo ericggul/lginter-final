@@ -1095,8 +1095,9 @@ const Sw2BlobBase = styled.div`
   overflow: visible;
   /* 기본 원은 투명, 실제 색/그라데이션은 ::before/::after 레이어에서만 렌더 */
   background: transparent;
-  /* 전체 투명도를 조정해 주변 원이 너무 죽지 않으면서도 중앙보다 한 단계 뒤에 있도록 설정 */
-  opacity: 0.9;
+  /* 전체 투명도를 조정해 주변 원이 너무 죽지 않으면서도 중앙보다 한 단계 뒤에 있도록 설정
+     → 앨범 컬러가 적용된 뒤에도 블롭이 너무 옅어 보이지 않도록 살짝 진하게 상향 */
+  opacity: 0.95;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1182,9 +1183,9 @@ export const Sw2InterestBox = styled(Sw2BlobBase)`
   /* 상단 interest 원: 부드럽게 궤도를 돌면서 크기가 바뀌어
      다른 두 원과 자리를 주고받는 듯한 깊이감을 만든다. */
   animation: ${interestDrift} 22s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-  /* 중앙 상단 메인 원은 다른 블롭보다 조금 더 선명하게 보이도록
-     기본 투명도를 살짝 올려 준다. */
-  opacity: 0.95;
+  /* 중앙 상단 메인 원은 앨범 컬러 변경 이후에도 충분히 존재감 있게 보이도록
+     공통 베이스보다 한 단계 더 진하게 유지 */
+  opacity: 1;
 `;
 
 export const Sw2WonderBox = styled(Sw2BlobBase)`

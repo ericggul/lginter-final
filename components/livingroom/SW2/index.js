@@ -2,7 +2,7 @@ import { useMemo, useEffect, useRef, useState } from 'react';
 import * as S from './styles';
 import { useSW2Logic } from './logic/mainlogic';
 import { getEmotionEntry } from './logic/emotionDB';
-import { backgroundFromEmotion } from './logic/color';
+// backgroundFromEmotion 는 현재 사용하지 않음 (하단 배경은 앨범 컬러만 사용)
 import { getDominantColorFromImage } from '@/utils/color/albumColor';
 import { useControls } from 'leva';
 import { playSw12BlobAppearance } from '@/utils/data/soundeffect';
@@ -245,31 +245,23 @@ export default function SW2Controls() {
     ')';
   const centerGlowBackground = coverSrc ? albumInnerBackground : levaPinkBackground;
 
-  // 하단 배경 그라디언트: 상단은 고정 화이트, 중단은 감정(설렘) 계열,
-  // 하단은 오케스트레이션된 조명(lightColor)을 반영해서 색이 바뀌도록 설정
-  const firstKeywordText = useMemo(() => {
-    if (!Array.isArray(keywords) || !keywords[0]) return '설렘';
-    const k0 = keywords[0];
-    return typeof k0 === 'string' ? k0 : (k0.text || '설렘');
-  }, [keywords]);
-
-  const baseEmotion = getEmotionEntry(firstKeywordText || '설렘');
-  const baseHue = baseEmotion.center?.h ?? 340;
-
-  // SW2 배경 하단은 조명(lightColor) 대신 앨범 컬러를 베이스로 사용
+  // 하단 배경 그라디언트: 상단은 고정 화이트, 하단은 "앨범 컬러 기반의 아주 연한 파스텔 톤"만 사용
+  // (조명(lightColor)이나 감정 키워드 색에는 더 이상 반응하지 않음)
   // - 상단: 거의 흰색
-  // - 하단: 화면 가장 아래쪽에서부터 앨범 컬러가 부드러운 안개처럼 올라왔다가
+  // - 하단: 화면 가장 아래쪽에서부터 앨범 컬러의 "연한" 톤이 부드러운 안개처럼 올라왔다가
   //         위로 갈수록 자연스럽게 사라지도록, 아래쪽에 큰 radial glow 를 둔다.
   const bgColors = useMemo(() => {
     const top = 'hsla(0, 0%, 100%, 1)';
-    // 하단 중심 컬러: 앨범 컬러가 더 뚜렷하게 느껴지도록 채도/밝기와 불투명도를 높인다
+    // 하단 중심(mid): 앨범 컬러를 기반으로 하되, 채도는 크게 낮추고 밝기는 충분히 올려서
+    // 어떤 앨범이 오더라도 항상 "연한 파스텔" 느낌만 남도록 조정
     const mid =
-      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.60), calc(var(--album-l, 76%) + 2%), 0.95)';
-    // 가장 아래쪽은 살짝 남겨서 바닥이 너무 하얗게 끊기지 않도록 한다
+      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.35), calc(var(--album-l, 80%) + 10%), 0.85)';
+    // 가장 아래(bottom)는 mid보다 한 단계 더 밝고 옅은 톤으로만 남겨서
+    // 바닥이 너무 진하게 물들지 않도록 가드
     const bottom =
-      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.50), calc(var(--album-l, 80%) + 6%), 0.35)';
+      'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.25), calc(var(--album-l, 86%) + 14%), 0.30)';
     return { top, mid, bottom };
-  }, [coverSrc, baseHue]);
+  }, [coverSrc]);
 
   // SW2: timeline t3 진입 시, 화면 밖 하단에서 상단으로 올라오는 EntryCircle 애니메이션 시작에 맞춰 효과음 1회 재생
   useEffect(() => {

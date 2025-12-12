@@ -426,8 +426,11 @@ export const KeyframesGlobal = createGlobalStyle`
     100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${(p) => p.$blobSize * 0.6 * (p.$orbitRadiusScale || 1)}px); }
   }
   @keyframes orbitCCW {
+    /* T5 최종 단계에서 블롭이 모두 한 방향(시계 방향)으로만 회전하도록,
+       기존 CCW(반시계) 정의를 CW(시계) 방향으로 맞춰준다.
+       반경(scale)은 그대로 유지해서 두 궤도 간 거리감만 유지. */
     0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.5 * (p.$orbitRadiusScale || 1)}px); }
-    100% { transform: translate(-50%, -50%) rotate(-360deg) translateX(${(p) => p.$blobSize * 0.5 * (p.$orbitRadiusScale || 1)}px); }
+    100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${(p) => p.$blobSize * 0.5 * (p.$orbitRadiusScale || 1)}px); }
   }
 
   @keyframes newOrbEnter {

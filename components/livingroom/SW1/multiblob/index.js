@@ -221,8 +221,9 @@ export default function SW1Controls() {
 
   // Mini blob color (HSL) — apply to all mini blobs for quick tuning
   const miniColor = useControls('SW1 Mini Blob Color (HSL)', {
-    h: { value: 340, min: 0, max: 360, step: 1 },
-    s: { value: 72,  min: 0, max: 100, step: 1 },
+    // SW2 기본 핑크 톤과 동일한 명·채도 세팅 (h=302, s≈78, l≈66)
+    h: { value: 302, min: 0, max: 360, step: 1 },
+    s: { value: 78,  min: 0, max: 100, step: 1 },
     l: { value: 66,  min: 0, max: 100, step: 1 },
     // warm outer tone (two stops)
     warmH:  { value: 49, min: 0, max: 360, step: 1 },
