@@ -37,7 +37,7 @@ export default function LightTestPage() {
         body: JSON.stringify(body),
       });
       const data = await response.json();
-      console.log("data", data);
+      console.log("body and data", {body, data});
 
       
       if (data.disabled) {
