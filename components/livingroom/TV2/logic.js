@@ -151,7 +151,12 @@ export function useTV2Logic() {
         setReason(msg.reason);
       }
       if (msg.emotionKeyword && typeof msg.emotionKeyword === 'string') {
-        setEmotionKeyword(msg.emotionKeyword);
+        try {
+          const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
+          setEmotionKeyword(sanitizeEmotion(msg.emotionKeyword, { strict: true }));
+        } catch {
+          setEmotionKeyword('불쾌해');
+        }
       }
 
       // env 내용이 동일하더라도, 새로운 디시전이 들어왔다는 사실 자체를 전달하기 위한 토큰
