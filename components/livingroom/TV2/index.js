@@ -17,6 +17,9 @@ export default function TV2Controls() {
 
   const cssVars = useBlobVars(env);
   const { play: playTts } = useTTS({ voice: 'marin', model: 'gpt-4o-mini-tts', format: 'mp3', volume: 0.9 });
+  // 언어 감지: 한글 포함 여부로 ko/en 분기
+  const getLang = (s) => /[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/.test(String(s || '')) ? 'ko' : 'en';
+
 
   // Leva 컨트롤
   const {
@@ -84,8 +87,8 @@ export default function TV2Controls() {
     iconShadowOffsetY,
   } = useControls('TV2 Controls', {
     // 1. 경계 블러값과 범위 조절
-    edgeBlurAmount: { value: 9, min: 0, max: 50, step: 1, label: '경계 블러 강도' },
-    edgeBlurWidth: { value: 8, min: 0, max: 100, step: 1, label: '경계 블러 범위' },
+    edgeBlurAmount: { value: 37, min: 0, max: 100, step: 1, label: '경계 블러 강도' },
+    edgeBlurWidth: { value: 56, min: 0, max: 120, step: 1, label: '경계 블러 범위' },
     // 2. 상단 헤더 그라데이션
     headerGradientStart: { value: '#4880e2', label: '헤더 시작 색상' },
     headerGradientMid: { value: '#ffe9f4', label: '헤더 중간 색상' },
@@ -297,8 +300,8 @@ export default function TV2Controls() {
     } catch {}
   }, [triggerT4Animations, isT4, decisionKey]);
 
-  // 곡명 컬러는 항상 화이트로 고정
-  const titleColor = 'rgba(255,255,255,1)';
+  // 곡명 컬러는 블랙으로 고정 (화이트 글로우는 스타일에 적용)
+  const titleColor = '#000';
 
   // 모든 정보가 한 번에 뜨도록 공통 로딩 상태
   const isLoading =
@@ -393,6 +396,9 @@ export default function TV2Controls() {
             $sweepWhite={headerSweepWhiteColor}
             $sweepActive={headerSweepActive}
           >
+            <div className="header-bg" aria-hidden="true" />
+            <div className="header-edge-top" aria-hidden="true" />
+            <div className="header-bottom-blur" aria-hidden="true" />
             {prevHeaderGradient ? (
               <div
                 aria-hidden="true"
@@ -428,7 +434,14 @@ export default function TV2Controls() {
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
               >
-                <S.FadeSlideText $slideLR $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayHeaderTextValue || displayHeaderText || 'header-loading'}-${decisionKey}`}>
+                <S.FadeSlideText
+                  $slideLR
+                  $isT5={isT5}
+                  $triggerT5={triggerT5Animations}
+                  key={`${displayHeaderTextValue || displayHeaderText || 'header-loading'}-${decisionKey}`}
+                  lang={getLang(displayHeaderTextValue || displayHeaderText || '')}
+                  data-text={displayHeaderTextValue || displayHeaderText || ''}
+                >
                   {showHeaderLoading ? (
                     <S.LoadingDots><span /><span /><span /></S.LoadingDots>
                   ) : (
@@ -467,7 +480,7 @@ export default function TV2Controls() {
                 $color4={albumPalette?.left4 || leftPanelColor4}
               />
               <S.EmotionFlow>
-                <span>
+                <span lang={getLang(isLoading ? '' : (musicTag || env.music || ''))}>
                   {isLoading
                     ? <S.LoadingDots><span /><span /><span /></S.LoadingDots>
                     : (musicTag || env.music || '')}
@@ -475,6 +488,8 @@ export default function TV2Controls() {
               </S.EmotionFlow>
               <S.AngularSweep />
               <S.AngularSharp />
+              {/* 앨범 뒤쪽을 살짝 눌러주는 다크 블롭 */}
+              <S.AlbumBackdropBlob $dark={headerSweepContrastColor} />
               <S.MusicRow
                 $glowColor={textGlowColorRgba}
                 $shadowColor={textShadowColorRgba}
@@ -496,7 +511,7 @@ export default function TV2Controls() {
                   if (!env.music) {
                     return <S.LoadingDots><span /><span /><span /></S.LoadingDots>;
                   }
-                  // musicCatalog에서 tags 찾기
+                  // musicCatalog에서 카테고리(cat) 우선 사용, 없으면 tags[0] 사용
                   const parsed = parseMusicString(env.music);
                   const normalizedParsedTitle = normalizeTrackName(parsed.title);
                   const catalogEntry = MUSIC_CATALOG.find((m) => {
@@ -505,11 +520,10 @@ export default function TV2Controls() {
                     return normalizedCatalogTitle === normalizedParsedTitle || 
                            normalizedCatalogId === normalizedParsedTitle;
                   });
-                  const tag = catalogEntry?.tags?.[0] || env.music;
-                  const label = tag.charAt(0).toUpperCase() + tag.slice(1);
+                  const label = (catalogEntry?.cat || catalogEntry?.tags?.[0] || env.music || '').toString();
                   return (
                     <>
-                      {label}
+                      <span lang={getLang(label)}>{label}</span>
                       {displayReason && !showReasonLoading && (
                         <S.ReasonCaption>{displayReason}</S.ReasonCaption>
                       )}
@@ -546,9 +560,16 @@ export default function TV2Controls() {
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
                 $blend={textBlendMode}
-                $color={titleColor}
+              $color={titleColor}
+              $dark={headerSweepContrastColor}
             >
-              <S.FadeSlideText $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayTitle || env.music || 'title-loading'}-${decisionKey}`}>
+              <S.FadeSlideText
+                $isT5={isT5}
+                $triggerT5={triggerT5Animations}
+                key={`${displayTitle || env.music || 'title-loading'}-${decisionKey}`}
+                lang={getLang(displayTitle || env.music || '')}
+                data-text={displayTitle || env.music || ''}
+              >
                 {showTitleLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTitle || env.music || '')}
               </S.FadeSlideText>
             </S.TrackTitle>
@@ -558,8 +579,15 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
+              $dark={headerSweepContrastColor}
             >
-              <S.FadeSlideText $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayArtist || 'artist-loading'}-${decisionKey}`}>
+              <S.FadeSlideText
+                $isT5={isT5}
+                $triggerT5={triggerT5Animations}
+                key={`${displayArtist || 'artist-loading'}-${decisionKey}`}
+                lang={getLang(displayArtist)}
+                data-text={displayArtist || ''}
+              >
                 {showArtistLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : displayArtist}
               </S.FadeSlideText>
             </S.Artist>
@@ -621,7 +649,14 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-temperature.png" alt="" />
                   </S.ClimateIcon>
-                  <S.FadeSlideText $roulette $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayTemp || env.temp || 'temp-loading'}-${decisionKey}`}>
+                  <S.FadeSlideText
+                    $roulette
+                    $isT5={isT5}
+                    $triggerT5={triggerT5Animations}
+                    $blend="overlay"
+                    key={`${displayTemp || env.temp || 'temp-loading'}-${decisionKey}`}
+                    data-text={showTempLoading ? '' : (displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : ''))}
+                  >
                     {showTempLoading ? (
                       <S.LoadingDots><span /><span /><span /></S.LoadingDots>
                     ) : (
@@ -651,7 +686,14 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-humidity.png" alt="" />
                   </S.ClimateIcon>
-                  <S.FadeSlideText $roulette $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayHumidity || env.humidity || 'humidity-loading'}-${decisionKey}`}>
+                  <S.FadeSlideText
+                    $roulette
+                    $isT5={isT5}
+                    $triggerT5={triggerT5Animations}
+                    $blend="overlay"
+                    key={`${displayHumidity || env.humidity || 'humidity-loading'}-${decisionKey}`}
+                    data-text={showHumidityLoading ? '' : (displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : ''))}
+                  >
                     {showHumidityLoading ? (
                       <S.LoadingDots><span /><span /><span /></S.LoadingDots>
                     ) : (
