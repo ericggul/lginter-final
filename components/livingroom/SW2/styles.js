@@ -441,11 +441,36 @@ const captionEnter = keyframes`
     opacity: 0;
     transform: translateY(0.6vw);
     filter: blur(0.5vw);
+    /* 모바일 Orchestrating 텍스트처럼, 처음에는 그라디언트 텍스트 + 강한 글로우로 시작 */
+    background-image: linear-gradient(
+      90deg,
+      #ffe6f7 0%,
+      #ff6ec4 20%,
+      #fff6d6 40%,
+      #7873f5 60%,
+      #ffe6f7 80%,
+      #ff6ec4 100%
+    );
+    background-size: 320% 320%;
+    background-repeat: no-repeat;
+    background-position: 0% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 1.2vw rgba(255, 255, 255, 0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0.2vw);
+    filter: blur(0.18vw);
+    /* 밝은 밴드가 한 번 지나가도록 그라디언트 위치를 이동 */
+    background-position: 100% 50%;
   }
   100% {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
+    /* 애니메이션이 끝나면 기본(검은 텍스트 + 고정 글로시 섀도우) 스타일로 자연스럽게 복귀 */
   }
 `;
 

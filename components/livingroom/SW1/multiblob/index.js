@@ -75,6 +75,14 @@ export default function SW1Controls() {
     miniTextVisible,
     hasDecision,
   } = useSW1Logic();
+  const computeCenterModeLabel = (humidity) => {
+    if (humidity == null || humidity < 0) return '';
+    if (humidity >= 65) return '강력 제습';
+    if (humidity >= 55) return '적정 제습';
+    if (humidity >= 45) return '기본 제습';
+    if (humidity >= 35) return '적정 가습';
+    return '강력 가습';
+  };
   const organicCenterPath = useOrganicCenterPath();
   const [midPulseAlpha, setMidPulseAlpha] = useState(1);
   const [bloomActive, setBloomActive] = useState(false);
@@ -344,6 +352,50 @@ export default function SW1Controls() {
     };
   }, [animHue]);
 
+  // 중앙 텍스트(온도/모드)가 바뀔 때 부드럽게 페이드 아웃 → 인 애니메이션
+  const [centerDisplayTemp, setCenterDisplayTemp] = useState(centerTemp);
+  const [centerDisplayMode, setCenterDisplayMode] = useState(
+    computeCenterModeLabel(centerHumidity)
+  );
+  const [centerTextStage, setCenterTextStage] = useState('idle'); // 'idle' | 'fadeOut' | 'fadeIn'
+
+  useEffect(() => {
+    if (!hasDecision) return;
+    const nextTemp = centerTemp;
+    const nextMode = computeCenterModeLabel(centerHumidity);
+    const changed =
+      nextTemp !== centerDisplayTemp || nextMode !== centerDisplayMode;
+    if (!changed) return;
+
+    // 1) 기존 텍스트 페이드아웃 (조금 더 느리고, 완전히 사라지지 않도록)
+    setCenterTextStage('fadeOut');
+    const fadeOutMs = 420;
+    const fadeInMs = 480;
+
+    const outId = setTimeout(() => {
+      // 2) 값 교체 후 페이드인
+      setCenterDisplayTemp(nextTemp);
+      setCenterDisplayMode(nextMode);
+      setCenterTextStage('fadeIn');
+    }, fadeOutMs);
+
+    const inId = setTimeout(() => {
+      // 3) 애니메이션 종료 후 안정 상태로 복귀
+      setCenterTextStage('idle');
+    }, fadeOutMs + fadeInMs);
+
+    return () => {
+      clearTimeout(outId);
+      clearTimeout(inId);
+    };
+  }, [
+    centerTemp,
+    centerHumidity,
+    hasDecision,
+    centerDisplayTemp,
+    centerDisplayMode,
+  ]);
+
   return (
     <S.Root $backgroundUrl={BACKGROUND_URL} style={rootBackgroundStyle}>
       <S.MotionProps />
@@ -528,19 +580,11 @@ export default function SW1Controls() {
         <S.EllipseLayer>
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
         </S.EllipseLayer>
-        <S.CenterTextWrap>
+        <S.CenterTextWrap $stage={centerTextStage}>
           {hasDecision ? (
             <>
-              <S.CenterTemp>{`${centerTemp}°C`}</S.CenterTemp>
-              <S.CenterMode>
-                {centerHumidity >= 0
-                  ? (centerHumidity >= 65 ? '강력 제습'
-                    : centerHumidity >= 55 ? '적정 제습'
-                    : centerHumidity >= 45 ? '기본 제습'
-                    : centerHumidity >= 35 ? '적정 가습'
-                    : '강력 가습')
-                  : ''}
-              </S.CenterMode>
+              <S.CenterTemp>{`${centerDisplayTemp}°C`}</S.CenterTemp>
+              <S.CenterMode>{centerDisplayMode}</S.CenterMode>
             </>
           ) : (
             <S.LoadingDots $color="rgba(255,192,220,0.85)">

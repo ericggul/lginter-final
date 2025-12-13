@@ -756,10 +756,21 @@ export const CenterTextWrap = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%)
+    ${({ $stage }) =>
+      $stage === 'fadeOut'
+        ? ' scale(0.97)'
+        : $stage === 'fadeIn'
+        ? ' scale(1.01)'
+        : ' scale(1)'};
   text-align: center;
   /* 텍스트를 회전 PNG 위에 두어도 잘 보이도록 한 단계 위로 올림 */
   z-index: 10;
+  opacity: ${({ $stage }) =>
+    $stage === 'fadeOut' ? 0.25 : 1};
+  transition:
+    opacity 420ms ease-in-out,
+    transform 420ms ease-in-out;
 `;
 
 /* spin for the center mark image */
