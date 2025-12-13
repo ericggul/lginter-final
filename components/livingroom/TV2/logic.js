@@ -562,6 +562,20 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
         clearTimeout(messageTimer);
       };
     }
+
+    // 초기 진입 시 색상이 바뀌지 않더라도 첫 값은 반드시 노출되도록 보정
+    if (!headerChanged && newHeaderText && !displayHeaderText) {
+      const reveal = () => {
+        setShowHeaderLoading(false);
+        setDisplayHeaderText(newHeaderText);
+      };
+      if (motionStateRef.current === 'T5') {
+        reveal();
+      } else {
+        const t = setTimeout(reveal, 3000);
+        return () => clearTimeout(t);
+      }
+    }
   }, [headerText]);
   
   // Blur animation
@@ -1065,8 +1079,9 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
       return normalizedCatalogTitle === normalizedParsedTitle || 
              normalizedCatalogId === normalizedParsedTitle;
     });
-    const tag = catalogEntry?.tags?.[0] || env.music;
-    return tag.charAt(0).toUpperCase() + tag.slice(1);
+    // Prefer category(cat) over tags; fallback to env.music string
+    const label = catalogEntry?.cat || catalogEntry?.tags?.[0] || env.music;
+    return (label || '').toString();
   }, [env.music]);
   
   // Reason 표시: 타이핑 없이 바로 나타났다 페이드아웃

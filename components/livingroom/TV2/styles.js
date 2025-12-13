@@ -15,6 +15,21 @@ const tv2Sw2SecondaryShadow = `
 export const Viewport = styled.div`
   position: fixed; inset: 0;
   overflow: hidden;
+  /* 좌측 패널과 채도/명도를 맞추는 보정 레이어 */
+  & .header-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+      ${props => props.$gradientStart || 'rgba(102,157,255,1)'} 0%,
+      ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos ?? 10}%,
+      ${props => props.$gradientEnd || '#ffffff'} ${props => props.$gradientEndPos ?? 90}%,
+      ${props => props.$gradientEnd || '#ffffff'} 100%);
+    background-size: 300% 100%;
+    filter: saturate(0.9) brightness(1.08);
+    opacity: 0.9;
+  }
   background: #FFFFFF;
   touch-action: none;
 `;
@@ -36,7 +51,17 @@ export const Root = styled.div`
   height: 2160px;
   overflow: hidden;
   background: #FFFFFF;
-  font-family: 'Inter', 'Pretendard', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+
+  /* 언어별 폰트 분기: 한글은 지정 폰트 Bold, 영문은 Pretendard */
+  & :lang(ko) {
+    font-family: "BrandKorean", "Noto Sans KR", "Pretendard", sans-serif;
+    font-weight: 400;
+    font-synthesis-weight: none;
+  }
+  & :lang(en) {
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+  }
 `;
 
 /* TV2 전체 페이지용 전역 트랜지션 레이어
@@ -207,44 +232,41 @@ export const Header = styled.div`
     z-index: 1;
     background: linear-gradient(
       90deg,
-      rgba(0, 0, 0, 0.22) 0%,
-      rgba(0, 0, 0, 0.10) 24%,
-      rgba(0, 0, 0, 0.00) 44%
+      rgba(0, 0, 0, 0.34) 0%,
+      rgba(0, 0, 0, 0.18) 36%,
+      rgba(0, 0, 0, 0.00) 60%
     );
     mix-blend-mode: soft-light;
   }
   /* 모바일 인풋으로 조명 컬러가 갱신될 때,
-     파스텔 메인 컬러 + 진한 강조 컬러 + 화이트가 좌측에서 우측으로 흐르는 스윕 모션 */
+     파스텔 메인 컬러 + 화이트 하이라이트 + 앨범 다크 톤이 양쪽에서 부드럽게 퍼지는 스윕 */
   &::after {
     content: '';
     position: absolute;
     inset: -2px;
     pointer-events: none;
     z-index: 2;
-    /* 단순하면서도 자연스럽게 섞이는 4-스톱 그라디언트
-       - 메인 ≈72% / 화이트 ≈12% / 진한 강조 컬러(앨범 다크 톤) ≈16% (마지막까지)
-       → CSS가 각 구간을 선형 보간하면서 부드러운 그라데이션을 만들어준다. */
+    /* 좌: 앨범 다크(0~8) → 메인(8~47) → 화이트(47~53) → 메인(53~92) → 앨범 다크(92~100) */
     background: linear-gradient(
       90deg,
-      /* 0% ~ 72%: 메인 컬러 유지 */
-      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 0%,
-      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 72%,
-      /* 72% ~ 84%: 메인 → 화이트로 부드럽게 이어지는 구간 */
-      ${props => props.$sweepWhite || 'rgba(255,255,255,0.0)'} 84%,
-      /* 84% ~ 100%: 화이트 → 진한 강조 컬러(앨범 다크 톤)가 보다 넓게 지나가는 구간 */
-      ${props => props.$sweepContrast || 'rgba(255,120,160,0.0)'} 100%
+      ${props => props.$sweepContrast || 'rgba(0,0,0,0.0)'} 0%,
+      ${props => props.$sweepContrast || 'rgba(0,0,0,0.0)'} 8%,
+      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 47%,
+      ${props => props.$sweepWhite || 'rgba(255,255,255,0.0)'} 53%,
+      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 92%,
+      ${props => props.$sweepContrast || 'rgba(0,0,0,0.0)'} 100%
     );
-    background-size: 340% 100%;
+    background-size: 420% 100%;
     /* 텍스트/아이콘과 자연스럽게 섞이도록, 강한 덮어쓰기 대신 soft-light 블렌드 사용 */
     mix-blend-mode: soft-light;
     /* 상단 텍스트/아이콘은 위 레이어(z-index 5)에 있기 때문에,
        애니메이션 레이어에만 더 넓은 블러를 걸어 그라디언트 경계를 부드럽게 풀어준다. */
-    filter: blur(32px);
+    filter: blur(56px);
     opacity: ${props => (props.$sweepActive ? 0.8 : 0)};
     transition: opacity 800ms ease-out, filter 800ms ease-out;
     ${props => props.$sweepActive && css`
-      /* 속도를 크게 낮춰, 색이 아주 천천히 흐르도록 조정 (20s → 45s) */
-      animation: ${headerColorSweep} 45s linear infinite;
+      /* 약간 더 빠르게 흐르도록 조정 (45s → 32s) */
+      animation: ${headerColorSweep} 32s linear infinite;
     `}
   }
   /* T4: 위치 이동 없이, 컬러가 부드럽게 드러나는 페이드 인 */
@@ -304,13 +326,14 @@ export const HeaderIcon = styled.div`
   color: #fff;
   position: relative;
   z-index: 5; /* 컬러 스윕/비네트 레이어보다 항상 위 */
-  /* 텍스트와 동일 계열의 2단 그림자를 아이콘에도 적용 */
+  /* 통일된 그림자 + 글로우 */
   svg {
     width: 70%;
     height: 70%;
     filter:
-      drop-shadow(0 10px 32px rgba(0,0,0,0.7))
-      drop-shadow(0 20px 64px rgba(255,255,255,0.85));
+      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
+      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
+      drop-shadow(0 0 28px rgba(255,255,255,0.85));
   }
   img {
     width: 70%;
@@ -318,8 +341,9 @@ export const HeaderIcon = styled.div`
     object-fit: contain;
     display: block;
     filter:
-      drop-shadow(0 10px 32px rgba(0,0,0,0.7))
-      drop-shadow(0 20px 64px rgba(255,255,255,0.85));
+      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
+      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
+      drop-shadow(0 0 28px rgba(255,255,255,0.85));
   }
 `;
 
@@ -329,11 +353,42 @@ export const HeaderTitle = styled.div`
   font-weight: 400;
   letter-spacing: 0.02em;
   text-align: left;
-  color: rgba(255,255,255,0.96);
+  color: #000;
+  mix-blend-mode: soft-light;
   position: relative;
   z-index: 5; /* 상단 컬러 스윕보다 텍스트가 항상 위에 보이도록 */
-  /* SW2 메인 캡션과 동일 계열의 텍스트 쉐도우를 사용 */
-  text-shadow: ${tv2Sw2PrimaryShadow};
+  /* 쉐도우 제거 */
+  text-shadow: none;
+
+  /* 헤더 타이틀 뒤 언더레이: soft-light + center color-burn */
+  &::before{
+    content:''; position:absolute;
+    inset:-8% -10%;
+    border-radius:24px;
+    background: radial-gradient(
+      circle at 50% 60%,
+      rgba(0,0,0,0.32) 0%,
+      rgba(0,0,0,0.18) 46%,
+      rgba(0,0,0,0.00) 82%
+    );
+    filter: blur(18px);
+    mix-blend-mode: soft-light;
+    z-index:-1; pointer-events:none;
+  }
+  &::after{
+    content:''; position:absolute;
+    inset:-6% -8%;
+    border-radius:24px;
+    background: radial-gradient(
+      circle at 50% 60%,
+      rgba(0,0,0,0.34) 0%,
+      rgba(0,0,0,0.34) 42%,
+      rgba(0,0,0,0.00) 62%
+    );
+    filter: blur(22px);
+    mix-blend-mode: color-burn;
+    z-index:-1; pointer-events:none; opacity:0.88;
+  }
 `;
 
 export const Content = styled.div`
@@ -342,6 +397,26 @@ export const Content = styled.div`
   /* 우측(원 영역)을 기존보다 약간만 넓게 유지 */
   display: grid; grid-template-columns: 2.7fr 2.3fr;
   height: calc(100% - 324px);
+  /* 좌/우 박스 간 경계가 너무 딱 갈리지 않도록 부드러운 수직 그라디언트 복원 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 54%;
+    transform: translateX(-50%);
+    width: 220px;
+    pointer-events: none;
+    z-index: 2;
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.00) 0%,
+      rgba(255,255,255,0.32) 50%,
+      rgba(255,255,255,0.00) 100%
+    );
+    filter: blur(26px);
+    mix-blend-mode: soft-light;
+    opacity: 0.85;
+  }
 `;
 
 export const LeftPanel = styled.div`
@@ -351,7 +426,7 @@ export const LeftPanel = styled.div`
   /* Base gradient and sweeping band per spec */
   /* 앨범 카드 위치 (그라디언트 중심에 배치) */
   --album-x: 50%;
-  --album-y: 50%;
+  --album-y: 46%;
   /* starting azimuth for angular sweep – 약간만 회전해서
      하얀 영역 경계가 거의 수평에 가깝게 보이도록 조정 */
   --sweep-start: 90deg;
@@ -370,15 +445,16 @@ export const LeftPanel = styled.div`
       ${props => props.$color5 || '#F6E4CD'} 360deg);
     transform-origin: 50% 50%;
     transform: matrix(1, 0, 0, -1, 0, 0) rotate(0deg);
-    animation: conicTurn 28s linear infinite;
-    /* 좌측 패널 메인 그라디언트 블러: 고정 70px */
-    filter: blur(70px);
+    animation: conicTurn 18s linear infinite;
+    /* 좌측 패널 메인 그라디언트: 더 강한 블러 + 파스텔 경향 유지 */
+    filter: blur(160px) saturate(0.9) brightness(1.08);
+    opacity: 0.96;
     will-change: transform, filter;
     pointer-events: none;
     z-index: 0;
     /* T4: Fade-in animation (3 seconds) */
     ${props => props.$isT4 && props.$triggerT4 ? css`
-      animation: conicTurn 28s linear infinite, ${t4LeftFadeIn} 3s ease-in-out forwards;
+      animation: conicTurn 18s linear infinite, ${t4LeftFadeIn} 3s ease-in-out forwards;
       opacity: 0;
     ` : css`
       transition: opacity 1.5s ease-in-out;
@@ -521,17 +597,49 @@ export const MusicRow = styled.div`
   position: absolute;
   /* 상단 조명 아이콘/텍스트의 좌측 패딩(3vw)에 맞춰 정렬 */
   left: 115.2px;
-  /* 더 상단으로 올려 감정명 노출 */
-  top: calc(var(--album-y) - 900px);
+  /* 살짝만 아래로 내려 정렬 보정 */
+  top: calc(var(--album-y) - 760px);
   display: flex; align-items: center; gap: 60px;
   /* 장르 텍스트도 중간 수준으로 */
   font-size: 85px;
-  font-weight: 400;
+  font-weight: 300;
   text-transform: uppercase;
-  color: rgba(255,255,255,1);
-  /* 상단 BRIGHT/장르 텍스트도 SW2 스타일 계열의 쉐도우 적용 */
-  text-shadow: ${tv2Sw2PrimaryShadow};
+  color: #000;
+  mix-blend-mode: soft-light;
+  /* 쉐도우 제거 */
+  text-shadow: none;
   z-index: 10;
+
+  /* 행 내부 텍스트(첫번째 div: FadeSlideText)에 언더레이 주입 */
+  & > div{
+    position: relative; display: inline-block;
+  }
+  & > div::before{
+    content:''; position:absolute; inset:-14% -16%;
+    border-radius:22px;
+    background: radial-gradient(
+      circle at 50% 55%,
+      rgba(0,0,0,0.42) 0%,
+      rgba(0,0,0,0.22) 44%,
+      rgba(0,0,0,0.00) 80%
+    );
+    filter: blur(26px);
+    mix-blend-mode: soft-light;
+    z-index:-1; pointer-events:none;
+  }
+  & > div::after{
+    content:''; position:absolute; inset:-12% -14%;
+    border-radius:22px;
+    background: radial-gradient(
+      circle at 50% 55%,
+      rgba(0,0,0,0.42) 0%,
+      rgba(0,0,0,0.42) 40%,
+      rgba(0,0,0,0.00) 60%
+    );
+    filter: blur(36px);
+    mix-blend-mode: color-burn;
+    z-index:-1; pointer-events:none; opacity:.86;
+  }
 `;
 
 export const MusicIcon = styled.div`
@@ -544,8 +652,9 @@ export const MusicIcon = styled.div`
     height: 90%; 
     color: #fff; 
     filter:
-      drop-shadow(0 9px 28px rgba(0,0,0,0.7))
-      drop-shadow(0 18px 56px rgba(255,255,255,0.82));
+      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
+      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
+      drop-shadow(0 0 28px rgba(255,255,255,0.85));
   }
   img { 
     width: 90%; 
@@ -553,8 +662,9 @@ export const MusicIcon = styled.div`
     object-fit: contain; 
     display: block; 
     filter:
-      drop-shadow(0 9px 28px rgba(0,0,0,0.7))
-      drop-shadow(0 18px 56px rgba(255,255,255,0.82));
+      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
+      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
+      drop-shadow(0 0 28px rgba(255,255,255,0.85));
   }
 `;
 
@@ -633,6 +743,23 @@ export const AlbumCard = styled.div`
       filter: blur(0px);
     }
   `} 2s ease-in-out;
+
+  /* 테두리가 딱 끊기지 않도록 아주 미세한 외곽 블러 레이어 추가 */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    /* 가장자리만 살짝 밝아지며 퍼지는 얕은 페더 */
+    background: radial-gradient(120% 120% at 50% 50%,
+      rgba(255,255,255,0.0) 74%,
+      rgba(255,255,255,0.16) 86%,
+      rgba(255,255,255,0.0) 100%);
+    filter: blur(8px);
+    opacity: 0.16;
+    pointer-events: none;
+    z-index: 0;
+  }
 
   /* 부드러운 글로우 추가 */
   &::after {
@@ -765,6 +892,48 @@ export const AlbumBg = styled.div`
   z-index: 0;
 `;
 
+/* 좌측 패널 앨범 뒤쪽을 살짝 눌러주는 블롭 (센터가 어둡고 바깥으로 갈수록 소거) */
+export const AlbumBackdropBlob = styled.div`
+  position: absolute;
+  left: var(--album-x);
+  top: var(--album-y);
+  transform: translate(-50%, -50%);
+  width: 1200px;
+  height: 1200px;
+  border-radius: 50%;
+  /* 바깥 레이어: 부드럽게 깔리는 기본 눌림 (overlay) */
+  background: radial-gradient(
+    circle at 50% 50%,
+    ${props => props.$dark || 'rgba(0,0,0,0.28)'} 0%,
+    ${props => props.$dark || 'rgba(0,0,0,0.22)'} 60%,
+    rgba(0,0,0,0.00) 100%
+  );
+  filter: blur(88px);
+  mix-blend-mode: soft-light;
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 2; /* LeftPanel::before(0), ::after(1) 아래와 앨범 카드(5) 사이 */
+
+  /* 중심 레이어: 또렷한 눌림 (color-burn), 중앙만 강하게 0~45% */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at 50% 50%,
+      ${props => props.$dark || 'rgba(0,0,0,0.45)'} 0%,
+      ${props => props.$dark || 'rgba(0,0,0,0.45)'} 45%,
+      rgba(0,0,0,0.0) 60%,
+      rgba(0,0,0,0.0) 100%
+    );
+    filter: blur(72px);
+    mix-blend-mode: color-burn;
+    opacity: 0.9;
+    pointer-events: none;
+  }
+`;
+
 // 텍스트 글로우 펄스 애니메이션 (AlbumGlow와 구분)
 const textGlowPulse = keyframes`
   0%, 100% {
@@ -779,6 +948,7 @@ export const FadeSlideText = styled.div`
   /* 모든 텍스트 변경 시: SW2 앨범명과 동일한 업 + 블러 + 오퍼시티 트랜지션 적용 */
   animation: ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: opacity, transform, filter;
+  mix-blend-mode: ${props => props.$blend || 'soft-light'};
   ${props => props.$shouldGlow ? css`
     animation:
       ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards,
@@ -810,7 +980,7 @@ export const TrackTitle = styled.div`
   position: absolute;
   left: var(--album-x);
   /* 앨범 커버 바로 아래에 위치하도록 하단으로 이동 */
-  top: calc(var(--album-y) + 420px);
+  top: calc(var(--album-y) + 400px);
   transform: translateX(-50%);
   /* 긴 제목도 앨범을 기준으로 중앙 정렬되도록 폭/정렬 지정 */
   width: 70%;
@@ -821,22 +991,61 @@ export const TrackTitle = styled.div`
   /* 음악 제목 폰트 약간 더 키움 */
   font-size: 80px;
   text-transform: uppercase;
-  font-weight: 500;
-  color: ${props => props.$color || 'rgba(255,255,255,0.98)'};
-  mix-blend-mode: normal;
+  font-weight: 300;
+  color: ${props => props.$color || '#000'};
+  mix-blend-mode: ${props => props.$blend || 'soft-light'};
+  /* 밝은 배경에서 시인성 확보용 얇은 스트로크 */
+  -webkit-text-stroke: 1px rgba(0,0,0,0.18);
   /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
   will-change: opacity;
-  /* SW2 헤드라인과 동일 계열의 텍스트 쉐도우 */
-  text-shadow: ${tv2Sw2PrimaryShadow};
+  /* 쉐도우 제거 */
+  text-shadow: none;
   z-index: 20;
   pointer-events: none;
+
+  /* 텍스트 뒤 국소 영역을 살짝 어둡게 눌러주는 언더레이 */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -16% -18%;
+    border-radius: 32px;
+    background: radial-gradient(
+      circle at 50% 55%,
+      rgba(0,0,0,0.55) 0%,
+      rgba(0,0,0,0.30) 45%,
+      rgba(0,0,0,0.00) 80%
+    );
+    filter: blur(30px);
+    mix-blend-mode: soft-light;
+    z-index: -1;
+    pointer-events: none;
+  }
+  /* 중심부 컬러 번으로 더 강하게 눌러 동일한 이중 레이어 효과 */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -12% -14%;
+    border-radius: 24px;
+    background: radial-gradient(
+      circle at 50% 55%,
+      ${props => props.$dark || 'rgba(0,0,0,0.46)'} 0%,
+      ${props => props.$dark || 'rgba(0,0,0,0.46)'} 42%,
+      rgba(0,0,0,0.0) 62%,
+      rgba(0,0,0,0.0) 100%
+    );
+    filter: blur(56px);
+    mix-blend-mode: color-burn;
+    opacity: 0.9;
+    z-index: -1;
+    pointer-events: none;
+  }
 `;
 
 export const Artist = styled.div`
   position: absolute;
   left: var(--album-x);
   /* 트랙 타이틀 바로 아래, 간격을 약간 더 좁혀 배치 */
-  top: calc(var(--album-y) + 520px);
+  top: calc(var(--album-y) + 484px);
   transform: translateX(-50%);
   /* 아티스트 이름도 항상 중앙 정렬 */
   width: 60%;
@@ -846,14 +1055,50 @@ export const Artist = styled.div`
   line-height: 1.2;
   /* 아티스트 텍스트 폰트 키움 */
   font-size: 64px;
-  font-weight: 500;
-  color: ${props => props.$color || 'rgba(255,255,255,0.94)'};
-  mix-blend-mode: normal;
+  font-weight: 200;
+  color: ${props => props.$color || '#000'};
+  mix-blend-mode: soft-light;
   /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
   will-change: opacity;
-  text-shadow: ${tv2Sw2SecondaryShadow};
+  text-shadow: none;
   z-index: 20;
   pointer-events: none;
+  -webkit-text-stroke: 0.8px rgba(0,0,0,0.16);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -16% -18%;
+    border-radius: 28px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(0,0,0,0.48) 0%,
+      rgba(0,0,0,0.26) 48%,
+      rgba(0,0,0,0.00) 82%
+    );
+    filter: blur(28px);
+    mix-blend-mode: soft-light;
+    z-index: -1;
+    pointer-events: none;
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -14% -16%;
+    border-radius: 24px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      ${props => props.$dark || 'rgba(0,0,0,0.42)'} 0%,
+      ${props => props.$dark || 'rgba(0,0,0,0.42)'} 40%,
+      rgba(0,0,0,0.0) 60%,
+      rgba(0,0,0,0.0) 100%
+    );
+    filter: blur(52px);
+    mix-blend-mode: color-burn;
+    opacity: 0.85;
+    z-index: -1;
+    pointer-events: none;
+  }
 `;
 
 // 음악 파형 인디케이터 (실제 오디오 파형 반영)
@@ -889,12 +1134,12 @@ export const EmotionFlow = styled.div`
     left: -40%;
     bottom: 0;
     font-size: 58px;
-    font-weight: 500;
+    font-weight: 300;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.96);
-    /* 감정 라벨에도 SW2 서브 계열 쉐도우 적용 */
-    text-shadow: ${tv2Sw2SecondaryShadow};
+    color: #000;
+    mix-blend-mode: soft-light;
+    text-shadow: none;
     animation: ${emotionFlow} 10s linear infinite;
     white-space: nowrap;
   }
@@ -1016,17 +1261,17 @@ export const RightEllipseMark = styled.img`
 const tv2RightPulseWave = keyframes`
   0% {
     transform: scale(0.85);
-    opacity: 0.0;
+    opacity: 0.15;
   }
   18% {
-    opacity: 0.95;
+    opacity: 1.0;
   }
   55% {
-    transform: scale(1.4);
-    opacity: 0.7;
+    transform: scale(1.6);
+    opacity: 0.85;
   }
   100% {
-    transform: scale(1.7);
+    transform: scale(1.9);
     opacity: 0.0;
   }
 `;
@@ -1043,14 +1288,14 @@ export const RightCenterPulse = styled.div`
   background: radial-gradient(
     circle,
     rgba(255, 255, 255, 0.0) 0%,
-    rgba(255, 255, 255, 0.0) 60%,
-    /* 링 두께를 더 넓히고 밝기를 살짝 올려 파동이 더 잘 보이도록 조정 */
-    rgba(255, 255, 255, 0.98) 70%,
-    rgba(255, 255, 255, 0.6) 82%,
-    rgba(255, 255, 255, 0.0) 96%
+    rgba(255, 255, 255, 0.0) 58%,
+    /* 링 두께/밝기 강화 */
+    rgba(255, 255, 255, 1.0) 68%,
+    rgba(255, 255, 255, 0.8) 84%,
+    rgba(255, 255, 255, 0.0) 98%
   );
-  /* 퍼지는 느낌을 위해 블러 강도도 살짝 증가 */
-  filter: blur(10px);
+  /* 퍼짐 강화를 위해 블러 강도 증가 */
+  filter: blur(14px);
   transform-origin: 50% 50%;
   animation: ${tv2RightPulseWave} 9s ease-out infinite;
   &::before,
@@ -1072,8 +1317,10 @@ export const ClimateGroup = styled.div`
   /* 블러 처리된 블롭보다 항상 위 레이어로 */
   z-index: 3;
   display: grid; gap: 86.4px;
-  color: #fff;
-  filter: drop-shadow(0 10px 40px rgba(0,0,0,0.15));
+  color: #000;
+  mix-blend-mode: soft-light;
+  /* blend-mode가 배경과 상호작용하도록 드롭섀도우 필터 제거 (필터는 스택킹 컨텍스트를 생성하여 블렌딩을 막음) */
+  filter: none;
 `;
 
 export const ClimateRow = styled.div`
@@ -1081,25 +1328,57 @@ export const ClimateRow = styled.div`
   display: flex; align-items: center; gap: 40px;
   /* 온도/습도 텍스트도 중간 수준으로 */
   font-size: 85px;
-  font-weight: 400;
-  color: rgba(255,255,255,0.98);
+  font-weight: 300;
+  color: #000;
+  mix-blend-mode: soft-light;
   animation: ${climatePush} 0.8s ease-out;
   will-change: transform, opacity;
-  /* 온도/습도 값: SW2 서브 계열 쉐도우 */
-  text-shadow: ${tv2Sw2SecondaryShadow};
+  text-shadow: none;
+
+  /* 값 텍스트(FadeSlideText)에 동일 언더레이 적용 */
+  & > div{
+    position: relative; display: inline-block;
+  }
+  & > div::before{
+    content:''; position:absolute; inset:-14% -16%;
+    border-radius:22px;
+    background: radial-gradient(
+      circle at 50% 55%,
+      rgba(0,0,0,0.40) 0%,
+      rgba(0,0,0,0.22) 44%,
+      rgba(0,0,0,0.00) 78%
+    );
+    filter: blur(24px);
+    mix-blend-mode: soft-light;
+    z-index:-1; pointer-events:none;
+  }
+  & > div::after{
+    content:''; position:absolute; inset:-12% -14%;
+    border-radius:22px;
+    background: radial-gradient(
+      circle at 50% 55%,
+      rgba(0,0,0,0.40) 0%,
+      rgba(0,0,0,0.40) 40%,
+      rgba(0,0,0,0.00) 60%
+    );
+    filter: blur(32px);
+    mix-blend-mode: color-burn;
+    z-index:-1; pointer-events:none; opacity:.84;
+  }
 `;
 
 export const NoticeTyping = styled.div`
   margin-top: 8px;
   font-size: 52px;
-  font-weight: 400;
+  font-weight: 300;
   letter-spacing: 0.02em;
-  color: rgba(255,255,255,0.96);
+  color: #000;
+  mix-blend-mode: soft-light;
   overflow: hidden;
   white-space: nowrap;
   animation: ${noticeTyping} 5s steps(32, end) infinite;
   pointer-events: none;
-  text-shadow: ${tv2Sw2SecondaryShadow};
+  text-shadow: none;
 `;
 
 // 선택 이유(감정 설명) 인라인 키워드 (값 우측에 작게 배치)
@@ -1109,9 +1388,9 @@ export const ReasonCaption = styled.span`
   padding-top: 6px;
   font-size: 34px;
   line-height: 1.2;
-  color: rgba(255,255,255,0.96);
+  color: #000;
   opacity: 0.98;
-  text-shadow: ${tv2Sw2SecondaryShadow};
+  text-shadow: none;
 `;
 
 export const ClimateIcon = styled.div`
@@ -1120,18 +1399,22 @@ export const ClimateIcon = styled.div`
     width: 126px; 
     height: 126px; 
     color: #fff; 
+    mix-blend-mode: normal;
     filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.7))
-      drop-shadow(0 16px 52px rgba(255,255,255,0.82));
+      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
+      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
+      drop-shadow(0 0 28px rgba(255,255,255,0.85));
   }
   img { 
     width: 126px; 
     height: 126px; 
     object-fit: contain; 
     display: block; 
+    mix-blend-mode: normal;
     filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.7))
-      drop-shadow(0 16px 52px rgba(255,255,255,0.82));
+      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
+      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
+      drop-shadow(0 0 28px rgba(255,255,255,0.85));
   }
 `;
 
