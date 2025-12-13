@@ -309,7 +309,9 @@ export const FocusBlobGlowText = styled.span`
 `;
 export const TopText = styled.div`
   position: absolute;
-  top: ${(p) => (p.$isFocusMode ? '3vw' : '5.60417vw')}; /* focus 모드에서 살짝 위로 */
+  /* 포커스 모드(t3~t5)에서는 헤더가 다른 요소들과 겹치지 않도록
+     화면 위쪽으로 더 올리고, 완전히 투명하게 숨긴다. */
+  top: ${(p) => (p.$isFocusMode ? '1.8vw' : '5.60417vw')};
   left: 19.610417vw; /* 630px */
   color: #000000;
   font-family: ${(p) => p.$fontFamily};
@@ -317,8 +319,8 @@ export const TopText = styled.div`
   line-height: 1.1;
   letter-spacing: 0.03em;
   white-space: nowrap;
-  opacity: ${(p) => (p.$isFocusMode ? 0.18 : 1)};
-  transform: ${(p) => (p.$isFocusMode ? 'translateY(-0.8vw)' : 'translateY(0)')};
+  opacity: ${(p) => (p.$isFocusMode ? 0 : 1)};
+  transform: ${(p) => (p.$isFocusMode ? 'translateY(-1.8vw)' : 'translateY(0)')};
   transition:
     top 1200ms cubic-bezier(0.4, 0, 0.2, 1),
     opacity 900ms ease-in-out,
