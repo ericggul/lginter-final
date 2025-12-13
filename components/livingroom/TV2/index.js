@@ -227,6 +227,8 @@ export default function TV2Controls() {
     displayArtist,
     displayTemp,
     displayHumidity,
+    displayTempLabel,
+    displayHumidityLabel,
     displayHeaderText: displayHeaderTextValue,
     displayReason,
     showReasonLoading,
@@ -248,6 +250,7 @@ export default function TV2Controls() {
     headerGradientStartRgba,
     headerGradientMidRgba,
     headerGradientEndRgba,
+    albumLightTextColor,
     prevHeaderGradient,
     prevHeaderVisible,
     headerSweepMainColor,
@@ -272,6 +275,9 @@ export default function TV2Controls() {
     triggerT4Animations,
     triggerT5Animations,
     waveformPulseIntensity,
+    tempo,
+    pulseDuration,
+    pulseDelays,
     headerSweepActive,
   } = displayLogic;
 
@@ -300,7 +306,7 @@ export default function TV2Controls() {
     } catch {}
   }, [triggerT4Animations, isT4, decisionKey]);
 
-  // 곡명 컬러는 블랙으로 고정 (화이트 글로우는 스타일에 적용)
+  // 곡명 컬러는 불투명 블랙으로 고정 (화이트 글로우는 스타일에 적용)
   const titleColor = '#000';
 
   // 모든 정보가 한 번에 뜨도록 공통 로딩 상태
@@ -369,7 +375,13 @@ export default function TV2Controls() {
   }, []);
 
   return (
-    <S.Viewport>
+    <S.Viewport
+      $gradientStart={headerGradientStartRgba}
+      $gradientMid={headerGradientMidRgba}
+      $gradientEnd={headerGradientEndRgba}
+      $gradientMidPos={headerGradientMidPos}
+      $gradientEndPos={headerGradientEndPos}
+    >
       <S.Scaler ref={scalerRef} style={{ '--tv2-scale': scale }}>
         <S.Root>
           {/* TV2 전역 페이지 트랜지션 레이어
@@ -433,9 +445,9 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
+                $backdrop={albumLightTextColor} // 상단 조명 텍스트 언더레이에는 앨범 가장 밝은 컬러 사용
               >
                 <S.FadeSlideText
-                  $slideLR
                   $isT5={isT5}
                   $triggerT5={triggerT5Animations}
                   key={`${displayHeaderTextValue || displayHeaderText || 'header-loading'}-${decisionKey}`}
@@ -496,6 +508,7 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
+                $backdrop={albumLightTextColor} // 앨범 가장 밝은 컬러를 언더레이에 사용
               >
                 <S.MusicIcon
                   $glowColor={iconGlowColorRgba}
@@ -506,7 +519,7 @@ export default function TV2Controls() {
                 >
                   <img src="/figma/tv2-song.png" alt="" />
                 </S.MusicIcon>
-              <S.FadeSlideText $slideLR $isT5={isT5} $triggerT5={triggerT5Animations} key={`${env.music || 'music-loading'}-${decisionKey}`}>
+              <S.FadeSlideText $isT5={isT5} $triggerT5={triggerT5Animations} key={`${env.music || 'music-loading'}-${decisionKey}`}>
                 {(() => {
                   if (!env.music) {
                     return <S.LoadingDots><span /><span /><span /></S.LoadingDots>;
@@ -559,10 +572,9 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-                $blend={textBlendMode}
-              $color={titleColor}
-              $dark={headerSweepContrastColor}
-            >
+                $color={titleColor}
+                $backdrop={albumLightTextColor}
+              >
               <S.FadeSlideText
                 $isT5={isT5}
                 $triggerT5={triggerT5Animations}
@@ -579,7 +591,7 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-              $dark={headerSweepContrastColor}
+                $backdrop={albumLightTextColor}
             >
               <S.FadeSlideText
                 $isT5={isT5}
@@ -604,6 +616,13 @@ export default function TV2Controls() {
                 style={{ display: 'none' }}
               />
             ) : null}
+            {/* 좌측 패널 하단: 3초 뒤 음악 변경 안내 (음악 텍스트 정렬에 맞춤) */}
+            <S.SetupHint
+              $left="calc(115.2px + 220px)" // MusicRow 아이콘 + 간격만큼 안쪽으로
+              $fontSize="44px"
+            >
+              3초뒤 음악 변경
+            </S.SetupHint>
             </S.LeftPanel>
             <S.RightPanel
               style={cssVars}
@@ -622,6 +641,10 @@ export default function TV2Controls() {
                 $top={rightCircleTop}
                 $width={rightCircleWidth * rightCircleScale}
                 $height={rightCircleHeight * rightCircleScale}
+                $duration={pulseDuration}
+                $delay1={pulseDelays?.[0]}
+                $delay2={pulseDelays?.[1]}
+                $delay3={pulseDelays?.[2]}
               />
               <S.RightEllipseMark 
                 src="/figma/Ellipse%202767.png" 
@@ -639,6 +662,7 @@ export default function TV2Controls() {
                   $shadowBlur={textShadowBlur}
                   $shadowOffsetX={textShadowOffsetX}
                   $shadowOffsetY={textShadowOffsetY}
+                  $backdrop={albumLightTextColor} // 온도 텍스트 언더레이도 앨범 가장 밝은 컬러 사용
                 >
                   <S.ClimateIcon
                     $glowColor={iconGlowColorRgba}
@@ -653,7 +677,6 @@ export default function TV2Controls() {
                     $roulette
                     $isT5={isT5}
                     $triggerT5={triggerT5Animations}
-                    $blend="overlay"
                     key={`${displayTemp || env.temp || 'temp-loading'}-${decisionKey}`}
                     data-text={showTempLoading ? '' : (displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : ''))}
                   >
@@ -662,8 +685,11 @@ export default function TV2Controls() {
                     ) : (
                       <>
                         {displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : '')}
-                        {displayReason && !showReasonLoading && (
-                          <S.ReasonCaption>{displayReason}</S.ReasonCaption>
+                        {displayTempLabel && (
+                          <>
+                            <S.ClimateDots>························</S.ClimateDots>
+                            <S.ClimateLabel>{displayTempLabel}</S.ClimateLabel>
+                          </>
                         )}
                       </>
                     )}
@@ -676,6 +702,7 @@ export default function TV2Controls() {
                   $shadowBlur={textShadowBlur}
                   $shadowOffsetX={textShadowOffsetX}
                   $shadowOffsetY={textShadowOffsetY}
+                  $backdrop={albumLightTextColor}
                 >
                   <S.ClimateIcon
                     $glowColor={iconGlowColorRgba}
@@ -690,7 +717,6 @@ export default function TV2Controls() {
                     $roulette
                     $isT5={isT5}
                     $triggerT5={triggerT5Animations}
-                    $blend="overlay"
                     key={`${displayHumidity || env.humidity || 'humidity-loading'}-${decisionKey}`}
                     data-text={showHumidityLoading ? '' : (displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : ''))}
                   >
@@ -699,14 +725,18 @@ export default function TV2Controls() {
                     ) : (
                       <>
                         {displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : '')}
-                        {displayReason && !showReasonLoading && (
-                          <S.ReasonCaption>{displayReason}</S.ReasonCaption>
+                        {displayHumidityLabel && (
+                          <>
+                            <S.ClimateDots>························</S.ClimateDots>
+                            <S.ClimateLabel>{displayHumidityLabel}</S.ClimateLabel>
+                          </>
                         )}
                       </>
                     )}
                   </S.FadeSlideText>
                 </S.ClimateRow>
               </S.ClimateGroup>
+              <S.SetupHint>3초 후 기기 설정 완료</S.SetupHint>
               <S.RightSw1Ellipse
                 $right={rightCircleRight}
                 $top={rightCircleTop}

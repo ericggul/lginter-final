@@ -1,4 +1,5 @@
 import styled, { keyframes, css } from 'styled-components';
+import { HeaderIcon as BaseHeaderIcon } from './styles.header';
 
 /* 우측 패널 + 기후/파동 관련 스타일 모듈 */
 
@@ -14,11 +15,23 @@ const t4RightBlobSlide = keyframes`
   100% { transform: translateX(0) rotate(-90deg); opacity: 1; }
 `;
 
-/* 기후 정보 슬라이드 인 */
+/* 기후 정보 트랜지션: 아래에서 위로 + 블러 → 선명 + 오퍼시티 페이드인 */
 const climatePush = keyframes`
-  0%   { transform: translateX(60%) rotateX(20deg); opacity: 0; }
-  60%  { transform: translateX(-6%) rotateX(-8deg); opacity: 1; }
-  100% { transform: translateX(0) rotateX(0deg); opacity: 1; }
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(12px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(4px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
 `;
 
 /* 온습도 타이핑 애니메이션 */
@@ -28,6 +41,33 @@ const noticeTyping = keyframes`
   55%  { width: 100%; opacity: 1; }
   80%  { width: 100%; opacity: 0.9; }
   100% { width: 100%; opacity: 0; }
+`;
+
+/* 안내 텍스트: 8초 주기 타이핑 + 살짝 위로 떠오르는 애니메이션
+   - 초반: 한 글자씩 타이핑되며 나타남
+   - 중반: 전체 문장이 유지
+   - 후반: 살짝 위로 올라가며 서서히 페이드아웃 (좌/우 패널 공통) */
+const setupHintPulse = keyframes`
+  0% {
+    width: 0;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  20% {
+    width: 0;
+    opacity: 1;
+    transform: translateY(4px);
+  }
+  55% {
+    width: 100%;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    width: 100%;
+    opacity: 0;
+    transform: translateY(-8px);
+  }
 `;
 
 export const RightPanel = styled.div`
@@ -132,7 +172,7 @@ export const RightEllipseMark = styled.img`
 const tv2RightPulseWave = keyframes`
   0% {
     transform: scale(0.85);
-    opacity: 0.15;
+    opacity: 0.25;
   }
   18% {
     opacity: 1.0;
@@ -168,7 +208,8 @@ export const RightCenterPulse = styled.div`
   /* 퍼짐 강화를 위해 블러 강도 증가 */
   filter: blur(14px);
   transform-origin: 50% 50%;
-  animation: ${tv2RightPulseWave} 9s ease-out infinite;
+  animation: ${tv2RightPulseWave} ${props => `${props.$duration || 9}s`} ease-out infinite;
+  animation-delay: ${props => `${props.$delay1 || 0}s`};
   &::before,
   &::after {
     content: '';
@@ -177,20 +218,22 @@ export const RightCenterPulse = styled.div`
     background: inherit;
     filter: inherit;
     transform-origin: inherit;
-    animation: ${tv2RightPulseWave} 9s ease-out infinite;
+    animation: ${tv2RightPulseWave} ${props => `${props.$duration || 9}s`} ease-out infinite;
   }
-  &::before { animation-delay: 3s; }
-  &::after  { animation-delay: 6s; }
+  &::before { animation-delay: ${props => `${props.$delay2 ?? (props.$duration || 9) / 3}s`}; }
+  &::after  { animation-delay: ${props => `${props.$delay3 ?? (props.$duration || 9) * 2 / 3}s`}; }
 `;
 
 export const ClimateGroup = styled.div`
   /* 우측 범위가 넓어진 만큼 살짝 왼쪽으로 이동 + 전체를 조금 위로 */
-  position: absolute; left: 6%; top: 110px;
+  position: absolute; left: 6%; top: 100px;
   /* 블러 처리된 블롭보다 항상 위 레이어로 */
   z-index: 3;
   display: grid; gap: 86.4px;
+  /* 우측 온습도 텍스트도 불투명 블랙 */
   color: #000;
-  mix-blend-mode: soft-light;
+  /* 그룹 자체는 블렌드 없이, 언더레이만 soft-light/color-burn 사용 */
+  mix-blend-mode: normal;
   /* blend-mode가 배경과 상호작용하도록 드롭섀도우 필터 제거 */
   filter: none;
 `;
@@ -198,54 +241,68 @@ export const ClimateGroup = styled.div`
 export const ClimateRow = styled.div`
   /* 아이콘과 텍스트 사이 간격을 조금 좁힘 */
   display: flex; align-items: center; gap: 40px;
-  /* 온도/습도 텍스트도 중간 수준으로 */
-  font-size: 85px;
-  font-weight: 300;
+  /* 온도/습도 값 로테이팅이 더 입체감 있게 보이도록 3D 컨텍스트 부여 */
+  perspective: 1200px;
+  transform-style: preserve-3d;
+  /* 온도/습도 텍스트도 중간 수준으로 (살짝 축소) */
+  font-size: 76px;
+  font-weight: 500;
   color: #000;
-  mix-blend-mode: soft-light;
-  animation: ${climatePush} 0.8s ease-out;
-  will-change: transform, opacity;
+  /* 실제 글립은 FadeSlideText에서 hard-light 블렌드를 사용 */
+  mix-blend-mode: normal;
+  animation: ${climatePush} 2s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity, filter;
   text-shadow: none;
 
-  /* 값 텍스트(FadeSlideText)에 동일 언더레이 적용 */
+  /* 값 텍스트(FadeSlideText)에 동일 언더레이 적용
+     - 텍스트는 블렌드 없이 기본 렌더링
+     - 언더레이는 앨범 뒤 블롭과 동일한 다크 컬러 + overlay 로 강하게 눌림 */
   & > div{
     position: relative; display: inline-block;
   }
+  /* 두 번째 div(FadeSlideText 컨테이너)만 살짝 위로 올려 아이콘과 높이를 맞춘다 */
+  & > div:last-of-type {
+    transform: translateY(-6px);
+  }
   & > div::before{
-    content:''; position:absolute; inset:-14% -16%;
-    border-radius:22px;
+    content:''; position:absolute; inset:-26% -26%;
+    border-radius:26px;
     background: radial-gradient(
       circle at 50% 55%,
-      rgba(0,0,0,0.40) 0%,
-      rgba(0,0,0,0.22) 44%,
-      rgba(0,0,0,0.00) 78%
+      ${props => props.$backdrop || 'rgba(255,255,255,0.55)'} 0%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.40)'} 52%,
+      rgba(255,255,255,0.00) 100%
     );
-    filter: blur(24px);
+    filter: blur(40px);
+    /* 온습도 텍스트 뒤 언더레이도 soft-light 로 아주 연하게만 눌리도록 */
     mix-blend-mode: soft-light;
     z-index:-1; pointer-events:none;
+    opacity: 0.12;
   }
   & > div::after{
-    content:''; position:absolute; inset:-12% -14%;
-    border-radius:22px;
+    content:''; position:absolute; inset:-24% -24%;
+    border-radius:26px;
     background: radial-gradient(
-      circle at 50% 55%,
-      rgba(0,0,0,0.40) 0%,
-      rgba(0,0,0,0.40) 40%,
-      rgba(0,0,0,0.00) 60%
+      circle at 50% 50%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.70)'} 0%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.70)'} 46%,
+      rgba(255,255,255,0.0) 78%
     );
-    filter: blur(32px);
-    mix-blend-mode: color-burn;
-    z-index:-1; pointer-events:none; opacity:.84;
+    filter: blur(36px);
+    mix-blend-mode: soft-light;
+    z-index:-1; pointer-events:none;
+    opacity: 0.14;
   }
 `;
 
 export const NoticeTyping = styled.div`
   margin-top: 8px;
-  font-size: 52px;
-  font-weight: 300;
+  /* 안내 텍스트도 살짝 축소 */
+  font-size: 46px;
+  font-weight: 400;
   letter-spacing: 0.02em;
   color: #000;
-  mix-blend-mode: soft-light;
+  mix-blend-mode: normal;
   overflow: hidden;
   white-space: nowrap;
   animation: ${noticeTyping} 5s steps(32, end) infinite;
@@ -261,32 +318,105 @@ export const ReasonCaption = styled.span`
   font-size: 34px;
   line-height: 1.2;
   color: #000;
-  opacity: 0.98;
+  opacity: 1;
   text-shadow: none;
 `;
 
-export const ClimateIcon = styled.div`
-  /* 온도/습도 아이콘도 중간 크기로 */
-  svg { 
-    width: 126px; 
-    height: 126px; 
-    color: #fff; 
-    mix-blend-mode: normal;
-    filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+/* 온도/습도 옆 라벨(예: Fresh, Humid)은 아래에서 위로 천천히 떠올랐다
+   약 5초 정도 머물렀다가 다시 사라지는 애니메이션 */
+const climateLabelPulse = keyframes`
+  0%, 35% {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(8px);
   }
-  img { 
-    width: 126px; 
-    height: 126px; 
-    object-fit: contain; 
-    display: block; 
-    mix-blend-mode: normal;
-    filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+  45%, 90% {
+    opacity: 0.9;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(4px);
+  }
+`;
+
+export const ClimateLabel = styled.span`
+  display: inline-block;
+  /* 값과는 dots 뒤에서 살짝 떨어져 보이도록 간격/위치 조정 */
+  margin-left: 12px;
+  padding-top: 6px;
+  font-size: 46px;
+  line-height: 1.2;
+  /* 조금 더 연한 오버레이 느낌을 위해 투명도 조정 */
+  color: rgba(0,0,0,0.55);
+  text-shadow: none;
+  /* 라벨만 overlay 블렌드로 살짝 눌려 보이게 */
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  /* 생성 후 약 5초간 머물렀다가 사라지도록 주기를 10초로 설정 */
+  animation: ${climateLabelPulse} 10s ease-in-out infinite;
+`;
+
+/* 값과 라벨 사이를 이어주는 ... 리더(dots) */
+const climateDotsSweep = keyframes`
+  0%, 20% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  30%, 60% {
+    opacity: 0.6;
+    transform: scaleX(1);
+  }
+  80%, 100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+`;
+
+export const ClimateDots = styled.span`
+  display: inline-block;
+  margin: 0 16px;
+  font-size: 32px;
+  letter-spacing: 0.22em;
+  color: rgba(0,0,0,0.35);
+  pointer-events: none;
+  user-select: none;
+   transform-origin: left center;
+   opacity: 0;
+   transform: scaleX(0);
+   /* 좌측 끝에서 우측으로 점점 채워졌다가 사라지는 애니메이션 */
+   animation: ${climateDotsSweep} 10s ease-in-out infinite;
+`;
+
+export const SetupHint = styled.div`
+  position: absolute;
+  /* 기본값은 우측 패널 온습도 텍스트 정렬에 맞추되,
+     좌측 패널 등에서 재사용할 때는 $left / $bottom / $fontSize 로 오버라이드 */
+  left: ${props => props.$left || 'calc(6% + 220px)'};
+  bottom: ${props => props.$bottom || '30px'};
+  font-size: ${props => props.$fontSize || '44px'};
+  font-weight: 400;
+  color: rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 7;
+  white-space: nowrap;
+  mix-blend-mode: normal;
+  text-shadow: none;
+  overflow: hidden;
+  /* steps() 로 한 글자씩 타이핑되는 느낌 연출 (속도 완만하게: 8초 주기) */
+  animation: ${setupHintPulse} 8s steps(32, end) infinite;
+`;
+
+
+/* 온도/습도 아이콘도 상단 조명 아이콘과 동일하되,
+   값 텍스트와 수평 정렬이 맞도록 살짝 아래로 내린다 */
+export const ClimateIcon = styled(BaseHeaderIcon)`
+  svg,
+  img {
+    transform: translateY(2px);
   }
 `;
 
