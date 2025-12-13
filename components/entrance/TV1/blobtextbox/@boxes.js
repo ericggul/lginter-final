@@ -100,12 +100,17 @@ export const InterestBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '43.960364vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw);
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Boost contrast by introducing complementary warm hues and bright whites */
   background: ${(p) => p.$gradient || defaultInterestGradient};
   background-size: 320% 320%;
@@ -156,12 +161,17 @@ export const PlayfulBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '75.340316vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw);
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Increase contrast with bright whites and deeper oranges/sky */
   background: ${(p) => p.$gradient || defaultPlayfulGradient};
   background-size: 320% 320%;
@@ -283,12 +293,17 @@ export const HappyBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '60.391327vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw);
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Increase white vs pink contrast in the moving gradient */
   background: ${(p) => p.$gradient || defaultHappyGradient};
   background-size: 320% 320%;
@@ -338,13 +353,18 @@ export const AnnoyedBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '19.610417vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw);
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
   z-index: 1001;
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Sharper contrast with white flashes and warm tension */
   background: ${(p) => p.$gradient || defaultAnnoyedGradient};
   background-size: 320% 320%;
@@ -414,12 +434,17 @@ export const SadBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '33.080387vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw);
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Add bright whites and deeper blues for stronger emotional contrast */
   background: ${(p) => p.$gradient || defaultSadGradient};
   background-size: 320% 320%;
@@ -487,12 +512,17 @@ export const SelfConfidentBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '75.340316vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw);
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   background: ${(p) => p.$gradient || defaultSelfConfidentGradient};
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;

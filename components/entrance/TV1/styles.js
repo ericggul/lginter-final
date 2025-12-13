@@ -136,7 +136,7 @@ const pulseNow = keyframes`
 /* LeftLine and LeftLineBlur removed per request */
 export const LeftShape = styled.div`
   position: absolute;
-  top: 43.2375vw; /* white ellipse 위치로 이동 (+10vw) */
+  top: ${(p) => (p.$isFocusMode ? '32vw' : '43.2375vw')}; /* focus 모드에서 중앙 근처로 살짝 위로 이동 */
   left: 13.989583vw; /* aligned to the rail, inside viewport */
   transform: translateX(-50%); /* center on the axis */
   width: 2.864583vw; /* 110px */
@@ -153,6 +153,7 @@ export const LeftShape = styled.div`
   z-index: 500000; /* above crisp line (3) so the line doesn't overlay the shape */
   will-change: transform;
   animation: ${pulseShape} 1.6s ease-in-out infinite;
+  transition: top 1300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 900ms ease-in-out;
 `;
 
 /* White variant for the subsequent markers */
@@ -160,7 +161,7 @@ export const LeftWhiteShape = styled.div`
   position: absolute;
   top: ${(p) => p.$top || '25.99375vw'};
   left: 13.989583vw; /* aligned to the rail, inside viewport */
-  transform: translateX(-50%); /* center on the axis */
+  transform: translateX(-50%) translateY(${(p) => (p.$isFocusMode ? '-6vw' : '0')}); /* center on the axis */
   width: 2.34375vw; /* 90px */
   height: 2.34375vw; /* 90px */
   border-radius: 50%;
@@ -171,8 +172,11 @@ export const LeftWhiteShape = styled.div`
     drop-shadow(0 0 3.125vw rgba(255, 255, 255, 0.4)); /* 120px */
   pointer-events: none;
   z-index: 2; /* between blur (1) and crisp line (3) */
-  opacity: ${(p) => (p.$visible !== false ? 1 : 0)};
-  transition: opacity 1600ms ease-in-out, top 300ms ease-out;
+  opacity: ${(p) => (p.$visible !== false ? (p.$isFocusMode ? 0.3 : 1) : 0)};
+  transition:
+    opacity 1600ms ease-in-out,
+    top 300ms ease-out,
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export const LeftShape2 = styled(LeftWhiteShape)`
@@ -189,13 +193,13 @@ export const LeftShape4 = styled(LeftWhiteShape)`
 
 export const LeftNow = styled.div`
   position: absolute;
-  top: 43.2375vw; /* 13:00 위치로 이동 (+10vw) */
+  top: ${(p) => (p.$isFocusMode ? '32vw' : '43.2375vw')}; /* focus 모드에서 중앙 근처로 이동 */
   left: 7.817708vw; /* line (5.859375vw) - 1.041667vw offset */
   transform: translateX(-50%);
   color: #FF72A6;
   text-align: center;
   font-family: Pretendard;
-  font-size: 2.083333vw; /* 80px */
+  font-size: ${(p) => (p.$isFocusMode ? '2.3vw' : '2.083333vw')}; /* focus 모드에서 살짝 더 크게 */
   font-style: normal;
   font-weight: 700;
   line-height: normal;
@@ -207,13 +211,14 @@ export const LeftNow = styled.div`
   z-index: 4;
   will-change: transform;
   animation: ${pulseNow} 1.6s ease-in-out infinite; /* sync timing with LeftShape */
+  transition: top 1300ms cubic-bezier(0.4, 0, 0.2, 1), font-size 900ms ease-in-out;
 `;
 
 export const LeftTime2 = styled.div`
   position: absolute;
   top: ${(p) => p.$top || '26.2375vw'};
   left: 7.817708vw; /* align with Now label relative to the line */
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(${(p) => (p.$isFocusMode ? '-6vw' : '0')});
   color: #FFF;
   text-align: center;
   font-family: Pretendard;
@@ -227,8 +232,11 @@ export const LeftTime2 = styled.div`
     drop-shadow(0 0 3.125vw rgba(255, 255, 255, 0.4)); /* 120px */
   pointer-events: none;
   z-index: 4;
-  opacity: ${(p) => (p.$visible !== false ? 1 : 0)};
-  transition: opacity 1600ms ease-in-out, top 300ms ease-out;
+  opacity: ${(p) => (p.$visible !== false ? (p.$isFocusMode ? 0.3 : 1) : 0)};
+  transition:
+    opacity 1600ms ease-in-out,
+    top 300ms ease-out,
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export const LeftTime3 = styled(LeftTime2)`
@@ -240,7 +248,7 @@ export const LeftTime4 = styled(LeftTime2)`
 `;
 export const TopText = styled.div`
   position: absolute;
-  top: 5.60417vw; /* 250px */
+  top: ${(p) => (p.$isFocusMode ? '3vw' : '5.60417vw')}; /* focus 모드에서 살짝 위로 */
   left: 19.610417vw; /* 630px */
   color: #000000;
   font-family: ${(p) => p.$fontFamily};
@@ -248,6 +256,12 @@ export const TopText = styled.div`
   line-height: 1.1;
   letter-spacing: 0.03em;
   white-space: nowrap;
+  opacity: ${(p) => (p.$isFocusMode ? 0.18 : 1)};
+  transform: ${(p) => (p.$isFocusMode ? 'translateY(-0.8vw)' : 'translateY(0)')};
+  transition:
+    top 1200ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 900ms ease-in-out,
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export const Bold = styled.span`
