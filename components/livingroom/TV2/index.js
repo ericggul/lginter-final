@@ -272,6 +272,9 @@ export default function TV2Controls() {
     triggerT4Animations,
     triggerT5Animations,
     waveformPulseIntensity,
+    tempo,
+    pulseDuration,
+    pulseDelays,
     headerSweepActive,
   } = displayLogic;
 
@@ -300,8 +303,8 @@ export default function TV2Controls() {
     } catch {}
   }, [triggerT4Animations, isT4, decisionKey]);
 
-  // 곡명 컬러는 블랙으로 고정 (화이트 글로우는 스타일에 적용)
-  const titleColor = '#000';
+  // 곡명 컬러는 60% 투명 블랙으로 고정 (화이트 글로우는 스타일에 적용)
+  const titleColor = 'rgba(0,0,0,0.6)';
 
   // 모든 정보가 한 번에 뜨도록 공통 로딩 상태
   const isLoading =
@@ -438,6 +441,7 @@ export default function TV2Controls() {
                   $slideLR
                   $isT5={isT5}
                   $triggerT5={triggerT5Animations}
+                  $blend="overlay"
                   key={`${displayHeaderTextValue || displayHeaderText || 'header-loading'}-${decisionKey}`}
                   lang={getLang(displayHeaderTextValue || displayHeaderText || '')}
                   data-text={displayHeaderTextValue || displayHeaderText || ''}
@@ -496,6 +500,7 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
+                $dark={headerSweepContrastColor} // 앨범 가장 어두운 컬러를 언더레이에 사용
               >
                 <S.MusicIcon
                   $glowColor={iconGlowColorRgba}
@@ -559,10 +564,9 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-                $blend={textBlendMode}
-              $color={titleColor}
-              $dark={headerSweepContrastColor}
-            >
+                $color={titleColor}
+                $dark={headerSweepContrastColor}
+              >
               <S.FadeSlideText
                 $isT5={isT5}
                 $triggerT5={triggerT5Animations}
@@ -622,6 +626,10 @@ export default function TV2Controls() {
                 $top={rightCircleTop}
                 $width={rightCircleWidth * rightCircleScale}
                 $height={rightCircleHeight * rightCircleScale}
+                $duration={pulseDuration}
+                $delay1={pulseDelays?.[0]}
+                $delay2={pulseDelays?.[1]}
+                $delay3={pulseDelays?.[2]}
               />
               <S.RightEllipseMark 
                 src="/figma/Ellipse%202767.png" 
@@ -639,6 +647,7 @@ export default function TV2Controls() {
                   $shadowBlur={textShadowBlur}
                   $shadowOffsetX={textShadowOffsetX}
                   $shadowOffsetY={textShadowOffsetY}
+                  $dark={headerSweepContrastColor} // 온도 텍스트 언더레이도 앨범 다크 컬러 사용
                 >
                   <S.ClimateIcon
                     $glowColor={iconGlowColorRgba}
@@ -653,7 +662,6 @@ export default function TV2Controls() {
                     $roulette
                     $isT5={isT5}
                     $triggerT5={triggerT5Animations}
-                    $blend="overlay"
                     key={`${displayTemp || env.temp || 'temp-loading'}-${decisionKey}`}
                     data-text={showTempLoading ? '' : (displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : ''))}
                   >
@@ -676,6 +684,7 @@ export default function TV2Controls() {
                   $shadowBlur={textShadowBlur}
                   $shadowOffsetX={textShadowOffsetX}
                   $shadowOffsetY={textShadowOffsetY}
+                  $dark={headerSweepContrastColor}
                 >
                   <S.ClimateIcon
                     $glowColor={iconGlowColorRgba}
@@ -690,7 +699,6 @@ export default function TV2Controls() {
                     $roulette
                     $isT5={isT5}
                     $triggerT5={triggerT5Animations}
-                    $blend="overlay"
                     key={`${displayHumidity || env.humidity || 'humidity-loading'}-${decisionKey}`}
                     data-text={showHumidityLoading ? '' : (displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : ''))}
                   >

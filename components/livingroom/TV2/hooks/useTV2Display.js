@@ -4,6 +4,7 @@ import {
   parseMusicString,
   getAlbumGradient,
   normalizeTrackName,
+  getAlbumData,
 } from '@/utils/data/albumData';
 import { MUSIC_CATALOG } from '@/utils/data/musicCatalog';
 import { computeMiniWarmHue, toHsla as toHslaSW1 } from '@/components/livingroom/SW1/logic/color';
@@ -16,6 +17,24 @@ import {
 } from '../logic/color';
 import { computeCoverScale } from '../logic/scale';
 import { computeWaveformFromAnalyser } from '../logic/waveform';
+
+const HEADER_WARM_MOODS = [
+  '따뜻한 무드',
+  '포근한 무드',
+  '편안한 무드',
+  '행복한 무드',
+  '기분 좋은 무드',
+  '은은하게 따뜻한 무드',
+];
+
+const HEADER_COOL_MOODS = [
+  '차분한 무드',
+  '시원한 무드',
+  '청량감 있는 무드',
+  '잔잔한 무드',
+  '맑고 선선한 무드',
+  '조용한 무드',
+];
 
 export function useTV2DisplayLogic({
   env,
@@ -30,8 +49,41 @@ export function useTV2DisplayLogic({
   audioRef,
 }) {
   const hexColor = (env?.lightColor || '').toUpperCase();
+  // AI가 준 emotionKeyword를 기반으로, 컬러명이 아니라 "무드" 이름을 우선 노출
+  const moodLabel = useMemo(() => {
+    const base = (emotionKeyword || '').trim();
+    if (!base) return '';
+    // 이미 "무드"가 붙어있으면 그대로 사용, 아니면 뒤에 "무드"를 붙인다.
+    if (base.endsWith('무드')) return base;
+    return `${base} 무드`;
+  }, [emotionKeyword]);
+
   const friendlyName = useMemo(() => describeHexColor(hexColor), [hexColor]);
-  const headerText = friendlyName || env.lightLabel || hexColor || '조명 색상';
+  // 1순위: AI 무드 이름, 2순위: 컬러/라벨/HEX에서 결정된 warm/cool 무드 중 하나
+  const fallbackMood = useMemo(() => {
+    const base = (friendlyName || env.lightLabel || hexColor || '').trim();
+    const hsl = hexToHsl(hexColor);
+    // 기본값: 웜 팔레트 첫 번째
+    if (!base || !hsl) return HEADER_WARM_MOODS[0];
+
+    const { h } = hsl;
+    // 대략적인 분류:
+    // - warm: 레드/오렌지/옐로/핑크/마젠타 (0~90, 270~360)
+    // - cool: 그린/민트/블루/퍼플 (90~270)
+    const isWarm = h < 90 || h >= 270;
+    const palette = isWarm ? HEADER_WARM_MOODS : HEADER_COOL_MOODS;
+
+    // 컬러 문자열을 정수로 해싱해서 항상 같은 색상에 같은 무드가 매핑되도록 함
+    let hash = 0;
+    for (let i = 0; i < base.length; i++) {
+      hash = (hash * 31 + base.charCodeAt(i)) >>> 0;
+    }
+    const idx = hash % palette.length;
+    return palette[idx];
+  }, [friendlyName, env?.lightLabel, hexColor]);
+  // 최종 상단 텍스트는 "-무드의 조명" 형태로 노출
+  const headerMoodText = moodLabel || fallbackMood;
+  const headerText = headerMoodText ? `${headerMoodText}의 조명` : '조명의 무드';
 
   const isIdle = !title && !artist && !coverSrc && (!env || env.music === 'ambient');
 
@@ -673,6 +725,43 @@ export function useTV2DisplayLogic({
     };
   }, [trackGradient, albumTone]);
 
+  // ===== 음악 BPM 기반 우측 파동(pulse) 설정 =====
+  // - SW2에서와 동일한 앨범 메타 데이터(getAlbumData)를 사용해 BPM 조회
+  // - BPM이 빠를수록 파동 주기가 짧아지도록 설정
+  const trackNameForTempo = env.music || title || '';
+  const albumData = useMemo(
+    () => getAlbumData(trackNameForTempo),
+    [trackNameForTempo],
+  );
+  const tempo =
+    albumData && typeof albumData.bpm === 'number' && Number.isFinite(albumData.bpm) && albumData.bpm > 0
+      ? albumData.bpm
+      : 100;
+
+  // 한 번 퍼지는 파동을 "4박자(한 마디)" 정도 길이로 가정하고 BPM에 따라 duration 계산
+  const beatSeconds = 60 / tempo;
+  const basePulseDuration = Math.min(12, Math.max(4, beatSeconds * 4));
+
+  const makeSeededRandom = (seedStr, salt) => {
+    let h = 0;
+    const s = String(seedStr || '');
+    for (let i = 0; i < s.length; i += 1) {
+      h = (h * 31 + s.charCodeAt(i) + salt * 131) >>> 0;
+    }
+    return (h % 1000) / 1000;
+  };
+
+  // 세 개의 파동이 BPM을 공유하되, 트랙마다 약간 다른 랜덤 타이밍으로 출발
+  const pulseDelays = useMemo(() => {
+    const seed = trackNameForTempo || `${tempo}`;
+    const r2 = makeSeededRandom(seed, 2);
+    const r3 = makeSeededRandom(seed, 3);
+    const d1 = 0;
+    const d2 = basePulseDuration * (0.3 + 0.3 * r2); // 0.3~0.6 구간
+    const d3 = basePulseDuration * (0.65 + 0.25 * r3); // 0.65~0.9 구간
+    return [d1, d2, d3];
+  }, [trackNameForTempo, tempo, basePulseDuration]);
+
   // Color conversions (헤더: 좌측 조명 컬러, 가운데 조명, 우측 화이트)
   const headerStartBase =
     hexColor && hexColor.match(/^#[0-9A-F]{6}$/i)
@@ -683,14 +772,25 @@ export function useTV2DisplayLogic({
   const headerStartColor = headerStartBase;
   const headerMidColor = headerStartBase;
   const headerEndColor = '#ffffff';
-  const headerGradientStartRgba = hexToRgba(
-    headerStartColor,
-    levaControls?.headerGradientOpacity || 1,
-  );
-  const headerGradientMidRgba = hexToRgba(
-    headerMidColor,
-    levaControls?.headerGradientOpacity || 1,
-  );
+  // 조명 컬러 변경이 더 확실히 느껴지도록,
+  // HSL 기반으로 채도를 살짝 높여서 상단 그라디언트에 반영
+  const headerCoreHsl = hexToHsl(headerStartColor);
+  const headerGradientStartRgba = headerCoreHsl
+    ? hsla(
+        headerCoreHsl.h,
+        Math.min(100, headerCoreHsl.s * 1.35),
+        headerCoreHsl.l,
+        levaControls?.headerGradientOpacity || 1,
+      )
+    : hexToRgba(headerStartColor, levaControls?.headerGradientOpacity || 1);
+  const headerGradientMidRgba = headerCoreHsl
+    ? hsla(
+        headerCoreHsl.h,
+        Math.min(100, headerCoreHsl.s * 1.35),
+        headerCoreHsl.l,
+        levaControls?.headerGradientOpacity || 1,
+      )
+    : hexToRgba(headerMidColor, levaControls?.headerGradientOpacity || 1);
   const headerGradientEndRgba = hexToRgba(
     headerEndColor,
     levaControls?.headerGradientOpacity || 1,
@@ -993,6 +1093,10 @@ export function useTV2DisplayLogic({
     triggerT4Animations,
     triggerT5Animations,
     waveformPulseIntensity,
+    // BPM / 파동 제어 값
+    tempo,
+    pulseDuration: basePulseDuration,
+    pulseDelays,
 
     // Visual states
     albumTone,

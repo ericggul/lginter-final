@@ -44,9 +44,9 @@ export const Header = styled.div`
     z-index: 1;
     background: linear-gradient(
       90deg,
-      rgba(0, 0, 0, 0.34) 0%,
-      rgba(0, 0, 0, 0.18) 36%,
-      rgba(0, 0, 0, 0.00) 60%
+      rgba(0, 0, 0, 0.52) 0%,
+      rgba(0, 0, 0, 0.30) 42%,
+      rgba(0, 0, 0, 0.00) 72%
     );
     mix-blend-mode: soft-light;
   }
@@ -73,12 +73,13 @@ export const Header = styled.div`
     mix-blend-mode: soft-light;
     /* 상단 텍스트/아이콘은 위 레이어(z-index 5)에 있기 때문에,
        애니메이션 레이어에만 더 넓은 블러를 걸어 그라디언트 경계를 부드럽게 풀어준다. */
-    filter: blur(56px);
-    opacity: ${props => (props.$sweepActive ? 0.8 : 0)};
+    /* 지나가는 밴드의 윤곽을 조금 또렷하게 + 더 진하게 보이도록 조정 */
+    filter: blur(48px);
+    opacity: ${props => (props.$sweepActive ? 0.95 : 0)};
     transition: opacity 800ms ease-out, filter 800ms ease-out;
     ${props => props.$sweepActive && css`
-      /* 약간 더 빠르게 흐르도록 조정 (45s → 32s) */
-      animation: ${headerColorSweep} 32s linear infinite;
+      /* 더 빨리 흐르도록 조정 (45s → 18s) */
+      animation: ${headerColorSweep} 18s linear infinite;
     `}
   }
   /* T4: 위치 이동 없이, 컬러가 부드럽게 드러나는 페이드 인 */
@@ -138,41 +139,72 @@ export const HeaderIcon = styled.div`
   color: #fff;
   position: relative;
   z-index: 5; /* 컬러 스윕/비네트 레이어보다 항상 위 */
-  /* 통일된 그림자 + 글로우 */
+  /* 아이콘은 언더 섀도우는 아주 살짝, 글로우는 강하게 */
   svg {
     width: 70%;
     height: 70%;
+    color: #fff;
+    opacity: 1;
+    mix-blend-mode: normal;
     filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+      brightness(2.4)
+      saturate(0)
+      drop-shadow(0 4px 14px rgba(0,0,0,0.24))
+      drop-shadow(0 0 34px rgba(255,255,255,1))
+      drop-shadow(0 0 82px rgba(255,255,255,0.96));
   }
   img {
     width: 70%;
     height: 70%;
     object-fit: contain;
     display: block;
+    opacity: 1;
+    mix-blend-mode: normal;
     filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+      brightness(2.4)
+      saturate(0)
+      drop-shadow(0 4px 14px rgba(0,0,0,0.24))
+      drop-shadow(0 0 34px rgba(255,255,255,1))
+      drop-shadow(0 0 82px rgba(255,255,255,0.96));
   }
 `;
 
 export const HeaderTitle = styled.div`
-  /* 텍스트 크기도 중간 수준으로 조정 */
-  font-size: 80px;
-  font-weight: 400;
+  /* 텍스트 크기 살짝 축소 */
+  font-size: 70px;
+  font-weight: 600;
   letter-spacing: 0.02em;
   text-align: left;
-  color: #000;
-  mix-blend-mode: soft-light;
+  /* 상단 타이틀은 70% 투명 블랙 텍스트 */
+  color: rgba(0,0,0,0.7);
+  /* 상단 텍스트는 항상 또렷하게 보이도록 기본 렌더링 */
+  mix-blend-mode: normal;
   position: relative;
   z-index: 5; /* 상단 컬러 스윕보다 텍스트가 항상 위에 보이도록 */
   /* 쉐도우 제거 */
   text-shadow: none;
 
-  &::before, &::after { content: none !important; }
+  /* 상단 조명 텍스트 뒤에도 화이트 soft-light 그라디언트를 깔아서 살짝 눌려 보이도록
+     - 범위는 더 넓게 퍼지되, 전체 알파는 더 연하게 조정 */
+  &::before {
+    content: '';
+    position: absolute;
+    /* 위/아래/양옆으로 더 넓게 퍼지도록 inset 범위를 확장 */
+    inset: -34% -22%;
+    border-radius: 40px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255,255,255,0.55) 0%,
+      rgba(255,255,255,0.25) 42%,
+      rgba(255,255,255,0.00) 90%
+    );
+    /* 범위가 넓어진 만큼 블러도 살짝 키워 더욱 부드럽게 */
+    filter: blur(52px);
+    mix-blend-mode: soft-light;
+    z-index: -1;
+    pointer-events: none;
+  }
+  &::after { content: none; }
 `;
 
 export const Content = styled.div`

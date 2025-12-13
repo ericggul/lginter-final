@@ -1,4 +1,5 @@
 import styled, { keyframes, css } from 'styled-components';
+import { HeaderIcon as BaseHeaderIcon } from './styles.header';
 
 /* 좌측 패널 + 앨범/텍스트 관련 스타일 모듈 */
 
@@ -186,78 +187,94 @@ export const MusicRow = styled.div`
   position: absolute;
   /* 상단 조명 아이콘/텍스트의 좌측 패딩(3vw)에 맞춰 정렬 */
   left: 115.2px;
-  /* 살짝만 아래로 내려 정렬 보정 */
-  top: calc(var(--album-y) - 760px);
+  /* 전체적으로 살짝 더 위로 보정 */
+  top: calc(var(--album-y) - 740px);
   display: flex; align-items: center; gap: 60px;
-  /* 장르 텍스트도 중간 수준으로 */
-  font-size: 85px;
-  font-weight: 300;
+  /* 장르 텍스트는 상단 조명 텍스트와 동일한 사이즈(70px) */
+  font-size: 70px;
+  font-weight: 500;
   text-transform: uppercase;
-  color: #000;
-  mix-blend-mode: soft-light;
+  /* TV2 좌측 텍스트는 70% 투명 블랙 */
+  color: rgba(0,0,0,0.7);
+  /* 텍스트 자체는 블렌드는 FadeSlideText에서 처리 */
+  mix-blend-mode: normal;
   /* 쉐도우 제거 */
   text-shadow: none;
   z-index: 10;
 
-  /* 행 내부 텍스트(첫번째 div: FadeSlideText)에 언더레이 주입 */
+  /* 행 내부 텍스트(첫번째 div: FadeSlideText)에 언더레이 주입
+     - 텍스트는 mix-blend-mode: hard-light(블랙)
+     - 이 언더레이는 화이트 soft-light로 강하게 블룸 느낌을 준다 */
   & > div{
     position: relative; display: inline-block;
   }
   & > div::before{
-    content:''; position:absolute; inset:-14% -16%;
+    content:''; position:absolute; inset:-22% -24%;
     border-radius:22px;
     background: radial-gradient(
       circle at 50% 55%,
-      rgba(0,0,0,0.42) 0%,
-      rgba(0,0,0,0.22) 44%,
-      rgba(0,0,0,0.00) 80%
+      rgba(255,255,255,0.85) 0%,
+      rgba(255,255,255,0.42) 52%,
+      rgba(255,255,255,0.00) 92%
     );
-    filter: blur(26px);
+    filter: blur(40px);
     mix-blend-mode: soft-light;
     z-index:-1; pointer-events:none;
+    /* 텍스트 뒤 화이트 soft-light 오버레이를 더 강하게 */
+    opacity: 0.32;
   }
   & > div::after{
-    content:''; position:absolute; inset:-12% -14%;
+    content:''; position:absolute; inset:-20% -22%;
     border-radius:22px;
     background: radial-gradient(
       circle at 50% 55%,
-      rgba(0,0,0,0.42) 0%,
-      rgba(0,0,0,0.42) 40%,
-      rgba(0,0,0,0.00) 60%
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,255,255,0.55) 48%,
+      rgba(255,255,255,0.00) 84%
     );
-    filter: blur(36px);
-    mix-blend-mode: color-burn;
-    z-index:-1; pointer-events:none; opacity:.86;
+    filter: blur(60px);
+    mix-blend-mode: soft-light;
+    z-index:-1; pointer-events:none;
+    opacity: 0.58;
   }
 `;
 
-export const MusicIcon = styled.div`
-  width: 180px;
-  height: 180px;
-  display: grid; place-items: center;
-  /* 음악 아이콘도 텍스트와 동일 계열의 그림자 사용 */
-  svg { 
-    width: 90%; 
-    height: 90%; 
-    color: #fff; 
-    mix-blend-mode: normal;
-    opacity: 1;
+/* 음악 아이콘은 상단 조명 아이콘과 동일한 베이스를 쓰되,
+   실제 아이콘 크기와 밝기를 살짝 더 키워서 한 번 더 떠오르는 느낌으로 조정 */
+export const MusicIcon = styled(BaseHeaderIcon)`
+  svg,
+  img {
+    /* 음악 아이콘은 다른 아이콘보다 살짝 더 크게 보이도록 */
+    width: 95%;
+    height: 95%;
+    /* 살짝 더 위로 올려서 좌측 장르 텍스트와 높이 맞춤 */
+    transform: translateY(-6px);
     filter:
+      brightness(2.8)
+      saturate(0)
       drop-shadow(0 8px 24px rgba(0,0,0,0.45))
       drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+      drop-shadow(0 0 40px rgba(255,255,255,1));
+    position: relative;
+    z-index: 1;
   }
-  img { 
-    width: 90%; 
-    height: 90%; 
-    object-fit: contain; 
-    display: block; 
-    mix-blend-mode: normal;
-    opacity: 1;
-    filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+  /* 아이콘이 한 겹 더 얹힌 것처럼 보이도록 화이트 글로우 레이어를 추가 */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 20%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,255,255,0.65) 40%,
+      rgba(255,255,255,0.00) 80%
+    );
+    filter: blur(16px);
+    mix-blend-mode: screen;
+    opacity: 0.9;
+    pointer-events: none;
+    z-index: 0;
   }
 `;
 
@@ -372,6 +389,8 @@ export const AlbumImage = styled.img`
   height: 100%;
   object-fit: cover;
   display: block;
+  /* 앨범 커버 자체도 살짝 투명하게 만들어 배경과 더 부드럽게 섞이도록 */
+  opacity: 0.9;
 `;
 
 export const AlbumPlaceholder = styled.div`
@@ -481,15 +500,17 @@ export const AlbumBackdropBlob = styled.div`
   width: 1200px;
   height: 1200px;
   border-radius: 50%;
-  /* 바깥 레이어: 부드럽게 깔리는 기본 눌림 (overlay) */
+  /* 바깥 레이어: 앨범 다크 컬러 기반으로 눌리지만,
+     어두운 커버에서도 과하게 보이지 않도록 강도를 한 단계 줄임 */
   background: radial-gradient(
     circle at 50% 50%,
     ${props => props.$dark || 'rgba(0,0,0,0.28)'} 0%,
-    ${props => props.$dark || 'rgba(0,0,0,0.22)'} 60%,
+    ${props => props.$dark || 'rgba(0,0,0,0.20)'} 58%,
     rgba(0,0,0,0.00) 100%
   );
-  filter: blur(88px);
-  mix-blend-mode: soft-light;
+  /* 블러를 살짝 줄이고, overlay 블렌드로 더 선명하게 보이도록 */
+  filter: blur(68px);
+  mix-blend-mode: overlay;
   opacity: 0.8;
   pointer-events: none;
   z-index: 2; /* LeftPanel::before(0), ::after(1) 아래와 앨범 카드(5) 사이 */
@@ -502,14 +523,15 @@ export const AlbumBackdropBlob = styled.div`
     border-radius: inherit;
     background: radial-gradient(
       circle at 50% 50%,
-      ${props => props.$dark || 'rgba(0,0,0,0.45)'} 0%,
-      ${props => props.$dark || 'rgba(0,0,0,0.45)'} 45%,
-      rgba(0,0,0,0.0) 60%,
+      ${props => props.$dark || 'rgba(0,0,0,0.54)'} 0%,
+      ${props => props.$dark || 'rgba(0,0,0,0.54)'} 48%,
+      rgba(0,0,0,0.0) 72%,
       rgba(0,0,0,0.0) 100%
     );
-    filter: blur(72px);
+    /* 중심부는 더 진하고 조금 더 좁게, 블러를 줄여 또렷하게 */
+    filter: blur(54px);
     mix-blend-mode: color-burn;
-    opacity: 0.9;
+    opacity: 0.85;
     pointer-events: none;
   }
 `;
@@ -528,13 +550,27 @@ export const FadeSlideText = styled.div`
   /* 모든 텍스트 변경 시: SW2 앨범명과 동일한 업 + 블러 + 오퍼시티 트랜지션 적용 */
   animation: ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: opacity, transform, filter;
-  mix-blend-mode: ${props => props.$blend || 'soft-light'};
+  /* TV2 블랙 텍스트는 기본적으로 overlay 블렌드 사용 */
+  mix-blend-mode: ${props => props.$blend || 'overlay'};
   position: relative;
   ${props => props.$shouldGlow ? css`
     animation:
       ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards,
       ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
   ` : ''}
+  /* 이전 블랙 오버레이 텍스트는 화이트 타이포와 충돌하므로 비활성화 */
+  &::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: rgba(0,0,0,0.7);
+    opacity: 0;
+    mix-blend-mode: normal; /* 블렌드 모드 없이 기본 렌더링 */
+    z-index: 1;
+    pointer-events: none;
+    white-space: inherit;
+    overflow: hidden;
+  }
 `;
 
 const dots = keyframes`
@@ -560,8 +596,8 @@ export const LoadingDots = styled.div`
 export const TrackTitle = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 앨범 커버 바로 아래에 위치하도록 하단으로 이동 */
-  top: calc(var(--album-y) + 400px);
+  /* 앨범 커버 바로 아래에 위치하도록 하단으로 이동 (살짝 더 아래로 보정) */
+  top: calc(var(--album-y) + 392px);
   transform: translateX(-50%);
   /* 긴 제목도 앨범을 기준으로 중앙 정렬되도록 폭/정렬 지정 */
   width: 70%;
@@ -569,14 +605,15 @@ export const TrackTitle = styled.div`
   text-align: center;
   white-space: normal;
   line-height: 1.16;
-  /* 음악 제목 폰트 약간 더 키움 */
+  /* 음악 제목 폰트 키움 */
   font-size: 80px;
   text-transform: uppercase;
-  font-weight: 300;
-  color: ${props => props.$color || '#000'};
-  mix-blend-mode: ${props => props.$blend || 'soft-light'};
+  font-weight: 500;
+  /* TV2 트랙 타이틀은 70% 투명 블랙 */
+  color: ${props => props.$color || 'rgba(0,0,0,0.7)'};
+  mix-blend-mode: normal;
   /* 밝은 배경에서 시인성 확보용 얇은 스트로크 */
-  -webkit-text-stroke: 1px rgba(0,0,0,0.18);
+  -webkit-text-stroke: 1px rgba(0,0,0,0.2);
   /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
   will-change: opacity;
   /* 쉐도우 제거 */
@@ -590,8 +627,8 @@ export const TrackTitle = styled.div`
 export const Artist = styled.div`
   position: absolute;
   left: var(--album-x);
-  /* 트랙 타이틀 바로 아래, 간격을 약간 더 좁혀 배치 */
-  top: calc(var(--album-y) + 484px);
+  /* 트랙 타이틀 바로 아래, 간격을 약간 더 좁혀 배치 (살짝 더 아래로 보정) */
+  top: calc(var(--album-y) + 474px);
   transform: translateX(-50%);
   /* 아티스트 이름도 항상 중앙 정렬 */
   width: 60%;
@@ -601,9 +638,9 @@ export const Artist = styled.div`
   line-height: 1.2;
   /* 아티스트 텍스트 폰트 키움 */
   font-size: 64px;
-  font-weight: 200;
-  color: ${props => props.$color || '#000'};
-  mix-blend-mode: soft-light;
+  font-weight: 400;
+  color: ${props => props.$color || 'rgba(0,0,0,0.7)'};
+  mix-blend-mode: normal;
   /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
   will-change: opacity;
   text-shadow: none;
@@ -665,11 +702,11 @@ export const EmotionFlow = styled.div`
     left: -40%;
     bottom: 0;
     font-size: 58px;
-    font-weight: 300;
+    font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #000;
-    mix-blend-mode: soft-light;
+    color: rgba(0,0,0,0.7);
+    mix-blend-mode: normal;
     text-shadow: none;
     animation: ${emotionFlow} 10s linear infinite;
     white-space: nowrap;

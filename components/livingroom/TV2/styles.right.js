@@ -1,4 +1,5 @@
 import styled, { keyframes, css } from 'styled-components';
+import { HeaderIcon as BaseHeaderIcon } from './styles.header';
 
 /* 우측 패널 + 기후/파동 관련 스타일 모듈 */
 
@@ -132,7 +133,7 @@ export const RightEllipseMark = styled.img`
 const tv2RightPulseWave = keyframes`
   0% {
     transform: scale(0.85);
-    opacity: 0.15;
+    opacity: 0.25;
   }
   18% {
     opacity: 1.0;
@@ -168,7 +169,8 @@ export const RightCenterPulse = styled.div`
   /* 퍼짐 강화를 위해 블러 강도 증가 */
   filter: blur(14px);
   transform-origin: 50% 50%;
-  animation: ${tv2RightPulseWave} 9s ease-out infinite;
+  animation: ${tv2RightPulseWave} ${props => `${props.$duration || 9}s`} ease-out infinite;
+  animation-delay: ${props => `${props.$delay1 || 0}s`};
   &::before,
   &::after {
     content: '';
@@ -177,20 +179,22 @@ export const RightCenterPulse = styled.div`
     background: inherit;
     filter: inherit;
     transform-origin: inherit;
-    animation: ${tv2RightPulseWave} 9s ease-out infinite;
+    animation: ${tv2RightPulseWave} ${props => `${props.$duration || 9}s`} ease-out infinite;
   }
-  &::before { animation-delay: 3s; }
-  &::after  { animation-delay: 6s; }
+  &::before { animation-delay: ${props => `${props.$delay2 ?? (props.$duration || 9) / 3}s`}; }
+  &::after  { animation-delay: ${props => `${props.$delay3 ?? (props.$duration || 9) * 2 / 3}s`}; }
 `;
 
 export const ClimateGroup = styled.div`
   /* 우측 범위가 넓어진 만큼 살짝 왼쪽으로 이동 + 전체를 조금 위로 */
-  position: absolute; left: 6%; top: 110px;
+  position: absolute; left: 6%; top: 100px;
   /* 블러 처리된 블롭보다 항상 위 레이어로 */
   z-index: 3;
   display: grid; gap: 86.4px;
-  color: #000;
-  mix-blend-mode: soft-light;
+  /* 우측 온습도 텍스트도 70% 투명 블랙 */
+  color: rgba(0,0,0,0.7);
+  /* 그룹 자체는 블렌드 없이, 언더레이만 soft-light/color-burn 사용 */
+  mix-blend-mode: normal;
   /* blend-mode가 배경과 상호작용하도록 드롭섀도우 필터 제거 */
   filter: none;
 `;
@@ -198,54 +202,65 @@ export const ClimateGroup = styled.div`
 export const ClimateRow = styled.div`
   /* 아이콘과 텍스트 사이 간격을 조금 좁힘 */
   display: flex; align-items: center; gap: 40px;
-  /* 온도/습도 텍스트도 중간 수준으로 */
-  font-size: 85px;
-  font-weight: 300;
-  color: #000;
-  mix-blend-mode: soft-light;
+  /* 온도/습도 텍스트도 중간 수준으로 (살짝 축소) */
+  font-size: 76px;
+  font-weight: 500;
+  color: rgba(0,0,0,0.7);
+  /* 실제 글립은 FadeSlideText에서 hard-light 블렌드를 사용 */
+  mix-blend-mode: normal;
   animation: ${climatePush} 0.8s ease-out;
   will-change: transform, opacity;
   text-shadow: none;
 
-  /* 값 텍스트(FadeSlideText)에 동일 언더레이 적용 */
+  /* 값 텍스트(FadeSlideText)에 동일 언더레이 적용
+     - 텍스트는 mix-blend-mode: hard-light(블랙)
+     - 이 언더레이는 화이트 soft-light로 강하게 블룸 느낌을 준다 */
   & > div{
     position: relative; display: inline-block;
   }
+  /* 두 번째 div(FadeSlideText 컨테이너)만 살짝 위로 올려 아이콘과 높이를 맞춘다 */
+  & > div:last-of-type {
+    transform: translateY(-6px);
+  }
   & > div::before{
-    content:''; position:absolute; inset:-14% -16%;
+    content:''; position:absolute; inset:-22% -24%;
     border-radius:22px;
     background: radial-gradient(
       circle at 50% 55%,
-      rgba(0,0,0,0.40) 0%,
-      rgba(0,0,0,0.22) 44%,
-      rgba(0,0,0,0.00) 78%
+      rgba(255,255,255,0.85) 0%,
+      rgba(255,255,255,0.42) 52%,
+      rgba(255,255,255,0.00) 92%
     );
-    filter: blur(24px);
+    filter: blur(40px);
     mix-blend-mode: soft-light;
     z-index:-1; pointer-events:none;
+    /* 텍스트 뒤 화이트 soft-light 오버레이를 더 강하게 */
+    opacity: 0.32;
   }
   & > div::after{
-    content:''; position:absolute; inset:-12% -14%;
+    content:''; position:absolute; inset:-20% -22%;
     border-radius:22px;
     background: radial-gradient(
       circle at 50% 55%,
-      rgba(0,0,0,0.40) 0%,
-      rgba(0,0,0,0.40) 40%,
-      rgba(0,0,0,0.00) 60%
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,255,255,0.55) 48%,
+      rgba(255,255,255,0.00) 84%
     );
-    filter: blur(32px);
-    mix-blend-mode: color-burn;
-    z-index:-1; pointer-events:none; opacity:.84;
+    filter: blur(60px);
+    mix-blend-mode: soft-light;
+    z-index:-1; pointer-events:none;
+    opacity: 0.58;
   }
 `;
 
 export const NoticeTyping = styled.div`
   margin-top: 8px;
-  font-size: 52px;
-  font-weight: 300;
+  /* 안내 텍스트도 살짝 축소 */
+  font-size: 46px;
+  font-weight: 400;
   letter-spacing: 0.02em;
-  color: #000;
-  mix-blend-mode: soft-light;
+  color: rgba(0,0,0,0.7);
+  mix-blend-mode: normal;
   overflow: hidden;
   white-space: nowrap;
   animation: ${noticeTyping} 5s steps(32, end) infinite;
@@ -260,33 +275,17 @@ export const ReasonCaption = styled.span`
   padding-top: 6px;
   font-size: 34px;
   line-height: 1.2;
-  color: #000;
-  opacity: 0.98;
+  color: rgba(0,0,0,0.7);
+  opacity: 1;
   text-shadow: none;
 `;
 
-export const ClimateIcon = styled.div`
-  /* 온도/습도 아이콘도 중간 크기로 */
-  svg { 
-    width: 126px; 
-    height: 126px; 
-    color: #fff; 
-    mix-blend-mode: normal;
-    filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
-  }
-  img { 
-    width: 126px; 
-    height: 126px; 
-    object-fit: contain; 
-    display: block; 
-    mix-blend-mode: normal;
-    filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+/* 온도/습도 아이콘도 상단 조명 아이콘과 동일하되,
+   값 텍스트와 수평 정렬이 맞도록 살짝 아래로 내린다 */
+export const ClimateIcon = styled(BaseHeaderIcon)`
+  svg,
+  img {
+    transform: translateY(2px);
   }
 `;
 
