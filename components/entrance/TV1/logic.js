@@ -629,21 +629,22 @@ function shiftColumn5To4(prevBlobs) {
       return {
         ...blob,
         column: 1,
-        // 1열로 올라온 순간부터는 "가장 오래된 블롭 열"로 간주하고
-        // 살짝 위로 이동시키면서 fadeout 플래그를 건다.
-        top: COLUMN_TOPS[1] - 2,
-        visible: false,
+        // 1열로 올라온 순간부터는 "가장 오래된 블롭 열"로 간주하지만,
+        // 다른 줄들과 동일한 간격을 유지하기 위해 COLUMN_TOPS[1] 그대로 사용
+        top: COLUMN_TOPS[1],
+        visible: true,
         isNew: false,
       };
     }
 
-    // 기존 1열 블롭들(고정 + 동적) → 살짝 위로 이동하며 fadeout
+    // 기존 1열 블롭들(고정 + 동적) → 살짝 위로 이동 (fadeout 은 렌더 단계에서 dim 처리)
     if (blob.column === 1) {
       return {
         ...blob,
         column: 1,
-        top: COLUMN_TOPS[1] - 2, // 1열 기준에서 약간 위로
-        visible: false,
+        // 1열에서도 다른 줄들과 동일한 간격을 유지
+        top: COLUMN_TOPS[1],
+        visible: true,
         isNew: false,
       };
     }
@@ -653,20 +654,20 @@ function shiftColumn5To4(prevBlobs) {
 }
 
 // 5열이 꽉 찼을 때 모든 열을 한 칸씩 위로 이동하는 함수
-// 5열→4열, 4열→3열, 3열→2열, 2열→1열, 1열은 위로 살짝 이동하며 fadeout
+// 5열→4열, 4열→3열, 3열→2열, 2열→1열, 1열은 위로 살짝 이동하며 dim 처리
 // *주의*: left 값은 절대 변경하지 않고, top/column/visible 만 조정
 function shiftAllColumnsUp(prevBlobs) {
   return prevBlobs.map(blob => {
     const currentColumn = blob.column || 5;
 
-    // 1열: 위로 조금 올리면서 fadeout
+    // 1열: 위로 조금 올리면서 dim (visible 은 유지)
     if (currentColumn <= 1) {
       return {
         ...blob,
         column: 1,
-        // 기존 1열 top 에서 살짝 위로 이동 (예: 2vw 정도)
-        top: COLUMN_TOPS[1] - 2,
-        visible: false,
+        // 가장 위 줄도 다른 열과 동일한 기준선 유지
+        top: COLUMN_TOPS[1],
+        visible: true,
         isNew: false,
       };
     }

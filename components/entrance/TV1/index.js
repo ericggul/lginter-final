@@ -6,10 +6,23 @@ import * as S from './styles';
 import * as B from './blobtextbox/@boxes';
 import { calculateBlobWidth } from './blobtextbox/@boxes';
 import { createSocketHandlers, initializeFixedBlobs } from './logic';
+import { LABELS, DURATIONS } from '@/src/core/timeline';
 
 // 새로 생성된 블롭을 화면 밖(하단)에서 위로 슬라이딩하며 나타나게 하는 래퍼 컴포넌트
 // + 내용 단계: T1(빈 블롭, 감정 컬러, 최소 폭) 2초 → T2('...' 모션, 중립 컬러, 최소 폭 유지) 4초 → T3(감정 텍스트, 감정 컬러, 텍스트 길이에 맞게 오른쪽으로 확장)
-function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCount, onTextVisible }) {
+// + focus 모드(TV1 timeline t3~t5)일 때는 Now 라인 블롭은 화면 중앙 근처로,
+//   나머지 열의 블롭들은 살짝 위로 올라가며 투명도가 줄어들도록 한다.
+function BlobFadeInWrapper({
+  blob,
+  BlobComponent,
+  unifiedFont,
+  canvasRef,
+  dotCount,
+  onTextVisible,
+  focusOffset = 0,
+  dimmed = false,
+  highlighted = false,
+}) {
   // visible이 false면 렌더링하지 않음 (fadeout)
   if (blob.visible === false) {
     return null;
@@ -158,6 +171,9 @@ function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCou
       $top={`${currentTop}vw`}
       $left={`${blob.left}vw`}
       $isAnimating={isAnimating || !isNewBlob} // 이동하는 블롭도 애니메이션 적용
+      $focusOffset={focusOffset}
+      $dimmed={dimmed}
+      $highlighted={highlighted}
     >
       {/* 내용 단계에 따라: 빈 블롭 → '...' 모션 → 감정 텍스트 */}
       {contentPhase === 'empty' && (
@@ -173,7 +189,21 @@ function BlobFadeInWrapper({ blob, BlobComponent, unifiedFont, canvasRef, dotCou
         </span>
       )}
       {contentPhase === 'text' && (
-        <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{typedText}</span>
+        <span
+          style={{
+            opacity: 1,
+            position: 'relative',
+            zIndex: 100,
+            fontSize: highlighted ? '2.8vw' : '2.4vw',
+            fontWeight: highlighted ? 500 : 400,
+            textShadow: highlighted
+              ? '0 0 1.2vw rgba(255,255,255,0.9), 0 0 1.8vw rgba(255,180,220,0.85)'
+              : 'none',
+            transition: 'font-size 700ms cubic-bezier(0.4, 0, 0.2, 1), text-shadow 700ms ease-out',
+          }}
+        >
+          {typedText}
+        </span>
       )}
     </BlobComponent>
   );
@@ -269,6 +299,21 @@ export default function TV1Controls() {
   const [canvasHeightVw, setCanvasHeightVw] = useState(56.25); // Canvas의 실제 높이 (vw 단위)
 
   // Scaling handled via CSS (viewport width) in styles.Canvas
+
+  // ---------------------------------------------------------------------------
+  // Global timeline (t1~t5) UI state for TV1
+  // - 서버에서 broadcast 되는 'timeline-stage' 이벤트만 읽어서
+  //   상단 블롭/헤더/Now 영역의 모션에만 사용 (백엔드/로직은 전혀 수정하지 않음)
+  // - t3(voiceInput) 진입 시: 상단 블롭/헤더가 위로 살짝 올라가며 서서히 흐려짐
+  //   Now 포인트는 화면 중앙 근처로 부드럽게 이동
+  // - t5(result)까지 이 상태를 유지하고, t5 이후 약간의 시간이 지나면
+  //   다시 모든 요소가 원래 위치/투명도로 되돌아옴
+  // ---------------------------------------------------------------------------
+  const [timelineLabel, setTimelineLabel] = useState(null); // 't1' | 't2' | 't3' | 't4' | 't5' | null
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const t5TimerRef = useRef(null);
+  // Now 라인(5열) 블롭 중 가장 최근 인풋을 강조 표시하기 위한 id
+  const [highlightBlobId, setHighlightBlobId] = useState(null);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -366,6 +411,85 @@ export default function TV1Controls() {
     } catch {}
   }, [playTts]);
 
+  // Timeline-stage → TV1 전용 포커스 모션 상태 업데이트
+  const handleTimelineStage = useCallback((payload) => {
+    try {
+      const labelFromPayload = payload?.label || (payload?.stage && LABELS[payload.stage]) || null;
+      const nextLabel = typeof labelFromPayload === 'string' ? labelFromPayload : null;
+      setTimelineLabel(nextLabel);
+
+      // 항상 기존 타이머 정리
+      if (t5TimerRef.current) {
+        clearTimeout(t5TimerRef.current);
+        t5TimerRef.current = null;
+      }
+
+      // t3, t4 동안에는 포커스 모드 유지
+      if (nextLabel === 't3' || nextLabel === 't4') {
+        setIsFocusMode(true);
+        return;
+      }
+
+      // t5 진입 시: 결과 강조 상태를 잠시 유지한 뒤, 서서히 원래 상태로 복귀
+      if (nextLabel === 't5') {
+        setIsFocusMode(true);
+        const fallbackDuration =
+          (DURATIONS && typeof DURATIONS.T4_TO_T5_MS === 'number' && DURATIONS.T4_TO_T5_MS > 0)
+            ? DURATIONS.T4_TO_T5_MS
+            : 8000;
+        const restoreDelay = Math.min(fallbackDuration + 1000, 15000); // 안전 상한 15초
+        t5TimerRef.current = setTimeout(() => {
+          setIsFocusMode(false);
+          setHighlightBlobId(null);
+          t5TimerRef.current = null;
+        }, restoreDelay);
+        return;
+      }
+
+      // 그 외(t1, t2 혹은 알 수 없는 상태)는 항상 기본 모드로 복귀
+      setIsFocusMode(false);
+      setHighlightBlobId(null);
+    } catch {
+      // 방어적으로 예외 무시 (UI 모션에만 영향)
+    }
+  }, []);
+
+  // 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (t5TimerRef.current) {
+        try { clearTimeout(t5TimerRef.current); } catch {}
+        t5TimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // focus 모드(t3~t5) 동안, Now 라인(column === 5) 블롭 중 가장 최근 인풋 하나만 강조
+  useEffect(() => {
+    if (!isFocusMode) {
+      setHighlightBlobId(null);
+      return;
+    }
+    if (!Array.isArray(newBlobs) || newBlobs.length === 0) return;
+    // 열 5(Now 라인)에 있는 동적 블롭들만 대상으로 한다.
+    const nowBlobs = newBlobs.filter(
+      (b) => !b.isFixed && b.column === 5 && b.visible !== false
+    );
+    if (!nowBlobs.length) {
+      setHighlightBlobId(null);
+      return;
+    }
+    // timestamp 기준으로 가장 최신 블롭 하나 선택
+    let newest = nowBlobs[0];
+    for (let i = 1; i < nowBlobs.length; i += 1) {
+      const b = nowBlobs[i];
+      if (typeof b.timestamp === 'number' && b.timestamp > (newest.timestamp || 0)) {
+        newest = b;
+      }
+    }
+    setHighlightBlobId(newest.id);
+  }, [isFocusMode, newBlobs]);
+
   const handlers = useMemo(
     () => createSocketHandlers({ 
       setKeywords, 
@@ -384,6 +508,7 @@ export default function TV1Controls() {
     onEntranceNewVoice: handlers.onEntranceNewVoice,
     onDeviceDecision: handlers.onDeviceDecision,
     onDeviceNewDecision: handlers.onDeviceNewDecision,
+    onTimelineStage: handleTimelineStage,
   });
 
   // visible한 블롭들의 left 위치를 동적으로 계산 (블롭 간 간격 동일하게)
@@ -443,10 +568,10 @@ export default function TV1Controls() {
 
   return (
     <S.Root $fontFamily={unifiedFont}>
-      <S.Canvas ref={canvasRef}>
+      <S.Canvas ref={canvasRef} $isFocusMode={isFocusMode}>
         <S.LeftLineImage ref={lineImageRef} $height={lineImageHeight} $canvasHeight={canvasHeightVw} />
-        <S.LeftNow>Now</S.LeftNow>
-        <S.LeftShape />
+        <S.LeftNow $isFocusMode={isFocusMode}>Now</S.LeftNow>
+        <S.LeftShape $isFocusMode={isFocusMode} />
         
         {/* 동적 시간 표시 (블롭 생성 시 시간대 변경 시 자동 생성) */}
         {timeMarkers.map((marker) => (
@@ -454,16 +579,18 @@ export default function TV1Controls() {
             <S.LeftTime2 
               $top={`${marker.top}vw`}
               $visible={marker.visible}
+              $isFocusMode={isFocusMode}
             >
               {String(marker.hour).padStart(2, '0')}:00
             </S.LeftTime2>
             <S.LeftWhiteShape 
               $top={`${marker.top}vw`}
               $visible={marker.visible}
+              $isFocusMode={isFocusMode}
             />
           </React.Fragment>
         ))}
-        <S.TopText $fontFamily={unifiedFont}>
+        <S.TopText $fontFamily={unifiedFont} $isFocusMode={isFocusMode}>
           <S.Bold>오늘</S.Bold>
           <span>의 감정들은</span>
           <S.Dots aria-hidden="true">
@@ -472,28 +599,106 @@ export default function TV1Controls() {
             <S.Dot $visible={dotCount >= 3}>.</S.Dot>
           </S.Dots>
         </S.TopText>
-        <B.InterestBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Interest?.visible} $gradient={visibleBlobs.Interest?.gradient} $text={visibleBlobs.Interest?.text || ''} $left={blobPositions.Interest}>
+        <B.InterestBox
+          $fontFamily={unifiedFont}
+          $visible={!!visibleBlobs.Interest?.visible}
+          $gradient={visibleBlobs.Interest?.gradient}
+          $text={visibleBlobs.Interest?.text || ''}
+          $left={blobPositions.Interest}
+          $isAnimating
+          $focusOffset={isFocusMode ? -18 : 0}
+          $dimmed={isFocusMode}
+        >
           <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Interest?.text || ''}</span>
         </B.InterestBox>
-        <B.PlayfulBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Playful?.visible} $gradient={visibleBlobs.Playful?.gradient} $text={visibleBlobs.Playful?.text || ''} $left={blobPositions.Playful}>
+        <B.PlayfulBox
+          $fontFamily={unifiedFont}
+          $visible={!!visibleBlobs.Playful?.visible}
+          $gradient={visibleBlobs.Playful?.gradient}
+          $text={visibleBlobs.Playful?.text || ''}
+          $left={blobPositions.Playful}
+          $isAnimating
+          $focusOffset={isFocusMode ? -18 : 0}
+          $dimmed={isFocusMode}
+        >
           <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Playful?.text || ''}</span>
         </B.PlayfulBox>
-        <B.SelfConfidentBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.SelfConfident?.visible} $gradient={visibleBlobs.SelfConfident?.gradient} $text={visibleBlobs.SelfConfident?.text || ''} $left={blobPositions.SelfConfident}>
+        <B.SelfConfidentBox
+          $fontFamily={unifiedFont}
+          $visible={!!visibleBlobs.SelfConfident?.visible}
+          $gradient={visibleBlobs.SelfConfident?.gradient}
+          $text={visibleBlobs.SelfConfident?.text || ''}
+          $left={blobPositions.SelfConfident}
+          $isAnimating
+          $focusOffset={isFocusMode ? -18 : 0}
+          $dimmed={isFocusMode}
+        >
           <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.SelfConfident?.text || ''}</span>
         </B.SelfConfidentBox>
-        <B.HappyBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Happy?.visible} $gradient={visibleBlobs.Happy?.gradient} $text={visibleBlobs.Happy?.text || ''} $left={blobPositions.Happy}>
+        <B.HappyBox
+          $fontFamily={unifiedFont}
+          $visible={!!visibleBlobs.Happy?.visible}
+          $gradient={visibleBlobs.Happy?.gradient}
+          $text={visibleBlobs.Happy?.text || ''}
+          $left={blobPositions.Happy}
+          $isAnimating
+          $focusOffset={isFocusMode ? -18 : 0}
+          $dimmed={isFocusMode}
+        >
           <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Happy?.text || ''}</span>
         </B.HappyBox>
-        <B.SadBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Sad?.visible} $gradient={visibleBlobs.Sad?.gradient} $text={visibleBlobs.Sad?.text || ''} $left={blobPositions.Sad}>
+        <B.SadBox
+          $fontFamily={unifiedFont}
+          $visible={!!visibleBlobs.Sad?.visible}
+          $gradient={visibleBlobs.Sad?.gradient}
+          $text={visibleBlobs.Sad?.text || ''}
+          $left={blobPositions.Sad}
+          $isAnimating
+          $focusOffset={isFocusMode ? -18 : 0}
+          $dimmed={isFocusMode}
+        >
           <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Sad?.text || ''}</span>
         </B.SadBox>
-        <B.AnnoyedBox $fontFamily={unifiedFont} $visible={!!visibleBlobs.Annoyed?.visible} $gradient={visibleBlobs.Annoyed?.gradient} $text={visibleBlobs.Annoyed?.text || ''} $left={blobPositions.Annoyed}>
+        <B.AnnoyedBox
+          $fontFamily={unifiedFont}
+          $visible={!!visibleBlobs.Annoyed?.visible}
+          $gradient={visibleBlobs.Annoyed?.gradient}
+          $text={visibleBlobs.Annoyed?.text || ''}
+          $left={blobPositions.Annoyed}
+          $isAnimating
+          $focusOffset={isFocusMode ? -18 : 0}
+          $dimmed={isFocusMode}
+        >
           <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{visibleBlobs.Annoyed?.text || ''}</span>
         </B.AnnoyedBox>
         
         {/* 고정 블롭 + 동적 블롭 렌더링 */}
+        {/* Now 라인(column === 5)은 한 줄로 중앙으로 올리고, 나머지 열은 위로 올리며 dim 처리 */}
         {newBlobs.map((blob) => {
           const BlobComponent = getBlobComponent(blob.blobType);
+          const isNowColumn = !blob.isFixed && blob.column === 5;
+
+          // logic.js COLUMN_5_TOP 과 동일 값 (Now 기본 위치)
+          const baseNowTopVw = 44.6191665;
+          const centerTopVw = 33; // 화면 중앙 근처 Now 라인 목표 top (vw)
+
+          let focusOffset = 0;
+          let dimmed = false;
+
+          if (isFocusMode) {
+            if (isNowColumn) {
+              // 열 5 블롭들은 모두 같은 양만큼 이동 → 항상 같은 줄에 위치
+              focusOffset = centerTopVw - baseNowTopVw;
+              dimmed = false;
+            } else {
+              // 나머지 열은 위쪽으로 살짝 이동 + 투명도 감소
+              focusOffset = -18;
+              dimmed = true;
+            }
+          }
+
+          const highlighted = isFocusMode && isNowColumn && blob.id === highlightBlobId;
+
           // 고정 블롭은 애니메이션 없이 바로 렌더링,
           // 단, shift 로직에서 visible=false 로 표시된 경우에는 페이드아웃/숨기기 위해 $visible 플래그를 반영
           if (blob.isFixed) {
@@ -506,6 +711,10 @@ export default function TV1Controls() {
                 $text={blob.text}
                 $top={`${blob.top}vw`}
                 $left={`${blob.left}vw`}
+                $isAnimating
+                $focusOffset={focusOffset}
+                $dimmed={dimmed}
+                $highlighted={highlighted}
               >
                 <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{blob.text}</span>
               </BlobComponent>
@@ -526,6 +735,9 @@ export default function TV1Controls() {
               canvasRef={canvasRef}
               dotCount={dotCount}
               onTextVisible={speakKeyword}
+              focusOffset={focusOffset}
+              dimmed={dimmed}
+              highlighted={highlighted}
             />
           );
         })}
