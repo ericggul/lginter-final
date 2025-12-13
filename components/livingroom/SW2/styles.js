@@ -258,15 +258,16 @@ export const TopStatus = styled.div`
   top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
-  color: #FFFFFF;
+  color: #000000;
   font-weight: 600;
   letter-spacing: -0.005208vw;
   text-align: center;
-  font-size: clamp(0.651042vw, 3.6vmin, 1.119792vw);
-  /* TV2/SW2 캡션 계열의 화이트 + 글로우 텍스트 쉐도우 */
+  /* SW1 상단 상태 텍스트와 동일한 크기로 맞춤 */
+  font-size: clamp(0.729167vw, 3.96vmin, 1.223958vw);
+  /* 상단 상태 텍스트: 검정 본문 + 은은한 흰색 글로시 글로우 */
   text-shadow:
-    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
-    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
+    0 0.26vw 0.80vw rgba(255, 255, 255, 0.85),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.9);
   pointer-events: none;
   z-index: 10;
 `;
@@ -452,12 +453,12 @@ export const HeadText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 600; /* Semi Bold */
   font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
-  color: #FFFFFF;
+  color: #000000;
   letter-spacing: 0.02em;
-  /* TV2 TrackTitle 느낌에 맞춘 글로우 / 섀도우 */
+  /* 중앙 곡명: 검정 텍스트 + 흰색 계열 글로시 글로우만 남김 */
   text-shadow:
-    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
-    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
+    0 0.26vw 0.80vw rgba(255, 255, 255, 0.85),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.9);
   will-change: opacity, transform, filter;
   ${({ $state }) =>
     $state === 'enter' &&
@@ -472,12 +473,12 @@ export const SubText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400;
   font-size: clamp(0.520833vw, 3.0vmin, 1.8vw);
-  color: #FFFFFF;
+  color: #000000;
   letter-spacing: 0.02em;
-  /* 제목과 동일 계열의 글로우/섀도우를 사용해 스타일을 맞춘다 */
+  /* 가수명: 검정 텍스트 + 흰색 계열 글로시 글로우 */
   text-shadow:
-    0 0.22vw 0.72vw rgba(0, 0, 0, 0.7),
-    0 0.46vw 1.45vw rgba(255, 255, 255, 0.82);
+    0 0.22vw 0.72vw rgba(255, 255, 255, 0.82),
+    0 0.46vw 1.45vw rgba(255, 255, 255, 0.9);
   line-height: 1.2;
   will-change: opacity, transform, filter;
   ${({ $state }) =>
@@ -493,22 +494,22 @@ export const SubTitle = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 500; /* TV2 TrackTitle 과 유사한 두께 */
   font-size: clamp(0.520833vw, 3.0vmin, 1.666667vw);
-  color: rgba(255, 255, 255, 0.96);
+  color: #000000;
   letter-spacing: 0.02em;
   text-shadow:
-    0 0.20vw 0.72vw rgba(0, 0, 0, 0.7),
-    0 0.42vw 1.36vw rgba(255, 255, 255, 0.82);
+    0 0.20vw 0.72vw rgba(255, 255, 255, 0.82),
+    0 0.42vw 1.36vw rgba(255, 255, 255, 0.9);
 `;
 
 export const SubArtist = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400; /* Regular */
   font-size: clamp(0.416667vw, 2.4vmin, 1.458333vw);
-  color: rgba(255, 255, 255, 0.92);
+  color: #000000;
   letter-spacing: 0.02em;
   text-shadow:
-    0 0.16vw 0.60vw rgba(0, 0, 0, 0.7),
-    0 0.36vw 1.22vw rgba(255, 255, 255, 0.78);
+    0 0.16vw 0.60vw rgba(255, 255, 255, 0.82),
+    0 0.36vw 1.22vw rgba(255, 255, 255, 0.9);
 `;
 
 export const Column = styled.div`
