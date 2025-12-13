@@ -248,6 +248,65 @@ export const LeftTime3 = styled(LeftTime2)`
 export const LeftTime4 = styled(LeftTime2)`
   top: 44.4975vw; /* 2280px */
 `;
+
+// ---------------------------------------------------------------------------
+// TV1 focus-mode: glow text for the newly entered blob container (Now column)
+// - Visually inspired by mobile OrchestratingScreen gradient text
+// - Uses global `orchestrateLabel` keyframes only for naming consistency;
+//   opacity is driven via props so it can follow t3~t5 timeline precisely.
+// ---------------------------------------------------------------------------
+
+const gradientShift = keyframes`
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+`;
+
+export const FocusBlobGlowText = styled.span`
+  position: relative;
+  z-index: 100;
+  display: inline-block;
+
+  font-size: ${(p) => (p.$highlighted ? '2.8vw' : '2.4vw')};
+  font-weight: ${(p) => (p.$highlighted ? 500 : 400)};
+
+  /* Core gradient + glow look borrowed from mobile Orchestrating label */
+  background-image: linear-gradient(
+    90deg,
+    #ffe6f7 0%,
+    #ff6ec4 20%,
+    #fff6d6 40%,
+    #7873f5 60%,
+    #ffe6f7 80%,
+    #ff6ec4 100%
+  );
+  background-size: 320% 320%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  text-shadow: ${(p) =>
+    p.$highlighted
+      ? '0 0 1.2vw rgba(255,255,255,0.9), 0 0 1.8vw rgba(255,180,220,0.85)'
+      : '0 0 0.8vw rgba(255,255,255,0.75), 0 0 1.4vw rgba(255,180,220,0.7)'};
+
+  /* Active flag is controlled by TV1 timeline (t3~t4 → on, t5 → off) */
+  opacity: ${(p) => (p.$active ? 1 : 0)};
+
+  animation: ${gradientShift} 15000ms ease-in-out infinite;
+  transition:
+    opacity 900ms ease-out,
+    font-size 700ms cubic-bezier(0.4, 0, 0.2, 1),
+    text-shadow 700ms ease-out;
+`;
 export const TopText = styled.div`
   position: absolute;
   top: ${(p) => (p.$isFocusMode ? '3vw' : '5.60417vw')}; /* focus 모드에서 살짝 위로 */
