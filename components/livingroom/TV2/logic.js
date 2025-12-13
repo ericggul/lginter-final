@@ -6,10 +6,10 @@ import { MUSIC_CATALOG } from '@/utils/data/musicCatalog';
 import { computeMiniWarmHue, toHsla as toHslaSW1 } from '@/components/livingroom/SW1/logic/color';
 
 const DEFAULT_ENV = {
-  temp: 24,
-  humidity: 38,
-  lightColor: '#6EA7FF',
-  music: '',
+  temp: 23,
+  humidity: 63,
+  lightColor: '#6EA7FF', // pastel blue landing
+  music: 'happy-alley',  // landing track
   lightLabel: '',
 };
 
@@ -1100,6 +1100,37 @@ export function useTV2DisplayLogic({ env, title, artist, coverSrc, audioSrc, rea
   
   // Music indicator pulse intensity (stronger in T5)
   const waveformPulseIntensity = isT5 ? 1.4 : 1.0;
+
+  // Landing bootstrap: show default content immediately without a decision
+  useEffect(() => {
+    const hasInput =
+      !!(env?.music || env?.lightColor || typeof env?.temp === 'number' || typeof env?.humidity === 'number');
+    if (!hasInput) return;
+    if (decisionKey !== 0) return;
+    if (motionStateRef.current !== 'T3') return;
+
+    // Promote to T5 and reveal current values
+    setMotionState('T5');
+    motionStateRef.current = 'T5';
+
+    // Header
+    if (headerText) {
+      setShowHeaderLoading(false);
+      setDisplayHeaderText(headerText);
+    }
+    // Title/Artist/Cover
+    setShowTitleLoading(false);
+    setShowArtistLoading(false);
+    setShowAlbumCover(!!coverSrc);
+    setDisplayTitle(title || '');
+    setDisplayArtist(artist || '');
+
+    // Temp/Humidity
+    const t = typeof env?.temp === 'number' ? `${env.temp}°C` : '';
+    const h = typeof env?.humidity === 'number' ? `${env.humidity}%` : '';
+    if (t) { setShowTempLoading(false); setDisplayTemp(t); }
+    if (h) { setShowHumidityLoading(false); setDisplayHumidity(h); }
+  }, [env?.music, env?.lightColor, env?.temp, env?.humidity, title, artist, coverSrc, headerText, decisionKey]);
   
   return {
     // Display states

@@ -360,35 +360,7 @@ export const HeaderTitle = styled.div`
   /* 쉐도우 제거 */
   text-shadow: none;
 
-  /* 헤더 타이틀 뒤 언더레이: soft-light + center color-burn */
-  &::before{
-    content:''; position:absolute;
-    inset:-8% -10%;
-    border-radius:24px;
-    background: radial-gradient(
-      circle at 50% 60%,
-      rgba(0,0,0,0.32) 0%,
-      rgba(0,0,0,0.18) 46%,
-      rgba(0,0,0,0.00) 82%
-    );
-    filter: blur(18px);
-    mix-blend-mode: soft-light;
-    z-index:-1; pointer-events:none;
-  }
-  &::after{
-    content:''; position:absolute;
-    inset:-6% -8%;
-    border-radius:24px;
-    background: radial-gradient(
-      circle at 50% 60%,
-      rgba(0,0,0,0.34) 0%,
-      rgba(0,0,0,0.34) 42%,
-      rgba(0,0,0,0.00) 62%
-    );
-    filter: blur(22px);
-    mix-blend-mode: color-burn;
-    z-index:-1; pointer-events:none; opacity:0.88;
-  }
+  &::before, &::after { content: none !important; }
 `;
 
 export const Content = styled.div`
@@ -651,6 +623,8 @@ export const MusicIcon = styled.div`
     width: 90%; 
     height: 90%; 
     color: #fff; 
+    mix-blend-mode: normal;
+    opacity: 1;
     filter:
       drop-shadow(0 8px 24px rgba(0,0,0,0.45))
       drop-shadow(0 16px 48px rgba(0,0,0,0.25))
@@ -661,6 +635,8 @@ export const MusicIcon = styled.div`
     height: 90%; 
     object-fit: contain; 
     display: block; 
+    mix-blend-mode: normal;
+    opacity: 1;
     filter:
       drop-shadow(0 8px 24px rgba(0,0,0,0.45))
       drop-shadow(0 16px 48px rgba(0,0,0,0.25))
@@ -949,6 +925,7 @@ export const FadeSlideText = styled.div`
   animation: ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: opacity, transform, filter;
   mix-blend-mode: ${props => props.$blend || 'soft-light'};
+  position: relative;
   ${props => props.$shouldGlow ? css`
     animation:
       ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards,
@@ -1003,42 +980,7 @@ export const TrackTitle = styled.div`
   z-index: 20;
   pointer-events: none;
 
-  /* 텍스트 뒤 국소 영역을 살짝 어둡게 눌러주는 언더레이 */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -16% -18%;
-    border-radius: 32px;
-    background: radial-gradient(
-      circle at 50% 55%,
-      rgba(0,0,0,0.55) 0%,
-      rgba(0,0,0,0.30) 45%,
-      rgba(0,0,0,0.00) 80%
-    );
-    filter: blur(30px);
-    mix-blend-mode: soft-light;
-    z-index: -1;
-    pointer-events: none;
-  }
-  /* 중심부 컬러 번으로 더 강하게 눌러 동일한 이중 레이어 효과 */
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -12% -14%;
-    border-radius: 24px;
-    background: radial-gradient(
-      circle at 50% 55%,
-      ${props => props.$dark || 'rgba(0,0,0,0.46)'} 0%,
-      ${props => props.$dark || 'rgba(0,0,0,0.46)'} 42%,
-      rgba(0,0,0,0.0) 62%,
-      rgba(0,0,0,0.0) 100%
-    );
-    filter: blur(56px);
-    mix-blend-mode: color-burn;
-    opacity: 0.9;
-    z-index: -1;
-    pointer-events: none;
-  }
+  &::before, &::after { content: none !important; }
 `;
 
 export const Artist = styled.div`
@@ -1065,40 +1007,7 @@ export const Artist = styled.div`
   pointer-events: none;
   -webkit-text-stroke: 0.8px rgba(0,0,0,0.16);
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -16% -18%;
-    border-radius: 28px;
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgba(0,0,0,0.48) 0%,
-      rgba(0,0,0,0.26) 48%,
-      rgba(0,0,0,0.00) 82%
-    );
-    filter: blur(28px);
-    mix-blend-mode: soft-light;
-    z-index: -1;
-    pointer-events: none;
-  }
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -14% -16%;
-    border-radius: 24px;
-    background: radial-gradient(
-      circle at 50% 50%,
-      ${props => props.$dark || 'rgba(0,0,0,0.42)'} 0%,
-      ${props => props.$dark || 'rgba(0,0,0,0.42)'} 40%,
-      rgba(0,0,0,0.0) 60%,
-      rgba(0,0,0,0.0) 100%
-    );
-    filter: blur(52px);
-    mix-blend-mode: color-burn;
-    opacity: 0.85;
-    z-index: -1;
-    pointer-events: none;
-  }
+  &::before, &::after { content: none !important; }
 `;
 
 // 음악 파형 인디케이터 (실제 오디오 파형 반영)

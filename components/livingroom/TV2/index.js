@@ -434,7 +434,14 @@ export default function TV2Controls() {
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
               >
-                <S.FadeSlideText $slideLR $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayHeaderTextValue || displayHeaderText || 'header-loading'}-${decisionKey}`} lang={getLang(displayHeaderTextValue || displayHeaderText || '')}>
+                <S.FadeSlideText
+                  $slideLR
+                  $isT5={isT5}
+                  $triggerT5={triggerT5Animations}
+                  key={`${displayHeaderTextValue || displayHeaderText || 'header-loading'}-${decisionKey}`}
+                  lang={getLang(displayHeaderTextValue || displayHeaderText || '')}
+                  data-text={displayHeaderTextValue || displayHeaderText || ''}
+                >
                   {showHeaderLoading ? (
                     <S.LoadingDots><span /><span /><span /></S.LoadingDots>
                   ) : (
@@ -556,7 +563,13 @@ export default function TV2Controls() {
               $color={titleColor}
               $dark={headerSweepContrastColor}
             >
-              <S.FadeSlideText $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayTitle || env.music || 'title-loading'}-${decisionKey}`} lang={getLang(displayTitle || env.music || '')}>
+              <S.FadeSlideText
+                $isT5={isT5}
+                $triggerT5={triggerT5Animations}
+                key={`${displayTitle || env.music || 'title-loading'}-${decisionKey}`}
+                lang={getLang(displayTitle || env.music || '')}
+                data-text={displayTitle || env.music || ''}
+              >
                 {showTitleLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : (displayTitle || env.music || '')}
               </S.FadeSlideText>
             </S.TrackTitle>
@@ -568,7 +581,13 @@ export default function TV2Controls() {
                 $shadowOffsetY={textShadowOffsetY}
               $dark={headerSweepContrastColor}
             >
-              <S.FadeSlideText $isT5={isT5} $triggerT5={triggerT5Animations} key={`${displayArtist || 'artist-loading'}-${decisionKey}`} lang={getLang(displayArtist)}>
+              <S.FadeSlideText
+                $isT5={isT5}
+                $triggerT5={triggerT5Animations}
+                key={`${displayArtist || 'artist-loading'}-${decisionKey}`}
+                lang={getLang(displayArtist)}
+                data-text={displayArtist || ''}
+              >
                 {showArtistLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : displayArtist}
               </S.FadeSlideText>
             </S.Artist>
@@ -630,7 +649,14 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-temperature.png" alt="" />
                   </S.ClimateIcon>
-                  <S.FadeSlideText $roulette $isT5={isT5} $triggerT5={triggerT5Animations} $blend="overlay" key={`${displayTemp || env.temp || 'temp-loading'}-${decisionKey}`}>
+                  <S.FadeSlideText
+                    $roulette
+                    $isT5={isT5}
+                    $triggerT5={triggerT5Animations}
+                    $blend="overlay"
+                    key={`${displayTemp || env.temp || 'temp-loading'}-${decisionKey}`}
+                    data-text={showTempLoading ? '' : (displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : ''))}
+                  >
                     {showTempLoading ? (
                       <S.LoadingDots><span /><span /><span /></S.LoadingDots>
                     ) : (
@@ -660,7 +686,14 @@ export default function TV2Controls() {
                   >
                     <img src="/figma/tv2-humidity.png" alt="" />
                   </S.ClimateIcon>
-                  <S.FadeSlideText $roulette $isT5={isT5} $triggerT5={triggerT5Animations} $blend="overlay" key={`${displayHumidity || env.humidity || 'humidity-loading'}-${decisionKey}`}>
+                  <S.FadeSlideText
+                    $roulette
+                    $isT5={isT5}
+                    $triggerT5={triggerT5Animations}
+                    $blend="overlay"
+                    key={`${displayHumidity || env.humidity || 'humidity-loading'}-${decisionKey}`}
+                    data-text={showHumidityLoading ? '' : (displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : ''))}
+                  >
                     {showHumidityLoading ? (
                       <S.LoadingDots><span /><span /><span /></S.LoadingDots>
                     ) : (
