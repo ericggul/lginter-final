@@ -321,10 +321,15 @@ const BLOB_SPAWN_POINT = {
   top: COLUMN_5_TOP, // Now 시점 (5열)
   left: 19.610417 // 짜증 블롭과 동일한 left 값
 };
-const BLOB_SPACING = 3; // 상단 블롭 간격과 동일
+// 기본 간격 값 (초기 렌더에서 상단 블롭 간격 계산 후 재설정됨)
+let BLOB_SPACING = 3;
 const ROW_HEIGHT = 4.8322915; // (spawn point top - 짜증 블롭 top) / 2 = (26.2375 - 16.572917) / 2
 const RIGHT_MARGIN = 7.817708; // Now와 화면 왼쪽 거리
-const MAX_RIGHT = 100 - RIGHT_MARGIN; // 92.182292vw - 블롭의 오른쪽 면이 이 값을 넘으면 안됨
+// 상단 고정 블롭들이 사용하는 가로 영역(startLeft=19.610417, endRight=84)과
+// 동일한 범위 안에서만 동적 블롭도 배치되도록 MAX_RIGHT를 맞춘다.
+// → 긴 텍스트가 들어왔을 때 5열이 더 일찍 "가득 찼다"고 판단하여
+//    새 줄(열 시프트)로 넘기고, 기존 블롭들과 시각적으로 겹치지 않게 한다.
+const MAX_RIGHT = 84;
 
 // 좌측 시간 라벨 최대 개수
 // - 이 개수를 넘으면 가장 오래된(가장 위에 위치한) 시간 라벨을 점진적으로 숨긴다.
@@ -366,6 +371,12 @@ export function initializeFixedBlobs(visibleBlobs, calculateBlobWidth) {
       }
     }
   } catch {}
+  
+  // 상단(1열) 블롭 간 간격이 계산되었다면, 이후 Now 라인(5열)에 쌓이는
+  // 동적 블롭들도 동일한 리듬으로 배치되도록 전역 BLOB_SPACING을 맞춰준다.
+  if (typeof topRowSpacing === 'number' && topRowSpacing > 0) {
+    BLOB_SPACING = topRowSpacing;
+  }
   
   // 각 열별로 서로 다른 감정 키워드 배열 정의
   // 1열 블롭 제외: '짜증', '무기력', '맑음', '설렘', '상쾌함', '자기확신'
@@ -449,33 +460,44 @@ function calculatePositionInColumn(column, existingBlobsInColumn, newText, calcu
   const lastBlobWidth = calculateBlobWidth(lastBlob.text);
   
   // 5열(blobSpawnPoint)이 "가로로" 꽉 찼는지 체크
-  // → 새 블롭을 같은 줄에 배치했을 때 오른쪽 경계를 넘으면 가득 찬 것으로 간주
+  // → 새 블롭을 같은 줄에 배치했을 때 오른쪽 경계를 넘거나,
+  //    바로 앞 블롭과의 실제 간격이 너무 좁으면 가득 찬 것으로 간주
   let isColumnFull = false;
   
-  // 같은 줄에 배치 시도
+  // 같은 줄에 배치 시도 (상단과 동일한 리듬의 간격 사용)
   let newLeft = lastBlob.left + lastBlobWidth + BLOB_SPACING;
   let newTop = columnTop;
   let newRowIndex = lastBlob.rowIndex || 0;
   
-  // 오른쪽 경계 체크
-  if (newLeft + newBlobWidth > MAX_RIGHT) {
-    if (column === 5) {
-      // 5열에서 새 블롭이 우측 경계를 넘을 경우 → 5열이 가득 찼다고 보고 타임라인 시프트 트리거
+  if (column === 5) {
+    const lastRight = lastBlob.left + lastBlobWidth;
+    // 글로우/블러가 겹쳐 보이지 않을 정도의 최소 시각적 간격만 확보하고,
+    // 그보다 넓으면 한 줄에 계속 붙여서 배치한다.
+    const MIN_SAFE_GAP = 1.0;
+    const wouldLookTouching = (newLeft - lastRight) < MIN_SAFE_GAP;
+    const wouldOverflowRight = newLeft + newBlobWidth > MAX_RIGHT;
+
+    if (wouldLookTouching || wouldOverflowRight) {
+      // 5열이 가득 찼다고 보고 타임라인 시프트 트리거
       isColumnFull = true;
-      console.log('📺 TV1 Column 5 is full (horizontal overflow):', {
+      console.log('📺 TV1 Column 5 is full (gap/overflow):', {
         lastLeft: lastBlob.left,
         lastWidth: lastBlobWidth,
         newBlobWidth,
         maxRight: MAX_RIGHT,
         totalBlobs: existingBlobsInColumn.length,
+        wouldLookTouching,
+        wouldOverflowRight,
       });
-      // 실제 배치 위치는 이후 shiftAllColumnsUp + calculateNewBlobPosition 으로 다시 계산되므로
+      // 실제 배치 위치는 이후 shiftColumn5To4 + calculateNewBlobPosition 으로 다시 계산되므로
       // 여기서는 기본 값만 유지
       newLeft = BLOB_SPAWN_POINT.left;
       newTop = columnTop;
       newRowIndex = lastBlob.rowIndex || 0;
-    } else {
-      // 다른 열(2,3,4)은 기존 로직대로 같은 열 내에서 다음 줄로 이동 (레거시)
+    }
+  } else {
+    // 2,3,4열 등은 기존 로직대로 우측 경계 기준으로만 줄바꿈 처리
+    if (newLeft + newBlobWidth > MAX_RIGHT) {
       newLeft = BLOB_SPAWN_POINT.left;
       newTop = columnTop;
       newRowIndex = (lastBlob.rowIndex || 0) + 1;

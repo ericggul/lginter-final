@@ -110,7 +110,9 @@ export const InterestBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '43.960364vw'};
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
@@ -172,7 +174,9 @@ export const PlayfulBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '75.340316vw'};
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
@@ -233,7 +237,9 @@ export const UpsetBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */ 
   left: ${(p) => p.$left || '19.610417vw'}; /* 630px */ 
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
@@ -259,7 +265,9 @@ export const ProudBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '33.610417vw'}; /* 1519px - uniform 100px gap from UpsetBox */
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
@@ -285,7 +293,9 @@ export const ShyBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '47.610417vw'}; /* equal gap from Upset (first + 28vw) */
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
@@ -311,7 +321,9 @@ export const ChaoticBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '63.610417vw'}; /* equal gap from Upset (first + 42vw) */
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
@@ -337,7 +349,9 @@ export const HappyBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '60.391327vw'};
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
@@ -398,7 +412,9 @@ export const AnnoyedBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '19.610417vw'};
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
@@ -460,7 +476,9 @@ export const HungryBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '45.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '34.110417vw'}; /* equal gap from Annoyed (first + 14vw) */
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
@@ -488,7 +506,9 @@ export const SadBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '33.080387vw'};
-  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+  transform: translateY(-50%)
+    translateY(${(p) => p.$focusOffset || 0}vw)
+    translateX(${(p) => p.$gapOffset || 0}vw)
     scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */

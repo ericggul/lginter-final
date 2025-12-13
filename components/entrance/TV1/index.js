@@ -22,6 +22,7 @@ function BlobFadeInWrapper({
   focusOffset = 0,
   dimmed = false,
   highlighted = false,
+  timelineLabel,
 }) {
   // visible이 false면 렌더링하지 않음 (fadeout)
   if (blob.visible === false) {
@@ -161,7 +162,21 @@ function BlobFadeInWrapper({
     contentPhase === 'dots'
       ? neutralGradient
       : (blob.gradient || neutralGradient);
-  
+
+  // 새로 들어온 Now 라인 블롭(가장 최근 인풋, highlighted=true)에만
+  // 모바일 오케스트레이션 스타일의 텍스트 효과 적용
+  // - T3~T5: 효과 있는 텍스트만 보이도록 유지
+  // - T5 포커스가 풀리면(highlighted=false) 평범한 검은 텍스트로 되돌린다
+  const isGlowPhase =
+    highlighted &&
+    contentPhase === 'text' &&
+    (timelineLabel === 't3' || timelineLabel === 't4' || timelineLabel === 't5');
+
+  // 동일한 isGlowPhase 조건 동안에는 새로 들어온 블롭 컨테이너의 간격만
+  // 살짝 더 넓게 보이도록 X 축으로 미세하게 이동시킨다.
+  // - 실제 left/BLOB_SPACING 값은 건드리지 않고, 시각적인 여백만 조절
+  const gapOffset = isGlowPhase ? 1.1 : 0;
+
   return (
     <BlobComponent
       $fontFamily={unifiedFont}
@@ -174,6 +189,7 @@ function BlobFadeInWrapper({
       $focusOffset={focusOffset}
       $dimmed={dimmed}
       $highlighted={highlighted}
+      $gapOffset={gapOffset}
     >
       {/* 내용 단계에 따라: 빈 블롭 → '...' 모션 → 감정 텍스트 */}
       {contentPhase === 'empty' && (
@@ -189,21 +205,35 @@ function BlobFadeInWrapper({
         </span>
       )}
       {contentPhase === 'text' && (
-        <span
-          style={{
-            opacity: 1,
-            position: 'relative',
-            zIndex: 100,
-            fontSize: highlighted ? '2.8vw' : '2.4vw',
-            fontWeight: highlighted ? 500 : 400,
-            textShadow: highlighted
-              ? '0 0 1.2vw rgba(255,255,255,0.9), 0 0 1.8vw rgba(255,180,220,0.85)'
-              : 'none',
-            transition: 'font-size 700ms cubic-bezier(0.4, 0, 0.2, 1), text-shadow 700ms ease-out',
-          }}
-        >
-          {typedText}
-        </span>
+        <>
+          {isGlowPhase ? (
+            // T3~T4: 효과 있는 텍스트 하나만 보이도록 (검은 텍스트는 렌더하지 않음)
+            <S.FocusBlobGlowText
+              $highlighted={highlighted}
+              $active
+            >
+              {typedText}
+            </S.FocusBlobGlowText>
+          ) : (
+            // 그 외(T1/T2/T5 포함): 기존과 동일한 검은 텍스트만 렌더
+            <span
+              style={{
+                opacity: 1,
+                position: 'relative',
+                zIndex: 100,
+                fontSize: highlighted ? '2.8vw' : '2.4vw',
+                fontWeight: highlighted ? 500 : 400,
+                textShadow: highlighted
+                  ? '0 0 1.2vw rgba(255,255,255,0.9), 0 0 1.8vw rgba(255,180,220,0.85)'
+                  : 'none',
+                transition:
+                  'font-size 700ms cubic-bezier(0.4, 0, 0.2, 1), text-shadow 700ms ease-out',
+              }}
+            >
+              {typedText}
+            </span>
+          )}
+        </>
       )}
     </BlobComponent>
   );
@@ -738,6 +768,7 @@ export default function TV1Controls() {
               focusOffset={focusOffset}
               dimmed={dimmed}
               highlighted={highlighted}
+              timelineLabel={timelineLabel}
             />
           );
         })}
