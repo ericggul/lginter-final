@@ -213,29 +213,29 @@ export const MusicRow = styled.div`
     border-radius:26px;
     background: radial-gradient(
       circle at 50% 55%,
-      ${props => props.$dark || 'rgba(0,0,0,0.55)'} 0%,
-      ${props => props.$dark || 'rgba(0,0,0,0.40)'} 52%,
-      rgba(0,0,0,0.00) 100%
+      ${props => props.$backdrop || 'rgba(255,255,255,0.55)'} 0%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.40)'} 52%,
+      rgba(255,255,255,0.00) 100%
     );
     filter: blur(40px);
-    /* 텍스트 뒤 언더레이는 color-burn으로 더 깊게 눌리도록 */
-    mix-blend-mode: color-burn;
+    /* 텍스트 뒤 언더레이는 soft-light 로 아주 연하게만 눌리도록 */
+    mix-blend-mode: soft-light;
     z-index:-1; pointer-events:none;
-    opacity: 0.12;
+    opacity: 0.08;
   }
   & > div::after{
     content:''; position:absolute; inset:-24% -24%;
     border-radius:26px;
     background: radial-gradient(
       circle at 50% 50%,
-      ${props => props.$dark || 'rgba(0,0,0,0.70)'} 0%,
-      ${props => props.$dark || 'rgba(0,0,0,0.70)'} 46%,
-      rgba(0,0,0,0.0) 78%
+      ${props => props.$backdrop || 'rgba(255,255,255,0.70)'} 0%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.70)'} 46%,
+      rgba(255,255,255,0.0) 78%
     );
     filter: blur(36px);
-    mix-blend-mode: color-burn;
+    mix-blend-mode: soft-light;
     z-index:-1; pointer-events:none;
-    opacity: 0.18;
+    opacity: 0.14;
   }
 `;
 
@@ -766,4 +766,5 @@ export const EmotionFlow = styled.div`
     white-space: nowrap;
   }
 `;
+
 

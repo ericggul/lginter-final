@@ -250,6 +250,7 @@ export default function TV2Controls() {
     headerGradientStartRgba,
     headerGradientMidRgba,
     headerGradientEndRgba,
+    albumLightTextColor,
     prevHeaderGradient,
     prevHeaderVisible,
     headerSweepMainColor,
@@ -374,7 +375,13 @@ export default function TV2Controls() {
   }, []);
 
   return (
-    <S.Viewport>
+    <S.Viewport
+      $gradientStart={headerGradientStartRgba}
+      $gradientMid={headerGradientMidRgba}
+      $gradientEnd={headerGradientEndRgba}
+      $gradientMidPos={headerGradientMidPos}
+      $gradientEndPos={headerGradientEndPos}
+    >
       <S.Scaler ref={scalerRef} style={{ '--tv2-scale': scale }}>
         <S.Root>
           {/* TV2 전역 페이지 트랜지션 레이어
@@ -438,7 +445,7 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-                $dark={headerSweepContrastColor} // 상단 조명 텍스트 언더레이에도 앨범 다크 컬러 사용
+                $backdrop={albumLightTextColor} // 상단 조명 텍스트 언더레이에는 앨범 가장 밝은 컬러 사용
               >
                 <S.FadeSlideText
                   $isT5={isT5}
@@ -501,7 +508,7 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-                $dark={headerSweepContrastColor} // 앨범 가장 어두운 컬러를 언더레이에 사용
+                $backdrop={albumLightTextColor} // 앨범 가장 밝은 컬러를 언더레이에 사용
               >
                 <S.MusicIcon
                   $glowColor={iconGlowColorRgba}
@@ -566,7 +573,7 @@ export default function TV2Controls() {
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
                 $color={titleColor}
-                $dark={headerSweepContrastColor}
+                $backdrop={albumLightTextColor}
               >
               <S.FadeSlideText
                 $isT5={isT5}
@@ -584,7 +591,7 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
-              $dark={headerSweepContrastColor}
+                $backdrop={albumLightTextColor}
             >
               <S.FadeSlideText
                 $isT5={isT5}
@@ -655,7 +662,7 @@ export default function TV2Controls() {
                   $shadowBlur={textShadowBlur}
                   $shadowOffsetX={textShadowOffsetX}
                   $shadowOffsetY={textShadowOffsetY}
-                  $dark={headerSweepContrastColor} // 온도 텍스트 언더레이도 앨범 다크 컬러 사용
+                  $backdrop={albumLightTextColor} // 온도 텍스트 언더레이도 앨범 가장 밝은 컬러 사용
                 >
                   <S.ClimateIcon
                     $glowColor={iconGlowColorRgba}
@@ -695,7 +702,7 @@ export default function TV2Controls() {
                   $shadowBlur={textShadowBlur}
                   $shadowOffsetX={textShadowOffsetX}
                   $shadowOffsetY={textShadowOffsetY}
-                  $dark={headerSweepContrastColor}
+                  $backdrop={albumLightTextColor}
                 >
                   <S.ClimateIcon
                     $glowColor={iconGlowColorRgba}

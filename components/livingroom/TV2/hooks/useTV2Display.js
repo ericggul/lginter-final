@@ -885,18 +885,25 @@ export function useTV2DisplayLogic({
     levaControls?.headerGradientEndPos,
   ]);
 
-  // 앨범 컬러 중 가장 어두운 컬러를 상단 패널 스윕의 좌측 시작 컬러로 사용
+  // 앨범 컬러 중 가장 어두운 컬러를 상단 패널 스윕/앨범 블롭용으로 사용
   const albumDarkSweepColor = useMemo(() => {
-    const opacity = levaControls?.headerGradientOpacity || 0.95;
+    const opacity = levaControls?.headerGradientOpacity || 0.98;
 
-    // 1) 앨범 톤이 있으면, 그 톤에서 살짝 더 눌린 다크 톤을 우선 사용
-    //    → 실제 앨범 커버 변경에 따라 상단 스윕 컬러도 즉시 바뀌도록
+    // 1) 앨범 톤이 있으면, L 값을 더 강하게 낮추고 S 를 살짝 올려
+    //    좌측 끝과 흐르는 스윕 모두에서 "확실히" 눌려 보이도록 한다.
     if (albumTone) {
-      const l = Math.max(0, albumTone.l - 12);
-      return hsla(albumTone.h, albumTone.s, l, opacity);
+      const base = hexToHsl(
+        hsla(albumTone.h, albumTone.s, albumTone.l, 1).replace(/^hsla\(([^,]+),([^,]+)%,([^,]+)%,.*\)$/, (_m, h, s, l) =>
+          `hsl(${h},${s}%,${l}%)`
+        )
+      ) || albumTone;
+      const l = Math.max(0, base.l - 26);
+      const s = Math.min(100, base.s * 1.15);
+      return hsla(base.h, s, l, opacity);
     }
 
-    // 2) 곡별 그라디언트가 있으면, 그 중 "가장 어두운" 컬러를 사용
+    // 2) 곡별 그라디언트가 있으면, 그 중 "가장 어두운" 컬러를 사용하되
+    //    명도를 한 단계 더 낮춰 좌측 다크 그라디언트가 분명하게 보이도록 한다.
     if (trackGradient && Array.isArray(trackGradient.colors) && trackGradient.colors.length > 0) {
       let darkest = null;
       let darkestL = 101;
@@ -908,14 +915,55 @@ export function useTV2DisplayLogic({
         }
       });
       if (darkest) {
-        return hsla(darkest.h, darkest.s, darkest.l, opacity);
+        const l = Math.max(0, darkest.l - 18);
+        const s = Math.min(100, darkest.s * 1.1);
+        return hsla(darkest.h, s, l, opacity);
       }
     }
 
     // 3) 마지막으로 조명 컬러를 기준으로 가장 어두운 톤 뽑기
     const baseHsl = hexToHsl(headerStartBase);
     if (baseHsl) {
-      const l = Math.max(0, baseHsl.l - 20);
+      const l = Math.max(0, baseHsl.l - 24);
+      const s = Math.min(100, baseHsl.s * 1.1);
+      return hsla(baseHsl.h, s, l, opacity);
+    }
+
+    // 어떤 정보도 없으면 기존 값 그대로
+    return headerStartBase;
+  }, [trackGradient, albumTone, headerStartBase, levaControls?.headerGradientOpacity]);
+
+  // 앨범 컬러 중 가장 밝은 컬러를 텍스트 뒤 그라디언트/언더레이용으로 사용
+  const albumLightTextColor = useMemo(() => {
+    const opacity = levaControls?.headerGradientOpacity || 0.85;
+
+    // 1) 앨범 톤이 있으면, 그 톤에서 살짝 더 밝은 톤을 우선 사용
+    if (albumTone) {
+      const l = Math.min(100, albumTone.l + 14);
+      return hsla(albumTone.h, albumTone.s, l, opacity);
+    }
+
+    // 2) 곡별 그라디언트가 있으면, 그 중 "가장 밝은" 컬러를 사용
+    if (trackGradient && Array.isArray(trackGradient.colors) && trackGradient.colors.length > 0) {
+      let brightest = null;
+      let brightestL = -1;
+      trackGradient.colors.forEach((c) => {
+        const hsl = hexToHsl(c);
+        if (hsl && typeof hsl.l === 'number' && hsl.l > brightestL) {
+          brightestL = hsl.l;
+          brightest = hsl;
+        }
+      });
+      if (brightest) {
+        const l = Math.min(100, brightest.l + 8);
+        return hsla(brightest.h, brightest.s, l, opacity);
+      }
+    }
+
+    // 3) 마지막으로 조명 컬러를 기준으로 가장 밝은 톤 뽑기
+    const baseHsl = hexToHsl(headerStartBase);
+    if (baseHsl) {
+      const l = Math.min(100, baseHsl.l + 18);
       return hsla(baseHsl.h, baseHsl.s, l, opacity);
     }
 
@@ -1147,6 +1195,7 @@ export function useTV2DisplayLogic({
     headerGradientStartRgba,
     headerGradientMidRgba,
     headerGradientEndRgba,
+    albumLightTextColor,
     prevHeaderGradient,
     prevHeaderVisible,
     rightCircleColor1Rgba,

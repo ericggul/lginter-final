@@ -43,29 +43,30 @@ const noticeTyping = keyframes`
   100% { width: 100%; opacity: 0; }
 `;
 
-/* 안내 텍스트: 6초 주기
-   - 0~3초: 보이지 않음
-   - 3~6초: 보이면서 살짝 위로 떠오르다 마지막에 사라짐 (좌/우 패널 공통) */
+/* 안내 텍스트: 8초 주기 타이핑 + 살짝 위로 떠오르는 애니메이션
+   - 초반: 한 글자씩 타이핑되며 나타남
+   - 중반: 전체 문장이 유지
+   - 후반: 살짝 위로 올라가며 서서히 페이드아웃 (좌/우 패널 공통) */
 const setupHintPulse = keyframes`
-  0%, 49% {
+  0% {
+    width: 0;
     opacity: 0;
     transform: translateY(10px);
-    filter: blur(6px);
   }
-  50% {
-    opacity: 0.6;
+  20% {
+    width: 0;
+    opacity: 1;
+    transform: translateY(4px);
+  }
+  55% {
+    width: 100%;
+    opacity: 1;
     transform: translateY(0);
-    filter: blur(0px);
-  }
-  90% {
-    opacity: 0.6;
-    transform: translateY(-10px);
-    filter: blur(0px);
   }
   100% {
+    width: 100%;
     opacity: 0;
-    transform: translateY(-18px);
-    filter: blur(4px);
+    transform: translateY(-8px);
   }
 `;
 
@@ -268,12 +269,13 @@ export const ClimateRow = styled.div`
     border-radius:26px;
     background: radial-gradient(
       circle at 50% 55%,
-      ${props => props.$dark || 'rgba(0,0,0,0.55)'} 0%,
-      ${props => props.$dark || 'rgba(0,0,0,0.40)'} 52%,
-      rgba(0,0,0,0.00) 100%
+      ${props => props.$backdrop || 'rgba(255,255,255,0.55)'} 0%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.40)'} 52%,
+      rgba(255,255,255,0.00) 100%
     );
     filter: blur(40px);
-    mix-blend-mode: color-burn;
+    /* 온습도 텍스트 뒤 언더레이도 soft-light 로 아주 연하게만 눌리도록 */
+    mix-blend-mode: soft-light;
     z-index:-1; pointer-events:none;
     opacity: 0.12;
   }
@@ -282,14 +284,14 @@ export const ClimateRow = styled.div`
     border-radius:26px;
     background: radial-gradient(
       circle at 50% 50%,
-      ${props => props.$dark || 'rgba(0,0,0,0.70)'} 0%,
-      ${props => props.$dark || 'rgba(0,0,0,0.70)'} 46%,
-      rgba(0,0,0,0.0) 78%
+      ${props => props.$backdrop || 'rgba(255,255,255,0.70)'} 0%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.70)'} 46%,
+      rgba(255,255,255,0.0) 78%
     );
     filter: blur(36px);
-    mix-blend-mode: color-burn;
+    mix-blend-mode: soft-light;
     z-index:-1; pointer-events:none;
-    opacity: 0.18;
+    opacity: 0.14;
   }
 `;
 
@@ -403,7 +405,9 @@ export const SetupHint = styled.div`
   white-space: nowrap;
   mix-blend-mode: normal;
   text-shadow: none;
-  animation: ${setupHintPulse} 6s ease-in-out infinite;
+  overflow: hidden;
+  /* steps() 로 한 글자씩 타이핑되는 느낌 연출 (속도 완만하게: 8초 주기) */
+  animation: ${setupHintPulse} 8s steps(32, end) infinite;
 `;
 
 
