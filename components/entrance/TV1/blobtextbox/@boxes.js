@@ -91,7 +91,17 @@ export const BlobBase = styled.div`
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* 전체 블롭 색상을 은은하게만 정리 – 과한 쨍함은 줄이고, 탁해지지 않도록 채도는 거의 유지 */
-  filter: saturate(0.95) brightness(1.03);
+  filter: ${(p) => (p.$highlighted ? 'saturate(1.15) brightness(1.12)' : 'saturate(0.95) brightness(1.03)')};
+  box-shadow: ${(p) =>
+    p.$highlighted
+      ? '0 0 1.4vw rgba(255, 255, 255, 0.9), 0 0 2.4vw rgba(255, 190, 220, 0.9)'
+      : 'none'};
+  transition:
+    opacity 1600ms ease-in-out,
+    width 800ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1800ms' : '600ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    filter 600ms ease-out,
+    box-shadow 600ms ease-out;
 `;
 
 // 흥미로움
@@ -100,12 +110,18 @@ export const InterestBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '43.960364vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Boost contrast by introducing complementary warm hues and bright whites */
   background: ${(p) => p.$gradient || defaultInterestGradient};
   background-size: 320% 320%;
@@ -156,12 +172,18 @@ export const PlayfulBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '75.340316vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Increase contrast with bright whites and deeper oranges/sky */
   background: ${(p) => p.$gradient || defaultPlayfulGradient};
   background-size: 320% 320%;
@@ -211,10 +233,18 @@ export const UpsetBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */ 
   left: ${(p) => p.$left || '19.610417vw'}; /* 630px */ 
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Add warm amber to contrast the cool purples/blues */
   background: ${(p) => p.$gradient || defaultUpsetGradient};
   background-size: 320% 320%;
@@ -229,10 +259,18 @@ export const ProudBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '33.610417vw'}; /* 1519px - uniform 100px gap from UpsetBox */
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Stronger light/dark interplay with a magenta accent */
   background: ${(p) => p.$gradient || defaultProudGradient};
   background-size: 320% 320%;
@@ -247,10 +285,18 @@ export const ShyBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '47.610417vw'}; /* equal gap from Upset (first + 28vw) */
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Gentle whites with playful pink against greens for contrast */
   background: ${(p) => p.$gradient || defaultShyGradient};
   background-size: 320% 320%;
@@ -265,10 +311,18 @@ export const ChaoticBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '18.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '63.610417vw'}; /* equal gap from Upset (first + 42vw) */
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* High-contrast teal, violet, and salmon with white flashes */
   background: ${(p) => p.$gradient || defaultChaoticGradient};
   background-size: 320% 320%;
@@ -283,12 +337,18 @@ export const HappyBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '60.391327vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Increase white vs pink contrast in the moving gradient */
   background: ${(p) => p.$gradient || defaultHappyGradient};
   background-size: 320% 320%;
@@ -338,13 +398,19 @@ export const AnnoyedBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '19.610417vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
   z-index: 1001;
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Sharper contrast with white flashes and warm tension */
   background: ${(p) => p.$gradient || defaultAnnoyedGradient};
   background-size: 320% 320%;
@@ -394,11 +460,19 @@ export const HungryBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '45.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '34.110417vw'}; /* equal gap from Annoyed (first + 14vw) */
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
   z-index: 1001;
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* More contrast for playful energy with white flashes */
   background: ${(p) => p.$gradient || defaultHungryGradient};
   background-size: 320% 320%;
@@ -414,12 +488,18 @@ export const SadBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '33.080387vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Add bright whites and deeper blues for stronger emotional contrast */
   background: ${(p) => p.$gradient || defaultSadGradient};
   background-size: 320% 320%;
@@ -469,10 +549,19 @@ export const WonderBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '27.135417vw'}; /* moved down by 2vw */
   left: ${(p) => p.$left || '31.610417vw'}; /* equal gap from Sad (first + 14vw) */
-  transform: translateY(-50%);
+  /* focus 모드에서 전달되는 $focusOffset 을 반영해서 Now 라인과 같이 이동하도록 수정 */
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 7.400981vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   /* Add white shine and vivid blue/cyan for curiosity */
   background: ${(p) => p.$gradient || defaultWonderGradient};
   background-size: 320% 320%;
@@ -487,12 +576,18 @@ export const SelfConfidentBox = styled(BlobBase)`
   position: absolute;
   top: ${(p) => p.$top || '16.572917vw'}; /* aligned with Now text */
   left: ${(p) => p.$left || '75.340316vw'};
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateY(${(p) => p.$focusOffset || 0}vw)
+    scale(${(p) => (p.$highlighted ? 1.18 : 1)});
   height: 5.920985vw; /* +15% */
   border-radius: 5.549986vw; /* +15% */
   border: 0.026042vw solid #FFFFFF; /* 1px */
-  transition: opacity 1600ms ease-in-out, width 800ms ease-out, left 300ms ease-out, top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: ${(p) => (p.$visible ? 0.7 : 0)};
+  transition:
+    opacity 1200ms ease-in-out,
+    width 800ms ease-out,
+    left 300ms ease-out,
+    top ${(p) => (p.$isAnimating ? '1400ms' : '500ms')} cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: ${(p) => (p.$visible ? (p.$dimmed ? 0.2 : 0.7) : 0)};
   background: ${(p) => p.$gradient || defaultSelfConfidentGradient};
   background-size: 320% 320%;
   animation: ${driftX} 10.4s ease-in-out infinite;
