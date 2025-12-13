@@ -227,6 +227,8 @@ export default function TV2Controls() {
     displayArtist,
     displayTemp,
     displayHumidity,
+    displayTempLabel,
+    displayHumidityLabel,
     displayHeaderText: displayHeaderTextValue,
     displayReason,
     showReasonLoading,
@@ -303,8 +305,8 @@ export default function TV2Controls() {
     } catch {}
   }, [triggerT4Animations, isT4, decisionKey]);
 
-  // 곡명 컬러는 60% 투명 블랙으로 고정 (화이트 글로우는 스타일에 적용)
-  const titleColor = 'rgba(0,0,0,0.6)';
+  // 곡명 컬러는 불투명 블랙으로 고정 (화이트 글로우는 스타일에 적용)
+  const titleColor = '#000';
 
   // 모든 정보가 한 번에 뜨도록 공통 로딩 상태
   const isLoading =
@@ -436,12 +438,11 @@ export default function TV2Controls() {
                 $shadowBlur={textShadowBlur}
                 $shadowOffsetX={textShadowOffsetX}
                 $shadowOffsetY={textShadowOffsetY}
+                $dark={headerSweepContrastColor} // 상단 조명 텍스트 언더레이에도 앨범 다크 컬러 사용
               >
                 <S.FadeSlideText
-                  $slideLR
                   $isT5={isT5}
                   $triggerT5={triggerT5Animations}
-                  $blend="overlay"
                   key={`${displayHeaderTextValue || displayHeaderText || 'header-loading'}-${decisionKey}`}
                   lang={getLang(displayHeaderTextValue || displayHeaderText || '')}
                   data-text={displayHeaderTextValue || displayHeaderText || ''}
@@ -511,7 +512,7 @@ export default function TV2Controls() {
                 >
                   <img src="/figma/tv2-song.png" alt="" />
                 </S.MusicIcon>
-              <S.FadeSlideText $slideLR $isT5={isT5} $triggerT5={triggerT5Animations} key={`${env.music || 'music-loading'}-${decisionKey}`}>
+              <S.FadeSlideText $isT5={isT5} $triggerT5={triggerT5Animations} key={`${env.music || 'music-loading'}-${decisionKey}`}>
                 {(() => {
                   if (!env.music) {
                     return <S.LoadingDots><span /><span /><span /></S.LoadingDots>;
@@ -608,6 +609,13 @@ export default function TV2Controls() {
                 style={{ display: 'none' }}
               />
             ) : null}
+            {/* 좌측 패널 하단: 3초 뒤 음악 변경 안내 (음악 텍스트 정렬에 맞춤) */}
+            <S.SetupHint
+              $left="calc(115.2px + 220px)" // MusicRow 아이콘 + 간격만큼 안쪽으로
+              $fontSize="44px"
+            >
+              3초뒤 음악 변경
+            </S.SetupHint>
             </S.LeftPanel>
             <S.RightPanel
               style={cssVars}
@@ -670,8 +678,11 @@ export default function TV2Controls() {
                     ) : (
                       <>
                         {displayTemp || (typeof env?.temp === 'number' ? `${env.temp}°C` : '')}
-                        {displayReason && !showReasonLoading && (
-                          <S.ReasonCaption>{displayReason}</S.ReasonCaption>
+                        {displayTempLabel && (
+                          <>
+                            <S.ClimateDots>························</S.ClimateDots>
+                            <S.ClimateLabel>{displayTempLabel}</S.ClimateLabel>
+                          </>
                         )}
                       </>
                     )}
@@ -707,14 +718,18 @@ export default function TV2Controls() {
                     ) : (
                       <>
                         {displayHumidity || (typeof env?.humidity === 'number' ? `${env.humidity}%` : '')}
-                        {displayReason && !showReasonLoading && (
-                          <S.ReasonCaption>{displayReason}</S.ReasonCaption>
+                        {displayHumidityLabel && (
+                          <>
+                            <S.ClimateDots>························</S.ClimateDots>
+                            <S.ClimateLabel>{displayHumidityLabel}</S.ClimateLabel>
+                          </>
                         )}
                       </>
                     )}
                   </S.FadeSlideText>
                 </S.ClimateRow>
               </S.ClimateGroup>
+              <S.SetupHint>3초 후 기기 설정 완료</S.SetupHint>
               <S.RightSw1Ellipse
                 $right={rightCircleRight}
                 $top={rightCircleTop}

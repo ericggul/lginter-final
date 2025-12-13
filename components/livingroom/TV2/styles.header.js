@@ -175,8 +175,8 @@ export const HeaderTitle = styled.div`
   font-weight: 600;
   letter-spacing: 0.02em;
   text-align: left;
-  /* 상단 타이틀은 70% 투명 블랙 텍스트 */
-  color: rgba(0,0,0,0.7);
+  /* 상단 타이틀은 불투명 블랙 텍스트 */
+  color: #000;
   /* 상단 텍스트는 항상 또렷하게 보이도록 기본 렌더링 */
   mix-blend-mode: normal;
   position: relative;
@@ -184,25 +184,25 @@ export const HeaderTitle = styled.div`
   /* 쉐도우 제거 */
   text-shadow: none;
 
-  /* 상단 조명 텍스트 뒤에도 화이트 soft-light 그라디언트를 깔아서 살짝 눌려 보이도록
-     - 범위는 더 넓게 퍼지되, 전체 알파는 더 연하게 조정 */
+  /* 상단 조명 텍스트 뒤에도 다른 텍스트와 동일하게
+     앨범에서 뽑은 다크 컬러 기반 color-burn 언더레이를 깔아 살짝 눌러준다 */
   &::before {
     content: '';
     position: absolute;
-    /* 위/아래/양옆으로 더 넓게 퍼지도록 inset 범위를 확장 */
-    inset: -34% -22%;
+    /* 텍스트 주변을 크게 감싸도록 inset 범위 설정 */
+    inset: -28% -20%;
     border-radius: 40px;
     background: radial-gradient(
       circle at 50% 50%,
-      rgba(255,255,255,0.55) 0%,
-      rgba(255,255,255,0.25) 42%,
-      rgba(255,255,255,0.00) 90%
+      ${props => props.$dark || 'rgba(0,0,0,0.35)'} 0%,
+      ${props => props.$dark || 'rgba(0,0,0,0.20)'} 46%,
+      rgba(0,0,0,0.0) 88%
     );
-    /* 범위가 넓어진 만큼 블러도 살짝 키워 더욱 부드럽게 */
-    filter: blur(52px);
-    mix-blend-mode: soft-light;
+    filter: blur(36px);
+    mix-blend-mode: color-burn;
     z-index: -1;
     pointer-events: none;
+    opacity: 0.18;
   }
   &::after { content: none; }
 `;

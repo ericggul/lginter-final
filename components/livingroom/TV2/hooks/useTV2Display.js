@@ -36,6 +36,28 @@ const HEADER_COOL_MOODS = [
   '조용한 무드',
 ];
 
+// 온도 값을 간단한 영어 라벨로 분류 (SW1과 동일한 규칙)
+const classifyTempLabel = (t) => {
+  if (t == null || Number.isNaN(t)) return '';
+  const temp = Math.round(t);
+  if (temp <= 20) return 'Cool';
+  if (temp <= 23) return 'Fresh';
+  if (temp <= 26) return 'Comfortable';
+  if (temp <= 28) return 'Warm';
+  return 'Hot';
+};
+
+// 습도 값을 간단한 영어 라벨로 분류 (SW1과 동일한 규칙)
+const classifyHumidityLabel = (h) => {
+  if (h == null || Number.isNaN(h)) return '';
+  const hum = Math.round(h);
+  if (hum <= 29) return 'Dry';
+  if (hum <= 45) return 'Balanced';
+  if (hum <= 60) return 'Moist';
+  if (hum <= 70) return 'Humid';
+  return 'Foggy';
+};
+
 export function useTV2DisplayLogic({
   env,
   title,
@@ -176,11 +198,11 @@ export function useTV2DisplayLogic({
     setShowBorderFlash(true);
     const flashTimer = setTimeout(() => setShowBorderFlash(false), 400);
 
-    // 3초 뒤 T5 진입
+    // 6초 뒤 T5 진입 (정보가 약 6초 딜레이 후 한 번에 뜨도록)
     const t5Timer = setTimeout(() => {
       setMotionState('T5');
       motionStateRef.current = 'T5';
-    }, 3000);
+    }, 6000);
 
     return () => {
       clearTimeout(t5Timer);
@@ -199,6 +221,8 @@ export function useTV2DisplayLogic({
   const [showHeaderLoading, setShowHeaderLoading] = useState(true);
   const [displayTemp, setDisplayTemp] = useState('');
   const [displayHumidity, setDisplayHumidity] = useState('');
+  const [displayTempLabel, setDisplayTempLabel] = useState('');
+  const [displayHumidityLabel, setDisplayHumidityLabel] = useState('');
   const [displayHeaderText, setDisplayHeaderText] = useState('');
   // 선택 이유(감정 설명) 표시용
   const [displayReason, setDisplayReason] = useState('');
@@ -270,7 +294,7 @@ export function useTV2DisplayLogic({
       artistChangeRef.current = newArtist;
       coverChangeRef.current = newCover;
 
-      // Wait for T5 state before showing content (T4 keeps '...' for 3 seconds)
+      // Wait for T5 state before showing content (T4 keeps '...' 동안 대기)
       const checkT5 = () => {
         if (motionStateRef.current === 'T5') {
           setShowTitleLoading(false);
@@ -284,13 +308,12 @@ export function useTV2DisplayLogic({
         }
       };
 
-      // If already in T5, show immediately. Otherwise wait 3 seconds for T4->T5 transition
+      // If already in T5, show immediately. Otherwise 약 6초 뒤에 T5를 체크
       if (motionStateRef.current === 'T5') {
         // Already in T5, show immediately
         checkT5();
       } else {
-        // Start checking after 3 seconds (T4 duration)
-        const timer = setTimeout(checkT5, 3000);
+        const timer = setTimeout(checkT5, 6000);
         return () => {
           clearTimeout(timer);
           clearTimeout(messageTimer);
@@ -337,7 +360,7 @@ export function useTV2DisplayLogic({
       if (motionStateRef.current === 'T5') {
         checkT5();
       } else {
-        const timer = setTimeout(checkT5, 3000);
+        const timer = setTimeout(checkT5, 6000);
         return () => clearTimeout(timer);
       }
     } else if (!newReason) {
@@ -361,22 +384,25 @@ export function useTV2DisplayLogic({
 
     setShowTempLoading(true);
     setDisplayTemp('');
+    setDisplayTempLabel('');
 
     setShowChangeMessage(true);
     const messageTimer = setTimeout(() => {
       setShowChangeMessage(false);
     }, 3000);
 
+    const label = classifyTempLabel(newTemp);
     const checkT5 = () => {
       if (motionStateRef.current === 'T5') {
         setShowTempLoading(false);
         setDisplayTemp(`${newTemp}°C`);
+        setDisplayTempLabel(label);
       } else {
         setTimeout(checkT5, 100);
       }
     };
 
-    const timer = setTimeout(checkT5, 3000);
+    const timer = setTimeout(checkT5, 6000);
 
     return () => {
       clearTimeout(timer);
@@ -398,22 +424,25 @@ export function useTV2DisplayLogic({
 
     setShowHumidityLoading(true);
     setDisplayHumidity('');
+    setDisplayHumidityLabel('');
 
     setShowChangeMessage(true);
     const messageTimer = setTimeout(() => {
       setShowChangeMessage(false);
     }, 3000);
 
+    const label = classifyHumidityLabel(newHumidity);
     const checkT5 = () => {
       if (motionStateRef.current === 'T5') {
         setShowHumidityLoading(false);
         setDisplayHumidity(`${newHumidity}%`);
+        setDisplayHumidityLabel(label);
       } else {
         setTimeout(checkT5, 100);
       }
     };
 
-    const timer = setTimeout(checkT5, 3000);
+    const timer = setTimeout(checkT5, 6000);
 
     return () => {
       clearTimeout(timer);
@@ -445,7 +474,7 @@ export function useTV2DisplayLogic({
         }
       };
 
-      const timer = setTimeout(checkT5, 3000);
+      const timer = setTimeout(checkT5, 6000);
 
       return () => {
         clearTimeout(timer);
@@ -462,7 +491,7 @@ export function useTV2DisplayLogic({
       if (motionStateRef.current === 'T5') {
         reveal();
       } else {
-        const t = setTimeout(reveal, 3000);
+        const t = setTimeout(reveal, 6000);
         return () => clearTimeout(t);
       }
     }
@@ -860,7 +889,14 @@ export function useTV2DisplayLogic({
   const albumDarkSweepColor = useMemo(() => {
     const opacity = levaControls?.headerGradientOpacity || 0.95;
 
-    // 1) 곡별 그라디언트가 있으면, 그 중 "가장 어두운" 컬러를 사용
+    // 1) 앨범 톤이 있으면, 그 톤에서 살짝 더 눌린 다크 톤을 우선 사용
+    //    → 실제 앨범 커버 변경에 따라 상단 스윕 컬러도 즉시 바뀌도록
+    if (albumTone) {
+      const l = Math.max(0, albumTone.l - 12);
+      return hsla(albumTone.h, albumTone.s, l, opacity);
+    }
+
+    // 2) 곡별 그라디언트가 있으면, 그 중 "가장 어두운" 컬러를 사용
     if (trackGradient && Array.isArray(trackGradient.colors) && trackGradient.colors.length > 0) {
       let darkest = null;
       let darkestL = 101;
@@ -874,12 +910,6 @@ export function useTV2DisplayLogic({
       if (darkest) {
         return hsla(darkest.h, darkest.s, darkest.l, opacity);
       }
-    }
-
-    // 2) 그라디언트가 없으면, 앨범 톤에서 살짝 더 눌린 다크 톤 사용
-    if (albumTone) {
-      const l = Math.max(0, albumTone.l - 12);
-      return hsla(albumTone.h, albumTone.s, l, opacity);
     }
 
     // 3) 마지막으로 조명 컬러를 기준으로 가장 어두운 톤 뽑기
@@ -1041,15 +1071,19 @@ export function useTV2DisplayLogic({
     setDisplayArtist(artist || '');
 
     // Temp/Humidity
-    const t = typeof env?.temp === 'number' ? `${env.temp}°C` : '';
-    const h = typeof env?.humidity === 'number' ? `${env.humidity}%` : '';
+    const tNum = typeof env?.temp === 'number' ? env.temp : null;
+    const hNum = typeof env?.humidity === 'number' ? env.humidity : null;
+    const t = tNum != null ? `${tNum}°C` : '';
+    const h = hNum != null ? `${hNum}%` : '';
     if (t) {
       setShowTempLoading(false);
       setDisplayTemp(t);
+      setDisplayTempLabel(classifyTempLabel(tNum));
     }
     if (h) {
       setShowHumidityLoading(false);
       setDisplayHumidity(h);
+      setDisplayHumidityLabel(classifyHumidityLabel(hNum));
     }
   }, [
     env?.music,
@@ -1071,6 +1105,8 @@ export function useTV2DisplayLogic({
     displayArtist,
     displayTemp,
     displayHumidity,
+    displayTempLabel,
+    displayHumidityLabel,
     displayHeaderText,
     displayReason,
     showReasonLoading,

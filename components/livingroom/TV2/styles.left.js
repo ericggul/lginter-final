@@ -194,8 +194,8 @@ export const MusicRow = styled.div`
   font-size: 70px;
   font-weight: 500;
   text-transform: uppercase;
-  /* TV2 좌측 텍스트는 70% 투명 블랙 */
-  color: rgba(0,0,0,0.7);
+  /* TV2 좌측 텍스트는 불투명 블랙 */
+  color: #000;
   /* 텍스트 자체는 블렌드는 FadeSlideText에서 처리 */
   mix-blend-mode: normal;
   /* 쉐도우 제거 */
@@ -203,39 +203,39 @@ export const MusicRow = styled.div`
   z-index: 10;
 
   /* 행 내부 텍스트(첫번째 div: FadeSlideText)에 언더레이 주입
-     - 텍스트는 mix-blend-mode: hard-light(블랙)
-     - 이 언더레이는 화이트 soft-light로 강하게 블룸 느낌을 준다 */
+     - 텍스트는 블렌드 없이 기본 렌더링
+     - 언더레이는 앨범 뒤 블롭과 동일한 다크 컬러 + overlay 블렌드로 강하게 눌림 */
   & > div{
     position: relative; display: inline-block;
   }
   & > div::before{
-    content:''; position:absolute; inset:-22% -24%;
-    border-radius:22px;
+    content:''; position:absolute; inset:-26% -26%;
+    border-radius:26px;
     background: radial-gradient(
       circle at 50% 55%,
-      rgba(255,255,255,0.85) 0%,
-      rgba(255,255,255,0.42) 52%,
-      rgba(255,255,255,0.00) 92%
+      ${props => props.$dark || 'rgba(0,0,0,0.55)'} 0%,
+      ${props => props.$dark || 'rgba(0,0,0,0.40)'} 52%,
+      rgba(0,0,0,0.00) 100%
     );
     filter: blur(40px);
-    mix-blend-mode: soft-light;
+    /* 텍스트 뒤 언더레이는 color-burn으로 더 깊게 눌리도록 */
+    mix-blend-mode: color-burn;
     z-index:-1; pointer-events:none;
-    /* 텍스트 뒤 화이트 soft-light 오버레이를 더 강하게 */
-    opacity: 0.32;
+    opacity: 0.12;
   }
   & > div::after{
-    content:''; position:absolute; inset:-20% -22%;
-    border-radius:22px;
+    content:''; position:absolute; inset:-24% -24%;
+    border-radius:26px;
     background: radial-gradient(
-      circle at 50% 55%,
-      rgba(255,255,255,0.95) 0%,
-      rgba(255,255,255,0.55) 48%,
-      rgba(255,255,255,0.00) 84%
+      circle at 50% 50%,
+      ${props => props.$dark || 'rgba(0,0,0,0.70)'} 0%,
+      ${props => props.$dark || 'rgba(0,0,0,0.70)'} 46%,
+      rgba(0,0,0,0.0) 78%
     );
-    filter: blur(60px);
-    mix-blend-mode: soft-light;
+    filter: blur(36px);
+    mix-blend-mode: color-burn;
     z-index:-1; pointer-events:none;
-    opacity: 0.58;
+    opacity: 0.18;
   }
 `;
 
@@ -430,7 +430,7 @@ export const AlbumGlow = styled.div`
   pointer-events: none;
 `;
 
-/* SW2의 captionEnter 스타일을 TV2에 맞게 적용: 업 + 블러 + 오퍼시티 */
+/* TV2 텍스트 공통: 기본은 아래에서 위로 부드럽게 떠오르는 트랜지션 */
 const fadeSlideUp = keyframes`
   0% {
     opacity: 0;
@@ -546,26 +546,80 @@ const textGlowPulse = keyframes`
   }
 `;
 
+/* 온도/습도 값 등에서 룰렛처럼 더 강하게 보이는 회전용 키프레임 */
+const rouletteRotate = keyframes`
+  0% {
+    opacity: 0;
+    transform: translateY(120%) rotateX(90deg);
+    filter: blur(16px);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(0%) rotateX(0deg);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0%) rotateX(0deg);
+    filter: blur(0px);
+  }
+`;
+
+/* 값이 변경되는 순간 잠깐 컬러/글리치가 들어갔다가 복원되는 효과 */
+const glitchColor = keyframes`
+  0% {
+    color: inherit;
+    text-shadow: none;
+  }
+  15% {
+    color: #ff4d91;
+    text-shadow:
+      2px -2px 0 rgba(0, 255, 255, 0.9),
+      -2px 2px 0 rgba(255, 255, 0, 0.8);
+  }
+  30% {
+    color: #4da8ff;
+    text-shadow:
+      -2px -2px 0 rgba(255, 0, 128, 0.8),
+      2px 2px 0 rgba(0, 255, 255, 0.7);
+  }
+  45% {
+    color: inherit;
+    text-shadow: none;
+  }
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
+`;
+
 export const FadeSlideText = styled.div`
-  /* 모든 텍스트 변경 시: SW2 앨범명과 동일한 업 + 블러 + 오퍼시티 트랜지션 적용 */
-  animation: ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  will-change: opacity, transform, filter;
-  /* TV2 블랙 텍스트는 기본적으로 overlay 블렌드 사용 */
-  mix-blend-mode: ${props => props.$blend || 'overlay'};
-  position: relative;
-  ${props => props.$shouldGlow ? css`
+  /* 모든 텍스트 변경 시:
+     - 기본: 아래에서 위로 올라오며 블러→선명
+     - 온습도($roulette): 더 깊은 회전(rotateX)으로 '룰렛' 느낌
+     - 공통: 초반에 컬러 글리치 후 본래 블랙/기본 컬러로 복귀 */
+  ${props => css`
     animation:
-      ${fadeSlideUp} 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards,
-      ${textGlowPulse} 1.5s ease-in-out 0.6s 3;
-  ` : ''}
-  /* 이전 블랙 오버레이 텍스트는 화이트 타이포와 충돌하므로 비활성화 */
+      ${props.$roulette ? rouletteRotate : fadeSlideUp}
+        2s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+      ${glitchColor} 0.5s ease-out
+      ${props.$shouldGlow ? `, ${textGlowPulse} 1.5s ease-in-out 0.6s 3` : ''};
+  `}
+  will-change: opacity, transform, filter;
+  transform-origin: center bottom;
+  backface-visibility: hidden;
+  /* TV2 블랙 텍스트는 블렌드 없이 기본 렌더링 */
+  mix-blend-mode: ${props => props.$blend || 'normal'};
+  position: relative;
+
+  /* 이전 카운트업용 오버레이는 비활성화 (룰렛 스타일만 유지) */
   &::after {
     content: attr(data-text);
     position: absolute;
     inset: 0;
-    color: rgba(0,0,0,0.7);
+    color: inherit;
     opacity: 0;
-    mix-blend-mode: normal; /* 블렌드 모드 없이 기본 렌더링 */
+    mix-blend-mode: normal;
     z-index: 1;
     pointer-events: none;
     white-space: inherit;
@@ -609,8 +663,8 @@ export const TrackTitle = styled.div`
   font-size: 80px;
   text-transform: uppercase;
   font-weight: 500;
-  /* TV2 트랙 타이틀은 70% 투명 블랙 */
-  color: ${props => props.$color || 'rgba(0,0,0,0.7)'};
+  /* TV2 트랙 타이틀은 불투명 블랙 */
+  color: ${props => props.$color || '#000'};
   mix-blend-mode: normal;
   /* 밝은 배경에서 시인성 확보용 얇은 스트로크 */
   -webkit-text-stroke: 1px rgba(0,0,0,0.2);
@@ -639,7 +693,7 @@ export const Artist = styled.div`
   /* 아티스트 텍스트 폰트 키움 */
   font-size: 64px;
   font-weight: 400;
-  color: ${props => props.$color || 'rgba(0,0,0,0.7)'};
+  color: ${props => props.$color || '#000'};
   mix-blend-mode: normal;
   /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
   will-change: opacity;
@@ -705,12 +759,11 @@ export const EmotionFlow = styled.div`
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgba(0,0,0,0.7);
+    color: #000;
     mix-blend-mode: normal;
     text-shadow: none;
     animation: ${emotionFlow} 10s linear infinite;
     white-space: nowrap;
   }
 `;
-
 
