@@ -8,6 +8,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['Love', 'Glow'],
     tags: ['calm', 'peaceful', 'love', 'chill'],
+    cat: '잔잔한 휴식을 위해',
   },
   // 2. Glow — Heal / Carefree
   { id: 'glow-scott',
@@ -15,6 +16,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['Heal', 'Carefree'],
     tags: ['exhausted', 'tired', 'hungry', 'chill'],
+    cat: '더 즐거울 내일을 위해',
   },
   // 3. Clean Soul — Hopeful / Travel
   { id: 'clean-soul',
@@ -22,6 +24,7 @@ export const MUSIC_CATALOG = [
     artist: 'Kevin MacLeod',
     mood: ['Hopeful', 'Travel'],
     tags: ['calm', 'happy', 'peaceful', 'chill'],
+    cat: '새로운 시작을 응원하며',
   },
   // 4. Borealis — uplifting / nature
   { id: 'borealis',
@@ -29,6 +32,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['uplifting', 'nature'],
     tags: ['meditation', 'hope', 'exciting', 'serious'],
+    cat: '호기심이 피어오르는 오늘',
   },
   // 5. happy stroll — uplifting / playful
   { id: 'happy-stroll',
@@ -36,6 +40,7 @@ export const MUSIC_CATALOG = [
     artist: '331 Music',
     mood: ['uplifting', 'playful'],
     tags: ['happy', 'energy', 'exciting', 'playful'],
+    cat: '정겨운 리듬감으로 힐링',
   },
   // 6. Ukulele Dance — groovy / exciting
   { id: 'ukulele-dance',
@@ -43,6 +48,7 @@ export const MUSIC_CATALOG = [
     artist: 'Derek Fiechter & Brandon Fiechter',
     mood: ['groovy', 'exciting'],
     tags: ['dance', 'energy', 'exciting', 'travel'],
+    cat: '편안한 마음으로',
   },
   // 7. Happy Alley — Lounge / soul
   { id: 'happy-alley',
@@ -50,6 +56,7 @@ export const MUSIC_CATALOG = [
     artist: 'Kevin MacLeod',
     mood: ['Lounge', 'Soul'],
     tags: ['peace', 'rest', 'easy', 'calm'],
+    cat: '마음을 부드럽게 녹여주는',
   },
   // 8. sunny side up — warm / Hopeful
   { id: 'sunny-side-up',
@@ -57,6 +64,7 @@ export const MUSIC_CATALOG = [
     artist: 'Victor Lundberg',
     mood: ['warm', 'Hopeful'],
     tags: ['happy', 'energy', 'funny', 'pop'],
+    cat: '영화 속 한 장면 같이',
   },
   // 9. New Beginnings — powerful / exciting
   { id: 'new-beginnings',
@@ -64,6 +72,7 @@ export const MUSIC_CATALOG = [
     artist: 'Tokyo Music Walker',
     mood: ['powerful', 'exciting'],
     tags: ['happy', 'energy', 'funny', 'pop'],
+    cat: '나도 모르게 흥이 나는',
   },
   // 10. Solstice — sad / hopeful
   { id: 'solstice',
@@ -71,6 +80,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['sad', 'hopeful'],
     tags: ['steady', 'safe', 'sad', 'upset'],
+    cat: '좋은 사람과 함께',
   },
   // 11. Solace — love / dramatic
   { id: 'solace',
@@ -78,6 +88,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['love', 'dramatic'],
     tags: ['sad', 'tear', 'love', 'down'],
+    cat: '조용히 명상을 할 때',
   },
   // 12. the travelling symphony — serious / uplifting
   { id: 'travelling-symphony',
@@ -85,6 +96,7 @@ export const MUSIC_CATALOG = [
     artist: 'savfk',
     mood: ['serious', 'uplifting'],
     tags: ['chill', 'groove', 'start', 'hope'],
+    cat: '오늘의 나를 위로하는',
   },
   // 13. Amberlight — Cinematic / Acoustic
   { id: 'amberlight',
@@ -92,6 +104,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['Cinematic', 'Acoustic'],
     tags: ['bright', 'interesting', 'interesting', 'hope'],
+    cat: '심장이 두근거리는',
   },
   // 14. Echoes — Cinematic / Dark
   { id: 'echoes',
@@ -99,6 +112,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['Cinematic', 'Dark'],
     tags: ['heavy', 'mystery', 'sad', 'hopelessness'],
+    cat: '날아갈듯한 기분의 오늘',
   },
   // 15. Shoulders Of Giants — Folk / Indie
   { id: 'shoulders-of-giants',
@@ -106,6 +120,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['Folk', 'Indie'],
     tags: ['Cosy', 'Peaceful', 'Carefree', 'down'],
+    cat: '바쁜 하루 속 여유 한 스푼',
   },
   // 16. A Kind Of Hope — Cinematic / Piano
   { id: 'a-kind-of-hope',
@@ -113,6 +128,7 @@ export const MUSIC_CATALOG = [
     artist: 'Scott Burkely',
     mood: ['Cinematic', 'Piano'],
     tags: ['Fantasy', 'Peaceful', 'Steady', 'Piano'],
+    cat: '꿈 꾸는 듯한 하루를 위해',
   },
 ];
 
