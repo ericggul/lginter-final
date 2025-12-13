@@ -172,6 +172,11 @@ function BlobFadeInWrapper({
     contentPhase === 'text' &&
     (timelineLabel === 't3' || timelineLabel === 't4' || timelineLabel === 't5');
 
+  // 동일한 isGlowPhase 조건 동안에는 새로 들어온 블롭 컨테이너의 간격만
+  // 살짝 더 넓게 보이도록 X 축으로 미세하게 이동시킨다.
+  // - 실제 left/BLOB_SPACING 값은 건드리지 않고, 시각적인 여백만 조절
+  const gapOffset = isGlowPhase ? 1.1 : 0;
+
   return (
     <BlobComponent
       $fontFamily={unifiedFont}
@@ -184,6 +189,7 @@ function BlobFadeInWrapper({
       $focusOffset={focusOffset}
       $dimmed={dimmed}
       $highlighted={highlighted}
+      $gapOffset={gapOffset}
     >
       {/* 내용 단계에 따라: 빈 블롭 → '...' 모션 → 감정 텍스트 */}
       {contentPhase === 'empty' && (
