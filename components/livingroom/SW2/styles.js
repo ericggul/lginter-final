@@ -891,11 +891,32 @@ export const AlbumCard = styled.div`
   transform: translate(-50%, -50%);
   width: var(--album-size);
   height: var(--album-size);
-  border-radius: 1.929167vw;
+  /* 앨범 카드 모서리를 좀 더 둥글게 */
+  border-radius: 2.604167vw;
   background: white;
   box-shadow: 0 0.625vw 1.822917vw rgba(0, 0, 0, 0.18);
   z-index: 4;
-  overflow: hidden;
+  /* 카드 밖으로 퍼지는 흰색 블러 halo 를 보여주기 위해 visible 로 변경 */
+  overflow: visible;
+
+  /* 앨범 커버 가장자리를 부드럽게 배경과 섞어주는 흰색 블러 halo */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -2.0vw; /* 카드보다 살짝 크게 */
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.65) 38%,
+      rgba(255, 255, 255, 0.0) 80%
+    );
+    filter: blur(1.8vw);
+    opacity: 0.95;
+    pointer-events: none;
+    /* 카드 배경 위, 앨범 이미지 바로 아래 레이어에서 보이도록 */
+    z-index: 0;
+  }
 `;
 
 const albumImageBlurIn = keyframes`
@@ -921,6 +942,10 @@ export const AlbumImage = styled.img`
   height: 100%;
   object-fit: cover;
   display: block;
+  /* 카드와 동일한 둥근 모서리로 맞춰서 모서리가 튀어나와 보이지 않도록 */
+  border-radius: inherit;
+  position: relative;
+  z-index: 1;
   /* 새 앨범 커버가 설정될 때 컨테이너 전체가 강하게 블러리했다가 2초 뒤 선명해지도록 */
   opacity: 0;
   filter: blur(26px);
@@ -933,6 +958,10 @@ export const AlbumPlaceholder = styled.div`
   width: 100%;
   height: 100%;
   background: white;
+  /* 실제 앨범 이미지가 없을 때도 카드와 동일한 둥근 모서리로 보이도록 */
+  border-radius: inherit;
+  position: relative;
+  z-index: 1;
 `;
 
 /* ---------------------------
