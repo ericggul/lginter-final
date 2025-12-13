@@ -258,15 +258,16 @@ export const TopStatus = styled.div`
   top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
-  color: #FFFFFF;
+  color: #000000;
   font-weight: 600;
   letter-spacing: -0.005208vw;
   text-align: center;
-  font-size: clamp(0.651042vw, 3.6vmin, 1.119792vw);
-  /* TV2/SW2 캡션 계열의 화이트 + 글로우 텍스트 쉐도우 */
+  /* SW1 상단 상태 텍스트와 동일한 크기로 맞춤 */
+  font-size: clamp(0.729167vw, 3.96vmin, 1.223958vw);
+  /* 상단 상태 텍스트: 검정 본문 + 은은한 흰색 글로시 글로우 */
   text-shadow:
-    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
-    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
+    0 0.26vw 0.80vw rgba(255, 255, 255, 0.85),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.9);
   pointer-events: none;
   z-index: 10;
 `;
@@ -440,11 +441,36 @@ const captionEnter = keyframes`
     opacity: 0;
     transform: translateY(0.6vw);
     filter: blur(0.5vw);
+    /* 모바일 Orchestrating 텍스트처럼, 처음에는 그라디언트 텍스트 + 강한 글로우로 시작 */
+    background-image: linear-gradient(
+      90deg,
+      #ffe6f7 0%,
+      #ff6ec4 20%,
+      #fff6d6 40%,
+      #7873f5 60%,
+      #ffe6f7 80%,
+      #ff6ec4 100%
+    );
+    background-size: 320% 320%;
+    background-repeat: no-repeat;
+    background-position: 0% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 1.2vw rgba(255, 255, 255, 0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0.2vw);
+    filter: blur(0.18vw);
+    /* 밝은 밴드가 한 번 지나가도록 그라디언트 위치를 이동 */
+    background-position: 100% 50%;
   }
   100% {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
+    /* 애니메이션이 끝나면 기본(검은 텍스트 + 고정 글로시 섀도우) 스타일로 자연스럽게 복귀 */
   }
 `;
 
@@ -452,12 +478,12 @@ export const HeadText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 600; /* Semi Bold */
   font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
-  color: #FFFFFF;
+  color: #000000;
   letter-spacing: 0.02em;
-  /* TV2 TrackTitle 느낌에 맞춘 글로우 / 섀도우 */
+  /* 중앙 곡명: 검정 텍스트 + 흰색 계열 글로시 글로우만 남김 */
   text-shadow:
-    0 0.26vw 0.80vw rgba(0, 0, 0, 0.7),
-    0 0.52vw 1.60vw rgba(255, 255, 255, 0.85);
+    0 0.26vw 0.80vw rgba(255, 255, 255, 0.85),
+    0 0.52vw 1.60vw rgba(255, 255, 255, 0.9);
   will-change: opacity, transform, filter;
   ${({ $state }) =>
     $state === 'enter' &&
@@ -472,12 +498,12 @@ export const SubText = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400;
   font-size: clamp(0.520833vw, 3.0vmin, 1.8vw);
-  color: #FFFFFF;
+  color: #000000;
   letter-spacing: 0.02em;
-  /* 제목과 동일 계열의 글로우/섀도우를 사용해 스타일을 맞춘다 */
+  /* 가수명: 검정 텍스트 + 흰색 계열 글로시 글로우 */
   text-shadow:
-    0 0.22vw 0.72vw rgba(0, 0, 0, 0.7),
-    0 0.46vw 1.45vw rgba(255, 255, 255, 0.82);
+    0 0.22vw 0.72vw rgba(255, 255, 255, 0.82),
+    0 0.46vw 1.45vw rgba(255, 255, 255, 0.9);
   line-height: 1.2;
   will-change: opacity, transform, filter;
   ${({ $state }) =>
@@ -493,22 +519,22 @@ export const SubTitle = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 500; /* TV2 TrackTitle 과 유사한 두께 */
   font-size: clamp(0.520833vw, 3.0vmin, 1.666667vw);
-  color: rgba(255, 255, 255, 0.96);
+  color: #000000;
   letter-spacing: 0.02em;
   text-shadow:
-    0 0.20vw 0.72vw rgba(0, 0, 0, 0.7),
-    0 0.42vw 1.36vw rgba(255, 255, 255, 0.82);
+    0 0.20vw 0.72vw rgba(255, 255, 255, 0.82),
+    0 0.42vw 1.36vw rgba(255, 255, 255, 0.9);
 `;
 
 export const SubArtist = styled.div`
   font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400; /* Regular */
   font-size: clamp(0.416667vw, 2.4vmin, 1.458333vw);
-  color: rgba(255, 255, 255, 0.92);
+  color: #000000;
   letter-spacing: 0.02em;
   text-shadow:
-    0 0.16vw 0.60vw rgba(0, 0, 0, 0.7),
-    0 0.36vw 1.22vw rgba(255, 255, 255, 0.78);
+    0 0.16vw 0.60vw rgba(255, 255, 255, 0.82),
+    0 0.36vw 1.22vw rgba(255, 255, 255, 0.9);
 `;
 
 export const Column = styled.div`
@@ -865,11 +891,32 @@ export const AlbumCard = styled.div`
   transform: translate(-50%, -50%);
   width: var(--album-size);
   height: var(--album-size);
-  border-radius: 1.929167vw;
+  /* 앨범 카드 모서리를 좀 더 둥글게 */
+  border-radius: 2.604167vw;
   background: white;
   box-shadow: 0 0.625vw 1.822917vw rgba(0, 0, 0, 0.18);
   z-index: 4;
-  overflow: hidden;
+  /* 카드 밖으로 퍼지는 흰색 블러 halo 를 보여주기 위해 visible 로 변경 */
+  overflow: visible;
+
+  /* 앨범 커버 가장자리를 부드럽게 배경과 섞어주는 흰색 블러 halo */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -2.0vw; /* 카드보다 살짝 크게 */
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.65) 38%,
+      rgba(255, 255, 255, 0.0) 80%
+    );
+    filter: blur(1.8vw);
+    opacity: 0.95;
+    pointer-events: none;
+    /* 카드 배경 위, 앨범 이미지 바로 아래 레이어에서 보이도록 */
+    z-index: 0;
+  }
 `;
 
 const albumImageBlurIn = keyframes`
@@ -895,6 +942,10 @@ export const AlbumImage = styled.img`
   height: 100%;
   object-fit: cover;
   display: block;
+  /* 카드와 동일한 둥근 모서리로 맞춰서 모서리가 튀어나와 보이지 않도록 */
+  border-radius: inherit;
+  position: relative;
+  z-index: 1;
   /* 새 앨범 커버가 설정될 때 컨테이너 전체가 강하게 블러리했다가 2초 뒤 선명해지도록 */
   opacity: 0;
   filter: blur(26px);
@@ -907,6 +958,10 @@ export const AlbumPlaceholder = styled.div`
   width: 100%;
   height: 100%;
   background: white;
+  /* 실제 앨범 이미지가 없을 때도 카드와 동일한 둥근 모서리로 보이도록 */
+  border-radius: inherit;
+  position: relative;
+  z-index: 1;
 `;
 
 /* ---------------------------
