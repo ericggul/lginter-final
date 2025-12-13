@@ -792,8 +792,10 @@ export const CenterTemp = styled.div`
   line-height: 1.12;
   letter-spacing: 0.02em;
   color: #000000;
-  /* 중앙 온도 텍스트는 그림자 없이 또렷한 블랙 */
-  text-shadow: none;
+  /* 중앙 온도 텍스트: 안쪽은 또렷한 블랙, 바깥으로 퍼지는 부분은 살짝 분홍빛 블러 */
+  text-shadow:
+    0 0 0.16vw rgba(0, 0, 0, 0.32),
+    0 0 0.40vw rgba(255, 170, 210, 0.45);
 `;
 
 export const CenterMode = styled.div`
@@ -803,8 +805,10 @@ export const CenterMode = styled.div`
   font-size: clamp(0.520833vw, 3.0vmin, 1.8vw);
   letter-spacing: 0.02em;
   color: #000000;
-  /* 중앙 모드 텍스트도 그림자 없이 블랙 */
-  text-shadow: none;
+  /* 모드 텍스트도 동일하게 바깥 블러에 은은한 분홍빛을 더해 중심과 연결 */
+  text-shadow:
+    0 0 0.14vw rgba(0, 0, 0, 0.30),
+    0 0 0.32vw rgba(255, 170, 210, 0.40);
 `;
 
 // TV2와 완전히 동일한 반투명 흰색 로딩 점 스타일
@@ -1696,6 +1700,11 @@ export const NewEntryBlob = styled.div`
   /* 초기 상태: 화면 밖 하단 중앙 (키프레임 0%와 동일) */
   opacity: 0;
   transform: translate(-50%, 12vh) scale(0.9);
+  /* 엔트리 블롭 내부 텍스트는 보이지 않게 처리 (모션/레이아웃은 그대로 유지) */
+  & strong,
+  & span {
+    opacity: 0;
+  }
   /* 본체: 중심 선명, 외곽은 알파를 낮춰 자연 감쇠 */
   background: radial-gradient(
     84.47% 61.21% at 66.09% 54.37%,
