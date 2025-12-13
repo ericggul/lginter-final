@@ -161,7 +161,8 @@ export const LeftWhiteShape = styled.div`
   position: absolute;
   top: ${(p) => p.$top || '25.99375vw'};
   left: 13.989583vw; /* aligned to the rail, inside viewport */
-  transform: translateX(-50%) translateY(${(p) => (p.$isFocusMode ? '-6vw' : '0')}); /* center on the axis */
+  /* focus 모드일 때는 Now 라인보다 훨씬 위쪽으로 보내 겹치지 않도록 함 */
+  transform: translateX(-50%) translateY(${(p) => (p.$isFocusMode ? '-12vw' : '0')}); /* center on the axis */
   width: 2.34375vw; /* 90px */
   height: 2.34375vw; /* 90px */
   border-radius: 50%;
@@ -218,7 +219,8 @@ export const LeftTime2 = styled.div`
   position: absolute;
   top: ${(p) => p.$top || '26.2375vw'};
   left: 7.817708vw; /* align with Now label relative to the line */
-  transform: translateX(-50%) translateY(${(p) => (p.$isFocusMode ? '-6vw' : '0')});
+  /* focus 모드일 때는 시간 텍스트도 Now 라인보다 충분히 위로 올린다 */
+  transform: translateX(-50%) translateY(${(p) => (p.$isFocusMode ? '-12vw' : '0')});
   color: #FFF;
   text-align: center;
   font-family: Pretendard;

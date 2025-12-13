@@ -21,6 +21,7 @@ function BlobFadeInWrapper({
   onTextVisible,
   focusOffset = 0,
   dimmed = false,
+  highlighted = false,
 }) {
   // visible이 false면 렌더링하지 않음 (fadeout)
   if (blob.visible === false) {
@@ -172,6 +173,7 @@ function BlobFadeInWrapper({
       $isAnimating={isAnimating || !isNewBlob} // 이동하는 블롭도 애니메이션 적용
       $focusOffset={focusOffset}
       $dimmed={dimmed}
+      $highlighted={highlighted}
     >
       {/* 내용 단계에 따라: 빈 블롭 → '...' 모션 → 감정 텍스트 */}
       {contentPhase === 'empty' && (
@@ -187,7 +189,21 @@ function BlobFadeInWrapper({
         </span>
       )}
       {contentPhase === 'text' && (
-        <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{typedText}</span>
+        <span
+          style={{
+            opacity: 1,
+            position: 'relative',
+            zIndex: 100,
+            fontSize: highlighted ? '2.8vw' : '2.4vw',
+            fontWeight: highlighted ? 500 : 400,
+            textShadow: highlighted
+              ? '0 0 1.2vw rgba(255,255,255,0.9), 0 0 1.8vw rgba(255,180,220,0.85)'
+              : 'none',
+            transition: 'font-size 700ms cubic-bezier(0.4, 0, 0.2, 1), text-shadow 700ms ease-out',
+          }}
+        >
+          {typedText}
+        </span>
       )}
     </BlobComponent>
   );
@@ -296,6 +312,8 @@ export default function TV1Controls() {
   const [timelineLabel, setTimelineLabel] = useState(null); // 't1' | 't2' | 't3' | 't4' | 't5' | null
   const [isFocusMode, setIsFocusMode] = useState(false);
   const t5TimerRef = useRef(null);
+  // Now 라인(5열) 블롭 중 가장 최근 인풋을 강조 표시하기 위한 id
+  const [highlightBlobId, setHighlightBlobId] = useState(null);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -422,6 +440,7 @@ export default function TV1Controls() {
         const restoreDelay = Math.min(fallbackDuration + 1000, 15000); // 안전 상한 15초
         t5TimerRef.current = setTimeout(() => {
           setIsFocusMode(false);
+          setHighlightBlobId(null);
           t5TimerRef.current = null;
         }, restoreDelay);
         return;
@@ -429,6 +448,7 @@ export default function TV1Controls() {
 
       // 그 외(t1, t2 혹은 알 수 없는 상태)는 항상 기본 모드로 복귀
       setIsFocusMode(false);
+      setHighlightBlobId(null);
     } catch {
       // 방어적으로 예외 무시 (UI 모션에만 영향)
     }
@@ -443,6 +463,32 @@ export default function TV1Controls() {
       }
     };
   }, []);
+
+  // focus 모드(t3~t5) 동안, Now 라인(column === 5) 블롭 중 가장 최근 인풋 하나만 강조
+  useEffect(() => {
+    if (!isFocusMode) {
+      setHighlightBlobId(null);
+      return;
+    }
+    if (!Array.isArray(newBlobs) || newBlobs.length === 0) return;
+    // 열 5(Now 라인)에 있는 동적 블롭들만 대상으로 한다.
+    const nowBlobs = newBlobs.filter(
+      (b) => !b.isFixed && b.column === 5 && b.visible !== false
+    );
+    if (!nowBlobs.length) {
+      setHighlightBlobId(null);
+      return;
+    }
+    // timestamp 기준으로 가장 최신 블롭 하나 선택
+    let newest = nowBlobs[0];
+    for (let i = 1; i < nowBlobs.length; i += 1) {
+      const b = nowBlobs[i];
+      if (typeof b.timestamp === 'number' && b.timestamp > (newest.timestamp || 0)) {
+        newest = b;
+      }
+    }
+    setHighlightBlobId(newest.id);
+  }, [isFocusMode, newBlobs]);
 
   const handlers = useMemo(
     () => createSocketHandlers({ 
@@ -627,13 +673,32 @@ export default function TV1Controls() {
         </B.AnnoyedBox>
         
         {/* 고정 블롭 + 동적 블롭 렌더링 */}
+        {/* Now 라인(column === 5)은 한 줄로 중앙으로 올리고, 나머지 열은 위로 올리며 dim 처리 */}
         {newBlobs.map((blob) => {
           const BlobComponent = getBlobComponent(blob.blobType);
-          const isNowColumn = blob.column === 5;
-          const focusOffset = isFocusMode
-            ? (isNowColumn ? -11.2 : -18)
-            : 0;
-          const dimmed = isFocusMode && !isNowColumn;
+          const isNowColumn = !blob.isFixed && blob.column === 5;
+
+          // logic.js COLUMN_5_TOP 과 동일 값 (Now 기본 위치)
+          const baseNowTopVw = 44.6191665;
+          const centerTopVw = 33; // 화면 중앙 근처 Now 라인 목표 top (vw)
+
+          let focusOffset = 0;
+          let dimmed = false;
+
+          if (isFocusMode) {
+            if (isNowColumn) {
+              // 열 5 블롭들은 모두 같은 양만큼 이동 → 항상 같은 줄에 위치
+              focusOffset = centerTopVw - baseNowTopVw;
+              dimmed = false;
+            } else {
+              // 나머지 열은 위쪽으로 살짝 이동 + 투명도 감소
+              focusOffset = -18;
+              dimmed = true;
+            }
+          }
+
+          const highlighted = isFocusMode && isNowColumn && blob.id === highlightBlobId;
+
           // 고정 블롭은 애니메이션 없이 바로 렌더링,
           // 단, shift 로직에서 visible=false 로 표시된 경우에는 페이드아웃/숨기기 위해 $visible 플래그를 반영
           if (blob.isFixed) {
@@ -649,6 +714,7 @@ export default function TV1Controls() {
                 $isAnimating
                 $focusOffset={focusOffset}
                 $dimmed={dimmed}
+                $highlighted={highlighted}
               >
                 <span style={{ opacity: 1, position: 'relative', zIndex: 100 }}>{blob.text}</span>
               </BlobComponent>
@@ -671,6 +737,7 @@ export default function TV1Controls() {
               onTextVisible={speakKeyword}
               focusOffset={focusOffset}
               dimmed={dimmed}
+              highlighted={highlighted}
             />
           );
         })}
