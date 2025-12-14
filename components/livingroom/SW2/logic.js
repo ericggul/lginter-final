@@ -106,7 +106,12 @@ export function createSocketHandlers({ setAmbienceData, setAssignedUsers, search
 
 // SW2 화면 전체 상태/이펙트 로직을 모아둔 커스텀 훅
 export function useSW2Logic() {
-  const [ambienceData, setAmbienceData] = useState(null);
+  // TV2 기본 랜딩 상태와 동일한 더미 앰비언스 (밝고 선선한 무드)
+  const [ambienceData, setAmbienceData] = useState(() => ({
+    device: 'sw2',
+    lightColor: '#6EA7FF',      // TV2 pastel blue landing
+    song: 'happy-alley',        // TV2 landing track
+  }));
   const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
   // 최근 사용자 키워드 (음성 텍스트 / emotionKeyword) 최대 5개까지 유지
   // 각 키워드에는, 나중에 결정된 곡명(songTitle)을 함께 저장해서

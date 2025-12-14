@@ -75,7 +75,8 @@ export function ensureBlobCount(list, climate, min = 3, max = 7) {
     out[i] = out[i] || {
       userId: `dummy:${i}`,
       temp: climate?.temp ?? 23,
-      humidity: climate?.humidity ?? 50,
+      // TV2 랜딩과 동일하게 기본 습도는 63%로 사용
+      humidity: climate?.humidity ?? 63,
       addedAt: Date.now() - (i + 1) * 500,
       isNew: false,
     };
