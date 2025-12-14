@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 export const Container = styled.div`
   min-height: 100vh;
+  /* fallback solid */
   background: #FFFAF5; /* 미색 화이트 */
   display: flex;
   flex-direction: column;
@@ -11,13 +12,31 @@ export const Container = styled.div`
   padding: 4vh 4vw;
   position: relative;
   overflow: hidden;
+  /* ensure blurred background layer stays behind children */
+  isolation: isolate;
   /* control how close blobs sit in corners (kissing) */
   --kiss: 9vmin;
   /* QR 입장 순간 채도/대비 부스트 */
   filter: var(--sbm-boost-filter, none);
-  transition: filter 600ms ease;
+  transition: none;
   /* Blob pop scale (set via inline var) */
   --sbm-blob-zoom: 1;
+
+  /* Background gradient (blurred) */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    /* Full-page background image */
+    background-image: url('/sbm/sbm1-bg.webp.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* fallback if image missing */
+    background-color: #FFFAF5;
+  }
 
   /* Active 상태일 때 화면 테두리 부드러운 글로우 */
   &::before {
@@ -26,6 +45,7 @@ export const Container = styled.div`
     inset: 0;
     pointer-events: none;
     border-radius: 32px;
+    z-index: 2;
     box-shadow:
       0 0 0 2px rgba(255, 255, 255, 0.7),
       0 0 42px 0 rgba(248, 140, 210, 0.96),
@@ -77,31 +97,30 @@ export const QRWrap = styled.div`
 
 export const BlobLayer = styled.div`
   position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  /* Disable blob background entirely (LG Swing perf) */
+  display: none;
 `;
 
 export const BGFlash = styled.div`
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
-  opacity: var(--sbm-bgflash-opacity, 0);
-  transition: opacity 650ms ease;
-  /* Active 순간에만 들어오는 마젠타 핑크 계열 워시 */
-  background:
-    radial-gradient(
-      farthest-side at 58% 32%,
-      rgba(236, 112, 204, 0.85) 0%,
-      rgba(244, 154, 219, 0.65) 32%,
-      rgba(252, 210, 240, 0.28) 68%,
-      rgba(255, 240, 250, 0.00) 100%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(255, 232, 246, 0.96) 0%,
-      rgba(255, 244, 252, 0.52) 45%,
-      rgba(255, 249, 253, 0.00) 100%
-    );
-  mix-blend-mode: screen;
+  /* Put flash ABOVE QR/text so the whole page flashes */
+  z-index: 5;
+  opacity: 0;
+  background: rgba(255, 255, 255, 0.92);
+  will-change: opacity;
+
+  @keyframes sbmFlashPulse {
+    0% { opacity: 0; }
+    8% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  ${(p) => (p.$pulse ? `
+    animation: sbmFlashPulse 1200ms ease-out 1;
+    animation-fill-mode: none;
+  ` : '')}
 `;
 
 export const Blob = styled.div`
@@ -250,7 +269,8 @@ export const TopMessageBase = styled.h2`
   /* responsive sizing based on viewport */
   width: clamp(280px, 60vw, 1173px);
   left: 50%; transform: translateX(-50%);
-  top: clamp(6vh, 12vh, 16vh);
+  /* move header a bit lower */
+  top: clamp(11vh, 17vh, 21vh);
   height: clamp(64px, 10.5vw, 190px);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-style: normal;
@@ -258,15 +278,33 @@ export const TopMessageBase = styled.h2`
   font-size: clamp(28px, 6vw, 110px);
   line-height: clamp(36px, 7.4vw, 130px);
   text-align: center;
-  color: #000000;
+  color: #FFFFFF;
+  /* subtle drop shadow for readability on image background */
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
   margin: 0; z-index: 1;
   white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: normal;
   /* 기본 문구: tip 활성화 여부에 따라 위로 사라지거나 다시 내려오며 나타남 */
   opacity: ${(p) => (p.$active ? 1 : 0)};
   transform: translate(-50%, ${(p) => (p.$active ? '0' : '-18px')});
-  /* opacity는 즉시 전환해 공백 구간을 없애고, 위치 변화만 부드럽게 처리 */
+  /* smooth fade + slide */
   transition:
-    transform 600ms cubic-bezier(0.19, 1, 0.22, 1);
+    opacity 650ms cubic-bezier(0.19, 1, 0.22, 1),
+    transform 650ms cubic-bezier(0.19, 1, 0.22, 1);
+`;
+
+// Slightly tighter style so T2 stays on exactly 2 lines.
+export const TopMessageT2 = styled(TopMessageBase)`
+  width: clamp(320px, 72vw, 1280px);
+  font-size: clamp(26px, 5.6vw, 102px);
+  line-height: clamp(34px, 6.8vw, 122px);
+`;
+
+export const TopMessageT3 = styled(TopMessageBase)`
+  width: clamp(320px, 72vw, 1280px);
+  font-size: clamp(24px, 5.2vw, 96px);
+  line-height: clamp(32px, 6.4vw, 116px);
 `;
 
 // Tip 문구 - tip이 true일 때만 재생되는 찰진 인/아웃 애니메이션
@@ -285,9 +323,30 @@ export const TopMessageTip = styled(TopMessageBase)`
   }
 `;
 
+// Icon between the top message and the QR
+export const BetweenIcon = styled.img`
+  position: absolute;
+  left: 50%;
+  top: 40vh;
+  transform: translate(-50%, -50%);
+  width: clamp(56px, 9vw, 160px);
+  height: auto;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  /* only show on t3, and animate with the same cadence as header text */
+  opacity: ${(p) => (p.$active ? 0.95 : 0)};
+  transform: translate(-50%, ${(p) => (p.$active ? '-50%' : '-58%')});
+  transition:
+    opacity 650ms cubic-bezier(0.19, 1, 0.22, 1),
+    transform 650ms cubic-bezier(0.19, 1, 0.22, 1);
+`;
+
 export const QRFloat = styled.div`
-  position: absolute; top: 58vh; left: 50%; transform: translate(-50%, -50%);
-  width: var(--qr-size, 25vw); height: var(--qr-size, 25vw); min-width: 200px; min-height: 200px; /* responsive var with fallback */
+  position: absolute; top: 69vh; left: 50%; transform: translate(-50%, -50%);
+  /* Make QR noticeably larger on big displays (LG Swing) */
+  width: clamp(300px, 46vmin, 600px);
+  height: clamp(300px, 46vmin, 600px);
   display:flex; align-items:center; justify-content:center; z-index: 1;
   /* only QR visible */
   background: transparent; border: 0; border-radius: 0; box-shadow: none;
