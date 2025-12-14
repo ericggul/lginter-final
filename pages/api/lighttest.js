@@ -39,12 +39,14 @@ function resolveHueConfig() {
     .map((n) => Number(n))
     .filter((n) => Number.isFinite(n) && n >= 1);
 
-  // Remote config uses user-provided env keys (no HUE_REMOTE_*).
+  // Remote config uses user-provided env keys.
   const remoteClientId = process.env.HUE_CLIENT_ID || "";
   const remoteClientSecret = process.env.HUE_CLIENT_SECRET || "";
   const remoteRefreshToken = process.env.HUE_REFRESH_TOKEN || "";
-  const remoteAccessToken = process.env.HUE_ACCESS_TOKEN || ""; // not used; refresh drives
-  const remoteEnabled = remoteRefreshToken !== "";
+  const remoteAccessToken = process.env.HUE_ACCESS_TOKEN || "";
+  const remoteEnabled =
+    String(process.env.HUE_REMOTE_ENABLED || "").toLowerCase() === "true" ||
+    (String(process.env.RENDER || "").toLowerCase() === "true" && !!remoteRefreshToken);
 
   return {
     enabled,
@@ -115,9 +117,16 @@ export default async function handler(req, res) {
         body: JSON.stringify(req.body || {}),
       });
       const data = await upstream.json().catch(() => null);
-      return res.status(upstream.status).json(
-        data || { ok: false, error: "Upstream returned non-JSON response" }
-      );
+      const payload = data || { ok: false, error: "Upstream returned non-JSON response" };
+      // If upstream rejects, add a hint so debugging is obvious.
+      if (upstream.status === 401 && payload?.error === "Unauthorized") {
+        return res.status(401).json({
+          ...payload,
+          hint:
+            "Upstream (proxy target) returned Unauthorized. Check HUE_CONTROL_PROXY_TOKEN on Render and HUE_CONTROL_TOKEN/REQUIRE_TOKEN on the controller.",
+        });
+      }
+      return res.status(upstream.status).json(payload);
     } catch (err) {
       return res.status(502).json({
         ok: false,
@@ -126,16 +135,23 @@ export default async function handler(req, res) {
     }
   }
 
-  // Optional auth for direct control (recommended when notebook is exposed via tunnel)
+  const configOverride = resolveHueConfig();
+  // Optional auth for direct control.
+  // NOTE: This breaks the public /lighttest UI unless the client also sends the header.
+  // Make it opt-in via HUE_CONTROL_REQUIRE_TOKEN=true.
+  const requireToken = String(process.env.HUE_CONTROL_REQUIRE_TOKEN || "").toLowerCase() === "true";
   const requiredToken = process.env.HUE_CONTROL_TOKEN || "";
-  if (requiredToken) {
+  if (requireToken && requiredToken) {
     const incomingToken = req.headers?.["x-hue-control-token"];
     if (incomingToken !== requiredToken) {
-      return res.status(401).json({ ok: false, error: "Unauthorized" });
+      return res.status(401).json({
+        ok: false,
+        error: "Unauthorized",
+        hint:
+          "This API route requires x-hue-control-token. Either set HUE_CONTROL_REQUIRE_TOKEN=false (recommended for /lighttest UI), or add the header from the client.",
+      });
     }
   }
-
-  const configOverride = resolveHueConfig();
 
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
