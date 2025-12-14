@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { SOCKET_CONFIG } from "../constants";
+import attachHardReset from "./useHardReset";
 
 export default function useSocketSBM1(options = {}) {
   const socketRef = useRef(null);
@@ -8,6 +9,7 @@ export default function useSocketSBM1(options = {}) {
 
   useEffect(() => {
     let mounted = true;
+    let detachHardReset = () => {};
 
     (async () => {
       try {
@@ -23,6 +25,7 @@ export default function useSocketSBM1(options = {}) {
 
       socketRef.current = s;
       setSocket(s);
+      detachHardReset = attachHardReset(s);
 
       s.on("connect", () => {
         console.log("✅ SBM1 socket connected:", s.id);
@@ -50,6 +53,7 @@ export default function useSocketSBM1(options = {}) {
       mounted = false;
       console.log("SBM1 Hook: Cleaning up socket");
       if (socketRef.current) { 
+        detachHardReset();
         socketRef.current.disconnect(); 
         socketRef.current = null; 
       }

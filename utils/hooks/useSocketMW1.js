@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { createBasePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
+import attachHardReset from "./useHardReset";
 
 export default function useSocketMW1(options = {}) {
   const socketRef = useRef(null);
@@ -9,6 +10,7 @@ export default function useSocketMW1(options = {}) {
 
   useEffect(() => {
     let mounted = true;
+    let detachHardReset = () => {};
 
     (async () => {
       try {
@@ -24,6 +26,7 @@ export default function useSocketMW1(options = {}) {
 
       socketRef.current = s;
       setSocket(s);
+      detachHardReset = attachHardReset(s);
 
       s.on("connect", () => {
         console.log("✅ MW1 socket connected:", s.id);
@@ -51,6 +54,7 @@ export default function useSocketMW1(options = {}) {
       mounted = false;
       console.log("MW1 Hook: Cleaning up socket");
       if (socketRef.current) { 
+        detachHardReset();
         socketRef.current.disconnect(); 
         socketRef.current = null; 
       }

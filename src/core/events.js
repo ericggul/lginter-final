@@ -45,6 +45,9 @@ export const EV = {
   INIT_ENTRANCE: "entrance-init",
   INIT_LIVINGROOM: "livingroom-init",
   INIT_CONTROLLER: "controller-init",
+
+  // Admin hard reset (full page reload on all devices)
+  HARD_RESET: "hard-reset",
 };
 
 
