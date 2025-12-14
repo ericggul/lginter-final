@@ -4,7 +4,7 @@ import {
   setLightBrightness,
   setLightColor,
   setLightOnOff,
-} from "../../lib/hue/hueClient-old";
+} from "../../lib/hue/hueClient";
 
 // NOTE: Hardcoding secrets in source code is risky.
 // Prefer `.env.local` in the project root.
@@ -39,7 +39,25 @@ function resolveHueConfig() {
     .map((n) => Number(n))
     .filter((n) => Number.isFinite(n) && n >= 1);
 
-  return { enabled, ip, username, groupId, lightIds };
+  // Remote config uses user-provided env keys (no HUE_REMOTE_*).
+  const remoteClientId = process.env.HUE_CLIENT_ID || "";
+  const remoteClientSecret = process.env.HUE_CLIENT_SECRET || "";
+  const remoteRefreshToken = process.env.HUE_REFRESH_TOKEN || "";
+  const remoteAccessToken = process.env.HUE_ACCESS_TOKEN || ""; // not used; refresh drives
+  const remoteEnabled = remoteRefreshToken !== "";
+
+  return {
+    enabled,
+    ip,
+    username,
+    groupId,
+    lightIds,
+    remoteEnabled,
+    remoteClientId,
+    remoteClientSecret,
+    remoteRefreshToken,
+    remoteAccessToken,
+  };
 }
 
 function normalizeBrightness(value) {
