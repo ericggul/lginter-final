@@ -3,8 +3,10 @@ import useSocketSBM1 from '@/utils/hooks/useSocketSBM1';
 import useResize from '@/utils/hooks/useResize';
 import { playSbm1QrTipStart } from '@/utils/data/soundeffect';
 
-export const DEFAULT_TOP_MESSAGE = 'QR코드 스캔을 통해\n전시 관람을 시작하세요!';
-const TIP_TEXT = '오늘의 기분을 모바일을 통해 알려주세요!';
+// Header stages
+export const T1_HEAD_TEXT = 'QR 코드 스캔을 통해\n전시관람을 시작하세요!';
+export const T2_HEAD_TEXT = '스캔 후, 모바일을 통해\n오늘의 감정을 이야기해보세요';
+export const T3_HEAD_TEXT = '공간 안으로 입장하여\n조율된 공간을 경험하세요.';
 const DEFAULT_FURON_PATH = '/image.png';
 
 
@@ -25,17 +27,59 @@ export function useSbm1() {
   const { width, height } = useResize();
   const vars = useMemo(() => getViewportVars(width, height), [width, height]);
   const [qrUrl, setQrUrl] = useState(getMobileUrl());
-  const [topMessage, setTopMessage] = useState(DEFAULT_TOP_MESSAGE);
   const furonPath = DEFAULT_FURON_PATH;
   const [userCount, setUserCount] = useState(0);
   const seenUserIdsRef = useRef(new Set());
-  const [boost, setBoost] = useState(false);
-  const [tip, setTip] = useState(false);
-  const [flash, setFlash] = useState(false);
-  const boostTimeoutRef = useRef(null);
-  const flashTimeoutRef = useRef(null);
-  const tipTimeoutRef = useRef(null);
-  const prevTipRef = useRef(false);
+  const [flashTick, setFlashTick] = useState(0); // increments to trigger a one-shot flash pulse
+  const [stage, setStage] = useState('t1'); // 't1' | 't2' | 't3'
+  const t1ToT2TimeoutRef = useRef(null);
+  const t3TimeoutRef = useRef(null);
+
+  // Timings (ms)
+  const T1_TO_T2_MS = 7000;
+  const T3_SHOW_MS = 8000;
+
+  function clearT1ToT2Timer() {
+    if (t1ToT2TimeoutRef.current) clearTimeout(t1ToT2TimeoutRef.current);
+    t1ToT2TimeoutRef.current = null;
+  }
+
+  function clearT3Timer() {
+    if (t3TimeoutRef.current) clearTimeout(t3TimeoutRef.current);
+    t3TimeoutRef.current = null;
+  }
+
+  function startT1() {
+    setStage('t1');
+    clearT1ToT2Timer();
+    t1ToT2TimeoutRef.current = setTimeout(() => {
+      setStage('t2');
+      t1ToT2TimeoutRef.current = null;
+    }, T1_TO_T2_MS);
+  }
+
+  function startT3() {
+    // When triggered, jump to t3 for 7s, then restart at t1
+    setStage('t3');
+    setFlashTick((t) => t + 1); // sudden flash at the same time as t3
+    clearT3Timer();
+    clearT1ToT2Timer();
+    t3TimeoutRef.current = setTimeout(() => {
+      clearT3Timer();
+      startT1();
+    }, T3_SHOW_MS);
+  }
+
+  // Initial: start t1 -> t2 schedule
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    startT1();
+    return () => {
+      clearT1ToT2Timer();
+      clearT3Timer();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useSocketSBM1({
     onEntranceNewUser: (payload) => {
@@ -47,29 +91,9 @@ export function useSbm1() {
           seen.add(uid);
           setUserCount((c) => c + 1);
         }
-        // 순간 채도/대비 부스트 (중복 이벤트 시 타이머 재설정으로 과도한 setState 방지)
-        setBoost(true);
-        if (boostTimeoutRef.current) clearTimeout(boostTimeoutRef.current);
-        boostTimeoutRef.current = setTimeout(() => {
-          setBoost(false);
-          boostTimeoutRef.current = null;
-        }, 2000);
-        // 연핑크 배경 플래시 (서서히 들어왔다 나감)
-        setFlash(true);
-        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-        flashTimeoutRef.current = setTimeout(() => {
-          setFlash(false);
-          flashTimeoutRef.current = null;
-        }, 2000);
-        // Tip 문구 7초 표시 (애니메이션 길이와 정확히 맞춤)
-        setTopMessage((prev) => (prev === TIP_TEXT ? prev : TIP_TEXT));
-        setTip(true);
-        if (tipTimeoutRef.current) clearTimeout(tipTimeoutRef.current);
-        tipTimeoutRef.current = setTimeout(() => {
-          setTip(false);
-          setTopMessage((prev) => (prev === DEFAULT_TOP_MESSAGE ? prev : DEFAULT_TOP_MESSAGE));
-          tipTimeoutRef.current = null;
-        }, 7000);
+        // Flash + t3 sequence
+        // Trigger t3 sequence
+        startT3();
       } catch {}
     },
     onEntranceNewName: (payload) => {
@@ -81,29 +105,9 @@ export function useSbm1() {
           seen.add(uid);
           setUserCount((c) => c + 1);
         }
-        // 이름 들어와도 동일하게 부스트 (타이머 재사용)
-        setBoost(true);
-        if (boostTimeoutRef.current) clearTimeout(boostTimeoutRef.current);
-        boostTimeoutRef.current = setTimeout(() => {
-          setBoost(false);
-          boostTimeoutRef.current = null;
-        }, 2000);
-        // 연핑크 배경 플래시
-        setFlash(true);
-        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-        flashTimeoutRef.current = setTimeout(() => {
-          setFlash(false);
-          flashTimeoutRef.current = null;
-        }, 2000);
-        // Tip 문구 7초 표시 (애니메이션 길이와 정확히 맞춤)
-        setTopMessage((prev) => (prev === TIP_TEXT ? prev : TIP_TEXT));
-        setTip(true);
-        if (tipTimeoutRef.current) clearTimeout(tipTimeoutRef.current);
-        tipTimeoutRef.current = setTimeout(() => {
-          setTip(false);
-          setTopMessage((prev) => (prev === DEFAULT_TOP_MESSAGE ? prev : DEFAULT_TOP_MESSAGE));
-          tipTimeoutRef.current = null;
-        }, 7000);
+        // Flash + t3 sequence
+        // Trigger t3 sequence
+        startT3();
       } catch {}
     },
   });
@@ -111,36 +115,41 @@ export function useSbm1() {
 
   const styleVars = useMemo(() => ({
     ...vars,
-    '--sbm-boost-filter': boost ? 'saturate(1.22) contrast(1.12) brightness(1.04)' : 'none',
+    // Keep visuals stable: no lingering boost filter (avoids "bright after-image" after flash)
+    '--sbm-boost-filter': 'none',
     // 블롭 스케일은 항상 1로 고정 (아이들/액티브 동일 크기)
     '--sbm-blob-zoom': 1,
-    // 액티브(tip=true) 동안에는 배경 워시를 강한 마젠타로 유지
-    '--sbm-bgflash-opacity': tip ? 1 : 0,
-    '--sbm-border-glow-opacity': tip ? 1 : 0,
-  }), [vars, boost, tip]);
+    // Flash is handled as a one-shot pulse overlay; keep persistent glows off.
+    '--sbm-bgflash-opacity': 0,
+    '--sbm-border-glow-opacity': 0,
+  }), [vars, stage]);
 
-  // 모바일 QR 스캔으로 상단 TIP 시퀀스가 시작될 때마다 1회만 효과음 재생
+  // t3 시작 시 1회 효과음 재생
   useEffect(() => {
-    const prev = prevTipRef.current;
-    if (!prev && tip) {
-      // TIP false → true 전환 시에만 재생
+    if (stage === 't3') {
       playSbm1QrTipStart();
     }
-    prevTipRef.current = tip;
-  }, [tip]);
+  }, [stage]);
 
   // 언마운트 시 타이머 정리로 메모리/불필요한 setState 방지
   useEffect(() => {
     return () => {
-      if (boostTimeoutRef.current) clearTimeout(boostTimeoutRef.current);
-      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-      if (tipTimeoutRef.current) clearTimeout(tipTimeoutRef.current);
+      clearT1ToT2Timer();
+      clearT3Timer();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return useMemo(
-    () => ({ vars: styleVars, qrUrl, topMessage, furonPath, userCount, tip }),
-    [styleVars, qrUrl, topMessage, userCount, tip]
+    () => ({
+      vars: styleVars,
+      qrUrl,
+      furonPath,
+      userCount,
+      stage,          // 't1' | 't2' | 't3'
+      flashTick,      // pulse trigger for flash overlay
+    }),
+    [styleVars, qrUrl, userCount, stage, flashTick]
   );
 }
 

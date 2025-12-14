@@ -117,9 +117,9 @@ export default function MW1Controls() {
         $show={isActive}
       />
       <S.CenterTip $show={showTip}>
-        <strong>어서오세요!</strong>
+        <strong>환영합니다.</strong>
         {'\n'}
-        들어와서 조율된 공간을 경험해보세요
+        조율된 공간을 경험 해보세요.
       </S.CenterTip>
     </S.Container>
   );

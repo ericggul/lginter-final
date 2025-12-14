@@ -1,7 +1,7 @@
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import * as S from './styles';
-import { DEFAULT_TOP_MESSAGE } from './logic';
+import { T1_HEAD_TEXT, T2_HEAD_TEXT, T3_HEAD_TEXT } from './logic';
 
 // 블롭 3개가 항상 둥실둥실 떠 있는 기본 배경
 export function BlobBackground() {
@@ -14,16 +14,25 @@ export function BlobBackground() {
   );
 }
 
-// text: 현재 상단 문구 문자열 (logic에서 관리), tip: 모바일 안내 active 여부
-export function TopMessage({ text, tip }) {
+export function TopMessage({ stage }) {
+  const showT1 = stage === 't1';
+  const showT2 = stage === 't2';
+  const showT3 = stage === 't3';
   return (
     <>
-      {/* 기본 QR 안내 문구 */}
-      <S.TopMessageBase $active={!tip}>{DEFAULT_TOP_MESSAGE}</S.TopMessageBase>
-      {/* Tip 활성화 시에만 보이는 모바일 안내 문구 */}
-      <S.TopMessageTip $active={tip}>{text}</S.TopMessageTip>
+      {/* T1 */}
+      <S.TopMessageBase $active={showT1}>{T1_HEAD_TEXT}</S.TopMessageBase>
+      {/* T2 */}
+      <S.TopMessageT2 $active={showT2}>{T2_HEAD_TEXT}</S.TopMessageT2>
+      {/* T3 (triggered by scan) */}
+      <S.TopMessageT3 $active={showT3}>{T3_HEAD_TEXT}</S.TopMessageT3>
     </>
   );
+}
+
+export function BetweenIcon({ src, active }) {
+  if (!src) return null;
+  return <S.BetweenIcon src={src} alt="" draggable={false} $active={!!active} />;
 }
 
 export function QrFloat({ value }) {
