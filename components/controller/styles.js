@@ -99,6 +99,16 @@ export const ResetButton = styled.button`
   }
 `;
 
+export const HardResetButton = styled(ResetButton)`
+  background: #b3261e;
+  box-shadow: 0 2px 8px rgba(179, 38, 30, 0.35);
+
+  &:hover {
+    background: #a01812;
+    box-shadow: 0 4px 12px rgba(179, 38, 30, 0.45);
+  }
+`;
+
 // 중앙: 설정 스테이트 패널
 export const SettingsPanel = styled.div`
   background: white;
