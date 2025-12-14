@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useSbmPlayer } from "./logic";
 import * as S from "./styles";
+import TEXTS from "./constant";
 
 export default function SbmScreen() {
   const router = useRouter();
@@ -14,26 +15,29 @@ export default function SbmScreen() {
 
   const { videoSrc, stageLabel, socketStatus } = useSbmPlayer(slugKey);
 
+  const [textKey, setTextKey] = useState(0);
+  useEffect(() => {
+    setTextKey((k) => k + 1);
+  }, [stageLabel]);
+
+
+  const centerText = TEXTS[stageLabel] || "준비 중입니다.";
+
   return (
     <S.Container>
-      <S.StageBadge>
-        <span>{stageLabel || "t1"}</span>
-        <S.StatusDot $state={socketStatus} />
-      </S.StageBadge>
-      <S.VideoWrap>
-        <S.Video
-          key={videoSrc}
-          src={videoSrc}
-          autoPlay
-          muted
-          loop
-          playsInline
-          controls={false}
-        />
-        <S.VideoLabel>
-          sbm/{slugKey}
-        </S.VideoLabel>
-      </S.VideoWrap>
+      <S.Video
+        key={videoSrc}
+        src={videoSrc}
+        autoPlay
+        muted
+        loop
+        playsInline
+        controls={false}
+      />
+     
+      <S.Overlay>
+        <S.CenterText key={textKey}>{centerText}</S.CenterText>
+      </S.Overlay>
     </S.Container>
   );
 }
