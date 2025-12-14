@@ -388,7 +388,7 @@ export default function handler(req, res) {
           mergedFrom: [payload.userId],
         });
       }
-      // SW1: 개인 결과(최대 4명)를 함께 전달(프론트는 선택적으로 사용)
+      // SW1/SW2: 개인 결과(최대 4명)를 함께 전달(프론트는 선택적으로 사용)
       const individuals = [];
       // 0) Always seed current user's personal result if provided
       if (raw?.individual && typeof raw.individual === 'object') {
@@ -396,6 +396,8 @@ export default function handler(req, res) {
           userId: String(payload.userId),
           temp: raw.individual.temp,
           humidity: raw.individual.humidity,
+          // 가능하면 개인 음악도 함께 전달 (없으면 undefined 유지)
+          music: raw.individual.music,
         });
       }
       // 1) Try recent active preferences to fill remaining slots
@@ -406,8 +408,17 @@ export default function handler(req, res) {
           const uid = String(u.originalUserId || u.userId || u.inputId || nanoid());
           if (individuals.some((x) => String(x.userId) === uid)) continue;
           const pref = u.lastPreference || {};
-          if (typeof pref.temp === 'number' || typeof pref.humidity === 'number') {
-            individuals.push({ userId: uid, temp: pref.temp, humidity: pref.humidity });
+          if (
+            typeof pref.temp === 'number' ||
+            typeof pref.humidity === 'number' ||
+            pref.music
+          ) {
+            individuals.push({
+              userId: uid,
+              temp: pref.temp,
+              humidity: pref.humidity,
+              music: pref.music,
+            });
           }
         }
       } catch {}
@@ -421,6 +432,8 @@ export default function handler(req, res) {
             userId: uid,
             temp: typeof sw1Env.temp === 'number' ? sw1Env.temp : payload.params?.temp,
             humidity: typeof sw1Env.humidity === 'number' ? sw1Env.humidity : payload.params?.humidity,
+            // 폴백으로는 중앙 SW2 곡(개인 후보곡)을 사용
+            music: personal?.music || sw2Env?.music,
           });
         }
       } catch {}
