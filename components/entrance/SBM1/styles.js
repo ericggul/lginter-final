@@ -267,20 +267,24 @@ export const BlobTinyTL = styled(Blob)`
 export const TopMessageBase = styled.h2`
   position: absolute;
   /* responsive sizing based on viewport */
-  width: clamp(280px, 60vw, 1173px);
+  /* 화면 좌우 기준 약 35% 폭만 사용하도록 축소 */
+  width: clamp(280px, 35vw, 1173px);
   left: 50%; transform: translateX(-50%);
   /* move header a bit lower */
   top: clamp(11vh, 17vh, 21vh);
   height: clamp(64px, 10.5vw, 190px);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-style: normal;
   font-weight: 600;
   font-size: clamp(28px, 6vw, 110px);
   line-height: clamp(36px, 7.4vw, 130px);
   text-align: center;
-  color: #FFFFFF;
-  /* subtle drop shadow for readability on image background */
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  /* SW1 중앙 블롭 텍스트와 동일한 중립 다크 그레이 톤 */
+  color: #545454;
+  /* SW1 CenterTemp 스타일을 참고한 미세한 블랙+핑크 글로우 */
+  text-shadow:
+    0 0 0.16vw rgba(0, 0, 0, 0.32),
+    0 0 0.40vw rgba(255, 170, 210, 0.45);
   margin: 0; z-index: 1;
   white-space: pre-line;
   word-break: keep-all;
@@ -296,13 +300,13 @@ export const TopMessageBase = styled.h2`
 
 // Slightly tighter style so T2 stays on exactly 2 lines.
 export const TopMessageT2 = styled(TopMessageBase)`
-  width: clamp(320px, 72vw, 1280px);
+  width: clamp(320px, 35vw, 1280px);
   font-size: clamp(26px, 5.6vw, 102px);
   line-height: clamp(34px, 6.8vw, 122px);
 `;
 
 export const TopMessageT3 = styled(TopMessageBase)`
-  width: clamp(320px, 72vw, 1280px);
+  width: clamp(320px, 35vw, 1280px);
   font-size: clamp(24px, 5.2vw, 96px);
   line-height: clamp(32px, 6.4vw, 116px);
 `;

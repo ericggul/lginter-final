@@ -74,6 +74,50 @@ export const Root = styled.div`
   transition: background-color 800ms ease-in-out;
 `;
 
+/* 앨범 컬러 디버깅용: 좌측에 세로로 1~16번 버튼을 작게 배치 */
+export const DebugPalettePanel = styled.div`
+  position: absolute;
+  left: 1.2vw;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35vw;
+  z-index: 20;
+  pointer-events: auto;
+`;
+
+export const DebugPaletteButton = styled.button`
+  width: 1.8vw;
+  height: 1.8vw;
+  border-radius: 0.4vw;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: ${({ $color }) => $color || 'rgba(255,255,255,0.7)'};
+  cursor: pointer;
+  opacity: ${({ $active }) => ($active ? 1 : 0.8)};
+  box-shadow: ${({ $active }) =>
+    $active
+      ? '0 0 0 0.1vw rgba(0,0,0,0.4)'
+      : '0 0.10vw 0.30vw rgba(0,0,0,0.18)'};
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62vw;
+  font-weight: 600;
+  color: #545454;
+  backdrop-filter: blur(7px);
+  transition:
+    transform 140ms ease-out,
+    box-shadow 140ms ease-out,
+    opacity 140ms ease-out;
+
+  &:hover {
+    opacity: 1;
+    transform: translateY(-0.06vw) scale(1.03);
+  }
+`;
+
 /** 화면 상단 쪽에서 퍼져 나가는 파동 레이어 (배경 전용, 상호작용 없음) */
 export const TopWaveLayer = styled.div`
   position: absolute;
@@ -801,6 +845,27 @@ export const StatusCard = styled.div`
   padding: 0.625vw;
   text-align: center;
   color: white;
+`;
+
+/* 중앙 로딩 상태에서 사용할 3점(dot) 애니메이션 – SW1/TV2와 동일한 스타일 */
+const centerDots = keyframes`
+  0%, 20% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
+`;
+
+export const LoadingDots = styled.div`
+  display: inline-flex;
+  gap: 6px;
+  span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: ${({ $color = 'rgba(255,255,255,0.8)' }) => $color};
+    animation: ${centerDots} 1.2s infinite;
+  }
+  span:nth-child(2) { animation-delay: 0.2s; }
+  span:nth-child(3) { animation-delay: 0.4s; }
 `;
 
 export const StatusCaption = styled.div`

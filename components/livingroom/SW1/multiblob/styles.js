@@ -834,10 +834,10 @@ const dots = keyframes`
 
 export const LoadingDots = styled.div`
   display: inline-flex;
-  gap: 10px;
+  gap: 6px;
   span {
-    width: 18px;
-    height: 18px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: ${({ $color = 'rgba(255,255,255,0.8)' }) => $color};
     animation: ${dots} 1.2s infinite;

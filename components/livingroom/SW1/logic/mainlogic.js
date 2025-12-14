@@ -72,9 +72,10 @@ export function createSocketHandlers({ setDisplayClimate, setNextClimate, setPar
 // Independent SW1 logic hook (no coupling to SW2)
 export function useSW1Logic() {
   // Center climate result (UI-visible)
-  const [displayClimate, setDisplayClimate] = useState({ temp: 23, humidity: 50 });
+  // TV2 기본 랜딩 값과 동일하게 초기 온도/습도(23℃ / 63%)를 사용
+  const [displayClimate, setDisplayClimate] = useState({ temp: 23, humidity: 63 });
   // Next climate from incoming decision (applied at T5)
-  const [nextClimate, setNextClimate] = useState({ temp: 23, humidity: 50 });
+  const [nextClimate, setNextClimate] = useState({ temp: 23, humidity: 63 });
   const [dotCount, setDotCount] = useState(0);
   const [activeUsers, setActiveUsers] = useState(new Set());
   const [timelineState, setTimelineState] = useState('t1'); // t1..t5
@@ -559,7 +560,8 @@ export function useSW1Logic() {
     blobConfigs: miniBlobDisplay,
     entryBlob,
     centerTemp: displayClimate?.temp ?? 23,
-    centerHumidity: displayClimate?.humidity ?? 50,
+    // TV2 랜딩과 동일하게 초기 및 fallback 습도를 63%로 사용
+    centerHumidity: displayClimate?.humidity ?? 63,
     participantCount,
     dotCount,
     decisionTick: (typeof window !== 'undefined' && window.__sw1DecisionTick) || 0,
