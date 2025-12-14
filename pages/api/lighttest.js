@@ -66,7 +66,75 @@ function normalizeBrightness(value) {
   return Math.min(254, Math.max(1, Math.round(n)));
 }
 
+function normalizeBaseUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+}
+
+function safeUrlHost(url) {
+  try {
+    return new URL(url).host || "";
+  } catch {
+    return "";
+  }
+}
+
 export default async function handler(req, res) {
+  // Allow Render → notebook proxying without exposing the token to the browser:
+  // - Render sets HUE_CONTROL_PROXY_URL=https://<your-tunnel-domain>
+  // - Render sets HUE_CONTROL_PROXY_TOKEN=<shared-secret>
+  // - Notebook sets HUE_CONTROL_TOKEN=<same-secret> and does NOT set proxy URL.
+  const proxyBaseUrl = normalizeBaseUrl(process.env.HUE_CONTROL_PROXY_URL);
+  const proxyToken = process.env.HUE_CONTROL_PROXY_TOKEN || "";
+  const hopHeader = "x-hue-proxy-hop";
+
+  // If configured, proxy *server-to-server* to notebook controller.
+  // Prevent infinite loops using a hop header.
+  if (proxyBaseUrl && !req.headers?.[hopHeader]) {
+    // Guard against accidental self-proxying (common misconfig on Render)
+    const proxyHost = safeUrlHost(proxyBaseUrl);
+    const requestHost = String(req.headers?.host || "").trim();
+    if (proxyHost && requestHost && proxyHost.toLowerCase() === requestHost.toLowerCase()) {
+      return res.status(500).json({
+        ok: false,
+        error:
+          "HUE_CONTROL_PROXY_URL points to the same host as this request (self-proxy loop). " +
+          "Set HUE_CONTROL_PROXY_URL to a tunnel/controller host that can reach your Hue Bridge.",
+      });
+    }
+    try {
+      const url = `${proxyBaseUrl}/api/lighttest`;
+      const upstream = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(proxyToken ? { "x-hue-control-token": proxyToken } : {}),
+          [hopHeader]: "1",
+        },
+        body: JSON.stringify(req.body || {}),
+      });
+      const data = await upstream.json().catch(() => null);
+      return res.status(upstream.status).json(
+        data || { ok: false, error: "Upstream returned non-JSON response" }
+      );
+    } catch (err) {
+      return res.status(502).json({
+        ok: false,
+        error: `Hue proxy failed: ${err?.message || String(err)}`,
+      });
+    }
+  }
+
+  // Optional auth for direct control (recommended when notebook is exposed via tunnel)
+  const requiredToken = process.env.HUE_CONTROL_TOKEN || "";
+  if (requiredToken) {
+    const incomingToken = req.headers?.["x-hue-control-token"];
+    if (incomingToken !== requiredToken) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+  }
+
   const configOverride = resolveHueConfig();
 
   if (req.method !== "POST") {
