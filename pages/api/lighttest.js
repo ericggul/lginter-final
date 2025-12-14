@@ -4,7 +4,7 @@ import {
   setLightBrightness,
   setLightColor,
   setLightOnOff,
-} from "../../lib/hue/hueClient";
+} from "../../lib/hue/hueClient-old";
 
 // NOTE: Hardcoding secrets in source code is risky.
 // Prefer `.env.local` in the project root.
