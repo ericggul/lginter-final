@@ -71,7 +71,10 @@ export function useTV2DisplayLogic({
   levaControls,
   audioRef,
 }) {
-  const hexColor = (env?.lightColor || '').toUpperCase();
+  // "lightColor" is the *decision/intended* color.
+  // "hueHex" is the *actual Hue average* color pushed from server ("hue-state").
+  // Use hueHex when available so the top panel reflects real Hue lights.
+  const hexColor = (env?.hueHex || env?.lightColor || '').toUpperCase();
   // AI가 준 emotionKeyword를 기반으로, 컬러명이 아니라 "무드" 이름을 우선 노출
   const moodLabel = useMemo(() => {
     const base = (emotionKeyword || '').trim();

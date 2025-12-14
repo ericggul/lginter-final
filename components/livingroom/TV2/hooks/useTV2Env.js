@@ -11,6 +11,7 @@ const DEFAULT_ENV = {
   temp: 23,
   humidity: 63,
   lightColor: '#6EA7FF', // pastel blue landing
+  hueHex: '', // actual Hue average color (pushed from server)
   music: 'happy-alley', // landing track
   lightLabel: '',
 };
@@ -86,6 +87,14 @@ export function useTV2Logic() {
 
       // env 내용이 동일하더라도, 새로운 디시전이 들어왔다는 사실 자체를 전달하기 위한 토큰
       setDecisionToken((prev) => prev + 1);
+    },
+    onHueState: (p) => {
+      const hex = String(p?.hex || '').toUpperCase();
+      if (!hex) return;
+      setEnv((prev) => {
+        if (prev?.hueHex === hex) return prev;
+        return { ...prev, hueHex: hex };
+      });
     },
   });
 

@@ -1,5 +1,6 @@
 import {
   initHue,
+  getHueStateAverageHex,
   listLights,
   setLightBrightness,
   setLightColor,
@@ -202,6 +203,16 @@ export default async function handler(req, res) {
         return res.status(400).json({ ok: false, error: "Unknown action" });
     }
     const statusCode = result?.ok ? 200 : 500;
+    // Push latest Hue state to livingroom clients (TV2) when socket server is present.
+    try {
+      const io = res?.socket?.server?.io;
+      if (io && result?.ok) {
+        const state = await getHueStateAverageHex({ configOverride });
+        if (state?.ok) {
+          io.to("livingroom").emit("hue-state", state);
+        }
+      }
+    } catch {}
     return res.status(statusCode).json(result);
   } catch (err) {
     return res

@@ -61,21 +61,23 @@ export default function useSocketTV2(options = {}) {
   useEffect(() => {
     const s = socketRef.current;
     if (!s) return;
-    const { onDeviceNewDecision, onTimelineStage } = options || {};
+    const { onDeviceNewDecision, onTimelineStage, onHueState } = options || {};
     if (onDeviceNewDecision) {
       // Listen to both legacy and canonical event names to avoid dropped updates
       s.on('device-new-decision', onDeviceNewDecision);
       s.on('device-decision', onDeviceNewDecision);
     }
     if (onTimelineStage) s.on('timeline-stage', onTimelineStage);
+    if (onHueState) s.on('hue-state', onHueState);
     return () => {
       if (onDeviceNewDecision) {
         s.off('device-new-decision', onDeviceNewDecision);
         s.off('device-decision', onDeviceNewDecision);
       }
       if (onTimelineStage) s.off('timeline-stage', onTimelineStage);
+      if (onHueState) s.off('hue-state', onHueState);
     };
-  }, [socket, options?.onDeviceNewDecision, options?.onTimelineStage]);
+  }, [socket, options?.onDeviceNewDecision, options?.onTimelineStage, options?.onHueState]);
 
   return { 
     socket,
