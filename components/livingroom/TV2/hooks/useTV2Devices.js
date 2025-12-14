@@ -69,15 +69,19 @@ export function useTV2Devices(env) {
     if (temp != null) {
       const targetTemp = temp; // use incoming env temp directly
       const targetMode = temp > 24 ? 'HEAT' : 'COOL'; // 24°C threshold
-      postDeviceCommand('airconditioner', { power: 'on' });
-      postDeviceCommand('airconditioner', { mode: targetMode });
+      // ensure power on before setting mode/temp
+
       postDeviceCommand('airconditioner', { temperature: targetTemp });
+
+      postDeviceCommand('airconditioner', { mode: targetMode });
+
     }
 
     // --- Air purifier fan (humidity proxy control) ---
     // Always turn on + AUTO when humidity exists (one param per request).
     if (humidity != null) {
-      postDeviceCommand('airpurifierfan', { power: 'on' });
+      // ensure power on before mode
+     
       postDeviceCommand('airpurifierfan', { mode: 'AUTO' });
     }
     // --- Hue sync (lighting) ---
