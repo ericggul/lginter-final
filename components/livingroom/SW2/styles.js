@@ -16,6 +16,10 @@ export const BlobRotator = styled(SharedBlobRotator)`
 export const ContentRotator = styled(SharedContentRotator)`
   /* 텍스트/내용도 함께 회전하지 않도록 별도로 애니메이션 제거 */
   animation: none;
+  /* SW2 미니 블롭 텍스트 주변에 불필요한 배경/박스가 생기지 않도록 투명 처리 */
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
 `;
 
 /**
@@ -68,6 +72,50 @@ export const Root = styled.div`
   overflow: hidden;
   /* 앨범 컬러/배경이 바뀔 때 부드럽게 전환 */
   transition: background-color 800ms ease-in-out;
+`;
+
+/* 앨범 컬러 디버깅용: 좌측에 세로로 1~16번 버튼을 작게 배치 */
+export const DebugPalettePanel = styled.div`
+  position: absolute;
+  left: 1.2vw;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35vw;
+  z-index: 20;
+  pointer-events: auto;
+`;
+
+export const DebugPaletteButton = styled.button`
+  width: 1.8vw;
+  height: 1.8vw;
+  border-radius: 0.4vw;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: ${({ $color }) => $color || 'rgba(255,255,255,0.7)'};
+  cursor: pointer;
+  opacity: ${({ $active }) => ($active ? 1 : 0.8)};
+  box-shadow: ${({ $active }) =>
+    $active
+      ? '0 0 0 0.1vw rgba(0,0,0,0.4)'
+      : '0 0.10vw 0.30vw rgba(0,0,0,0.18)'};
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62vw;
+  font-weight: 600;
+  color: #545454;
+  backdrop-filter: blur(7px);
+  transition:
+    transform 140ms ease-out,
+    box-shadow 140ms ease-out,
+    opacity 140ms ease-out;
+
+  &:hover {
+    opacity: 1;
+    transform: translateY(-0.06vw) scale(1.03);
+  }
 `;
 
 /** 화면 상단 쪽에서 퍼져 나가는 파동 레이어 (배경 전용, 상호작용 없음) */
@@ -258,7 +306,8 @@ export const TopStatus = styled.div`
   top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
-  color: #000000;
+  /* SW2 상단 상태 텍스트 컬러: 중립 다크 그레이(#545454) */
+  color: #545454;
   font-weight: 600;
   letter-spacing: -0.005208vw;
   text-align: center;
@@ -475,10 +524,11 @@ const captionEnter = keyframes`
 `;
 
 export const HeadText = styled.div`
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 600; /* Semi Bold */
   font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
-  color: #000000;
+  /* SW2 중앙 곡명 텍스트 색상: 중립 다크 그레이(#545454) */
+  color: #545454;
   letter-spacing: 0.02em;
   /* 중앙 곡명: 검정 텍스트 + 흰색 계열 글로시 글로우만 남김 */
   text-shadow:
@@ -495,10 +545,11 @@ export const HeadText = styled.div`
 
 export const SubText = styled.div`
   margin-top: 0.375vw; /* 제목과의 간격 */
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 400;
   font-size: clamp(0.520833vw, 3.0vmin, 1.8vw);
-  color: #000000;
+  /* SW2 중앙 가수명 텍스트 색상도 중립 다크 그레이(#545454) */
+  color: #545454;
   letter-spacing: 0.02em;
   /* 가수명: 검정 텍스트 + 흰색 계열 글로시 글로우 */
   text-shadow:
@@ -516,10 +567,11 @@ export const SubText = styled.div`
 
 /* SW2 중앙 곡명/가수 타이포 – TV2 TrackTitle / Artist 스타일을 축소해서 사용 */
 export const SubTitle = styled.div`
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 500; /* TV2 TrackTitle 과 유사한 두께 */
   font-size: clamp(0.520833vw, 3.0vmin, 1.666667vw);
-  color: #000000;
+  /* SW2 하단 앨범명 텍스트 색상도 중립 다크 그레이(#545454) */
+  color: #545454;
   letter-spacing: 0.02em;
   text-shadow:
     0 0.20vw 0.72vw rgba(255, 255, 255, 0.82),
@@ -527,10 +579,11 @@ export const SubTitle = styled.div`
 `;
 
 export const SubArtist = styled.div`
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 400; /* Regular */
   font-size: clamp(0.416667vw, 2.4vmin, 1.458333vw);
-  color: #000000;
+  /* SW2 하단 가수명 텍스트 색상도 중립 다크 그레이(#545454) */
+  color: #545454;
   letter-spacing: 0.02em;
   text-shadow:
     0 0.16vw 0.60vw rgba(255, 255, 255, 0.82),
@@ -792,6 +845,27 @@ export const StatusCard = styled.div`
   padding: 0.625vw;
   text-align: center;
   color: white;
+`;
+
+/* 중앙 로딩 상태에서 사용할 3점(dot) 애니메이션 – SW1/TV2와 동일한 스타일 */
+const centerDots = keyframes`
+  0%, 20% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
+`;
+
+export const LoadingDots = styled.div`
+  display: inline-flex;
+  gap: 6px;
+  span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: ${({ $color = 'rgba(255,255,255,0.8)' }) => $color};
+    animation: ${centerDots} 1.2s infinite;
+  }
+  span:nth-child(2) { animation-delay: 0.2s; }
+  span:nth-child(3) { animation-delay: 0.4s; }
 `;
 
 export const StatusCaption = styled.div`

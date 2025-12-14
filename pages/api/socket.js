@@ -18,7 +18,7 @@ import { getActiveUsers, calculateFairAverage } from "../../lib/brain/state";
 import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, DeviceHeartbeat, LightColorPayload, safe } from "../../src/core/schemas";
 import { EV } from "../../src/core/events";
 import { STAGES, DURATIONS, buildStagePayload, createTimelineScheduler } from "../../src/core/timeline";
-import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient";
+import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient-old";
 
 // Utils: convert incoming color (hex/rgb/hsl) to hsl(h, s%, l%) for Hue application
 function clamp(n, min, max) {

@@ -40,7 +40,8 @@ const slide4 = keyframes`
 
 export const Cell = styled.div`
   position: relative; display: flex; align-items: center; justify-content: center;
-  color: #fff; font-family: 'Pretendard', 'Pretendard Variable', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  color: #fff;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 300; text-shadow: 0 10px 30px rgba(0,0,0,0.15);
   /* match panel width timeline so text stays centered per slice */
   @keyframes tp1 { 0%{ width:36%; } 25%{ width:28%; } 50%{ width:22%; } 75%{ width:30%; } 100%{ width:36%; } }
