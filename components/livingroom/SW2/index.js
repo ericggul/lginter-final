@@ -731,6 +731,10 @@ export default function SW2Controls() {
       return;
     }
 
+    // 새로운 곡으로 전환되는 동안에는 앨범 커버도 잠시 숨겼다가,
+    // 약 6초 뒤 텍스트와 동시에 등장하도록 placeholder 로 비워 둔다.
+    setDisplayCoverSrc('');
+
     setCaptionState('waiting'); // 약 6초 동안 로딩 점(...) 상태
     let cancelled = false;
     const currentDecision = decisionTick;
