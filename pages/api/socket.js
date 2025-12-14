@@ -19,6 +19,7 @@ import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, Devic
 import { EV } from "../../src/core/events";
 import { STAGES, DURATIONS, buildStagePayload, createTimelineScheduler } from "../../src/core/timeline";
 import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient-old";
+import { getHueStateAverageHex } from "../../lib/hue/hueClient";
 
 // Utils: convert incoming color (hex/rgb/hsl) to hsl(h, s%, l%) for Hue application
 function clamp(n, min, max) {
@@ -177,6 +178,29 @@ export default function handler(req, res) {
     io.to("livingroom").emit(EV.DEVICE_NEW_DECISION, payload); // backward-compat
   };
 
+  // --- Hue state broadcaster (TV2 uses this to display actual Hue average color) ---
+  io.__hueState = io.__hueState || { last: null, inFlight: null };
+  const broadcastHueState = async (opts = {}) => {
+    const { socket } = opts || {};
+    if (io.__hueState.inFlight) return io.__hueState.inFlight;
+    io.__hueState.inFlight = (async () => {
+      try {
+        const state = await getHueStateAverageHex();
+        if (state?.ok) {
+          io.__hueState.last = state;
+          io.to("livingroom").emit("hue-state", state);
+          if (socket) socket.emit("hue-state", state);
+        }
+        return state;
+      } catch (e) {
+        return { ok: false, error: e?.message || String(e) };
+      } finally {
+        io.__hueState.inFlight = null;
+      }
+    })();
+    return io.__hueState.inFlight;
+  };
+
   // periodic GC for TTL idempotency map
   setInterval(() => {
     try { gcSeen(Date.now()); } catch {}
@@ -219,7 +243,14 @@ export default function handler(req, res) {
     socket.on("tv1-init", () => socket.join("entrance"));
     socket.on("sw1-init", () => socket.join("livingroom"));
     socket.on("sw2-init", () => socket.join("livingroom"));
-    socket.on("tv2-init", () => socket.join("livingroom"));
+    socket.on("tv2-init", async () => {
+      socket.join("livingroom");
+      if (io.__hueState?.last) {
+        socket.emit("hue-state", io.__hueState.last);
+      } else {
+        await broadcastHueState({ socket }).catch(() => {});
+      }
+    });
 
     // Global orchestrator timeout: controller asks all displays to soft-reset.
     socket.on(EV.ORCHESTRATOR_TIMEOUT, (raw) => {
@@ -539,6 +570,9 @@ export default function handler(req, res) {
           };
           io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
           io.to("controller").emit(EV.LIGHT_APPLIED, ack);
+          if (result?.ok) {
+            await broadcastHueState().catch(() => {});
+          }
         }
       } catch (e) {
         console.warn("❌ Hue apply (controller-new-decision) failed:", e?.message || e);
@@ -570,6 +604,9 @@ export default function handler(req, res) {
         const ack = { source: "sw2", ...payload, color: hslColor, ok: !!result?.ok, applied: !!result?.applied, error: result?.error };
         io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
         io.to("controller").emit(EV.LIGHT_APPLIED, ack);
+        if (result?.ok) {
+          await broadcastHueState().catch(() => {});
+        }
       } catch (e) {
         console.warn("❌ Hue apply (sw2-light-color) failed:", e?.message || e);
         io.to("livingroom").emit(EV.LIGHT_APPLIED, { source: "sw2", ...payload, ok: false, applied: false, error: e?.message || String(e) });
