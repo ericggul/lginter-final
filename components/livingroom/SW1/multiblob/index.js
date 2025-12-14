@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useControls } from "leva";
 import { KeyframesGlobal as BGKeyframesGlobal, BlobCssGlobal as BGBlobCssGlobal } from "@/components/mobile/BackgroundCanvas/styles";
 import * as S from './styles';
 import { useSW1Logic } from "../logic/mainlogic";
@@ -157,8 +156,18 @@ export default function SW1Controls() {
     };
   }, []);
 
-  // Leva controls (HSL) for live-tuning center glow & background gradient
-  const centerGlow = useControls('SW1 Center Glow (HSL)', {
+  // Leva 대신 고정값을 사용하는 로컬 컨트롤 (패널은 표시하지 않음)
+  const useStaticControls = (defaults) =>
+    useMemo(
+      () =>
+        Object.fromEntries(
+          Object.entries(defaults).map(([key, def]) => [key, def.value])
+        ),
+      []
+    );
+
+  // Center glow & background gradient
+  const centerGlow = useStaticControls({
     // inner (white)
     innerH:          { value: 0,   min: 0, max: 360, step: 1 },
     innerS:          { value: 0,   min: 0, max: 100, step: 1 },
@@ -203,7 +212,7 @@ export default function SW1Controls() {
     outerGlowAlpha:  { value: 0.82,  min: 0, max: 1, step: 0.01 },
   });
 
-  const background = useControls('SW1 Background (HSL)', {
+  const background = useStaticControls({
     baseH:   { value: 198, min: 0, max: 360, step: 1 },
     baseS:   { value: 90,  min: 0, max: 100, step: 1 },
     // 요청: baseL은 80으로 고정
@@ -222,13 +231,13 @@ export default function SW1Controls() {
     midStop2: { value: 100, min: 0, max: 100 },
   });
 
-  const animation = useControls('SW1 Animation', {
+  const animation = useStaticControls({
     // 공전 속도를 좀 더 느리게: 기본값을 크게 늘려서 천천히 도는 느낌으로
     rotationDuration: { value: 55, min: 10, max: 180, step: 1 },
   });
 
   // Mini blob color (HSL) — apply to all mini blobs for quick tuning
-  const miniColor = useControls('SW1 Mini Blob Color (HSL)', {
+  const miniColor = useStaticControls({
     // SW2 기본 핑크 톤과 동일한 명·채도 세팅 (h=302, s≈78, l≈66)
     h: { value: 302, min: 0, max: 360, step: 1 },
     s: { value: 78,  min: 0, max: 100, step: 1 },
@@ -241,12 +250,12 @@ export default function SW1Controls() {
     warmL2: { value: 87, min: 0, max: 100, step: 1 },
     warmStart: { value: 60, min: 50, max: 90, step: 1 }, // 퍼지는 구간 시작 퍼센트 (더 넓게)
   });
-  const edgeBlur = useControls('SW1 Edge Blur', {
+  const edgeBlur = useStaticControls({
     strength: { value: 3.75, min: 0, max: 4, step: 0.05 },
     opacity:  { value: 0.33, min: 0, max: 1, step: 0.01 },
   });
 
-  const edgeGlass = useControls('SW1 Edge Glass', {
+  const edgeGlass = useStaticControls({
     blur:    { value: 71,  min: 0, max: 80, step: 1 },
     opacity: { value: 0.31, min: 0, max: 1,  step: 0.01 },
   });
@@ -316,37 +325,40 @@ export default function SW1Controls() {
   }, [centerGlow, animHue, midPulseAlpha, bloomActive, timelineState]);
 
   const rootBackgroundStyle = useMemo(() => {
-    const wrap = (h, s, l, a = 1) => `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, ${a})`;
+    // SW2 의 하단 배경(gradiant) 스타일을 그대로 가져오되,
+    // 앨범 컬러 대신 SW1 의 중앙 Hue(animHue)를 대표 색으로 사용한다.
     const H = Math.round(animHue);
-    // animHue 기반 톤을 유지하되, 전체 배경은 약간 푸른 회색 계열로 스냅
-    const coolH = Math.round((H + 210) / 2); // 원래 hue 와 블루톤(≈210)을 섞어서 너무 튀지 않게
-    // 상단/베이스: 매우 옅은 푸른 회색 (거의 흰색에 가까운 톤)
-    const top = wrap(coolH, 6, 94, 1);
-    // 중간부: 살짝 더 진한 푸른기
-    const midTone = wrap(coolH, 8, 92, 1);
-    // 하단: 중앙부보다만 약간 더 어두운 톤
-    const bottom = wrap(coolH, 10, 90, 1);
+    const top = 'hsla(0, 0%, 100%, 1)';
 
-    // 화면 중앙 쪽은 살짝 더 푸른 기가 돌도록, 중심부에만 얇은 블루톤 레이어를 한 겹 추가
-    const centerCool1 = wrap(coolH + 8, 24, 78, 0.9);
-    const centerCool2 = wrap(coolH + 4, 20, 70, 0.0);
+    // SW2 bgColors 와 동일한 파라미터로 매우 연한 파스텔 톤 생성
+    let baseH = H || 340;
+    let baseS = 60;
+    let baseL = 72;
+
+    const mid = `hsla(${baseH}, ${Math.round(baseS * 0.45)}%, ${Math.min(
+      100,
+      baseL + 10,
+    )}%, 0.38)`;
+    const bottom = `hsla(${baseH}, ${Math.round(baseS * 0.55)}%, ${Math.min(
+      100,
+      baseL + 18,
+    )}%, 0.72)`;
 
     return {
       backgroundColor: top,
       backgroundImage: `
-        radial-gradient(
-          150% 150% at 50% 50%,
-          rgba(255, 255, 255, 0) 35%,
-          rgba(255, 255, 255, 0.85) 75%,
-          rgba(255, 255, 255, 1) 100%
+        linear-gradient(
+          to bottom,
+          ${top} 0%,
+          ${top} 55%,
+          transparent 100%
         ),
         radial-gradient(
-          70% 70% at 50% 45%,
-          ${centerCool1} 0%,
-          ${centerCool1} 40%,
-          ${centerCool2} 85%
-        ),
-        linear-gradient(to bottom, ${top} 0%, ${midTone} 40%, ${bottom} 100%)
+          130% 130% at 50% 115%,
+          ${bottom} 0%,
+          ${mid} 45%,
+          transparent 100%
+        )
       `,
       transition: 'background 700ms ease-in-out',
     };
@@ -428,12 +440,13 @@ export default function SW1Controls() {
             key={`entry-${entryBlob.id}`}
             data-stage={timelineState}
             style={{
-              '--blob-h': hasDecision ? Math.round(animHue) : miniColor.h,
+              // 엔트리 블롭도 항상 현재 중앙 온도 기반 Hue/따뜻한 컬러를 사용
+              '--blob-h': Math.round(animHue),
               '--blob-s': `${miniColor.s}%`,
               '--blob-l': `${miniColor.l}%`,
-              '--blob-warm-h': hasDecision
-                ? computeMiniWarmHue(typeof entryBlob.temp === 'number' ? entryBlob.temp : centerTemp)
-                : miniColor.warmH,
+              '--blob-warm-h': computeMiniWarmHue(
+                typeof entryBlob.temp === 'number' ? entryBlob.temp : centerTemp
+              ),
               '--blob-warm-s1': `${miniColor.warmS1}%`,
               '--blob-warm-l1': '85%',
               '--blob-warm-s2': `${miniColor.warmS2}%`,
@@ -452,27 +465,24 @@ export default function SW1Controls() {
             .map((b, index) => {
               const Component = S[b.componentKey];
               const useLabel = miniTextMode === 'label';
-              const showLabel = hasDecision && useLabel;
-              const topText = hasDecision
-                ? (showLabel
-                    ? (b.topLabel || b.topValue || '')
-                    : (b.topValue || b.topLabel || ''))
-                : '...';
-              const bottomText = hasDecision
-                ? (showLabel
-                    ? (b.bottomLabel || b.bottomValue || '')
-                    : (b.bottomValue || b.bottomLabel || ''))
-                : '...';
+              // 랜딩(첫 진입)에서도 더미 기후값을 바로 보여주기 위해,
+              // hasDecision 여부와 상관없이 항상 값/레이블을 사용
+              const topText = useLabel
+                ? (b.topLabel || b.topValue || '')
+                : (b.topValue || b.topLabel || '');
+              const bottomText = useLabel
+                ? (b.bottomLabel || b.bottomValue || '')
+                : (b.bottomValue || b.bottomLabel || '');
 
               const commonStyle = {
-                // 초기(인풋 전)에는 내부/외곽 모두 기본 핑크 톤을 사용
-                '--blob-h': hasDecision ? Math.round(animHue) : miniColor.h,
+                // 중앙 온도 기반 Hue 를 항상 사용해서, 랜딩 상태에서도 미니 블롭 컬러가 매칭되도록
+                '--blob-h': Math.round(animHue),
                 '--blob-s': `${miniColor.s}%`,
                 '--blob-l': `${miniColor.l}%`,
-                // 외곽 컬러: 디시전 이후에는 각 미니 블롭의 temp 기반, 그 전에는 기본 warmH 사용
-                '--blob-warm-h': hasDecision
-                  ? computeMiniWarmHue(typeof b.temp === 'number' ? b.temp : centerTemp)
-                  : miniColor.warmH,
+                // 외곽 컬러도 각 블롭(또는 센터)의 온도에 맞춰 항상 온도 컬러 맵핑 적용
+                '--blob-warm-h': computeMiniWarmHue(
+                  typeof b.temp === 'number' ? b.temp : centerTemp
+                ),
                 '--blob-warm-s1': `${miniColor.warmS1}%`,
                 '--blob-warm-l1': '85%',
                 '--blob-warm-s2': `${miniColor.warmS2}%`,
@@ -581,18 +591,11 @@ export default function SW1Controls() {
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
         </S.EllipseLayer>
         <S.CenterTextWrap $stage={centerTextStage}>
-          {hasDecision ? (
-            <>
-              <S.CenterTemp>{`${centerDisplayTemp}°C`}</S.CenterTemp>
-              <S.CenterMode>{centerDisplayMode}</S.CenterMode>
-            </>
-          ) : (
-            <S.LoadingDots $color="rgba(255,192,220,0.85)">
-              <span />
-              <span />
-              <span />
-            </S.LoadingDots>
-          )}
+          {/* 랜딩(첫 진입) 상태에서는 TV2처럼 기본 더미 값(23℃ / 63%)을 바로 노출 */}
+          <>
+            <S.CenterTemp>{`${centerDisplayTemp}°C`}</S.CenterTemp>
+            <S.CenterMode>{centerDisplayMode}</S.CenterMode>
+          </>
         </S.CenterTextWrap>
         {/* 디버그 모달 숨김 */}
         {false && (

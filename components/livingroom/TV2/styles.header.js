@@ -178,8 +178,8 @@ export const HeaderTitle = styled.div`
   font-weight: 600;
   letter-spacing: 0.02em;
   text-align: left;
-  /* 상단 타이틀은 불투명 블랙 텍스트 */
-  color: #000;
+  /* 상단 타이틀 컬러: 중립 다크 그레이(#545454) */
+  color: #545454;
   /* 상단 텍스트는 항상 또렷하게 보이도록 기본 렌더링 */
   mix-blend-mode: normal;
   position: relative;

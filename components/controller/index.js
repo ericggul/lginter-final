@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import useSocketController from '@/utils/hooks/useSocketController';
 import useControllerFlow from './hooks/useControllerFlow';
+import useDevicePowerSync from './hooks/useDevicePowerSync';
 import { CONTROLLER_SYSTEM_MIN_PROMPT, CONTROLLER_SYSTEM_PROMPT, SW2_MAPPING_PROMPT } from '@/ai/prompts/controller';
 import { EV } from '@/src/core/events';
 import {
@@ -53,6 +54,8 @@ export default function ControllerView() {
   const handleHardReset = () => {
     sockets.emit?.(EV.HARD_RESET, { ts: Date.now(), source: 'controller' });
   };
+
+  useDevicePowerSync(users?.length || 0);
 
   return (
     <Container>

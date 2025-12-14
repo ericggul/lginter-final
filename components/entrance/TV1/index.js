@@ -45,8 +45,8 @@ function BlobFadeInWrapper({
   });
   const [isAnimating, setIsAnimating] = useState(!isNewBlob); // 새 블롭만 애니메이션 시작 대기
 
-  // 새 블롭 내용 단계: 'empty' → 'dots' → 'text'
-  const [contentPhase, setContentPhase] = useState(isNewBlob ? 'empty' : 'text');
+  // 새 블롭 내용 단계: 바로 텍스트 표시 (empty/dots 단계 생략)
+  const [contentPhase, setContentPhase] = useState('text');
   const announcedRef = useRef(false);
   // Lightweight typewriter for T3→T4→T5 전환 시 텍스트 표시
   const [typedText, setTypedText] = useState(isNewBlob ? '' : (blob.text || ''));
@@ -91,27 +91,9 @@ function BlobFadeInWrapper({
     };
   }, [canvasRef, targetTop, isNewBlob]);
 
-  // 새로 생성된 블롭의 내용 단계 전환 (T1/T2/T3 모션)
+  // 단계 전환 생략: 바로 텍스트를 보여준다
   useEffect(() => {
-    if (!isNewBlob) {
-      setContentPhase('text');
-      return;
-    }
-
-    // T1: 0~2초 빈 블롭 (감정 컬러, 최소 폭)
-    const t3 = setTimeout(() => {
-      setContentPhase('dots');
-    }, 2000);
-
-    // T2: 2~6초 '...' 모션 (중립 컬러, 최소 폭 유지) → 이후 감정 텍스트
-    const t4 = setTimeout(() => {
-      setContentPhase('text');
-    }, 6000);
-
-    return () => {
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
+    setContentPhase('text');
   }, [isNewBlob]);
 
   // Typewriter: contentPhase가 text로 전환될 때 한 번만 실행
@@ -148,20 +130,15 @@ function BlobFadeInWrapper({
   // 기존 블롭: 항상 targetTop 위치 (CSS transition으로 이동)
   const currentTop = isNewBlob ? (isAnimating ? targetTop : startTop) : targetTop;
 
-  // 단계별 width 제어를 위한 텍스트 (BlobBase는 $text 길이에 따라 width 계산)
-  // - 'empty' / 'dots' 단계에서는 고정 최소 폭(8vw)만 사용하도록 빈 문자열 전달
-  // - 'text' 단계에서만 실제 감정 키워드 길이에 맞게 오른쪽으로 확장
-  const widthTextForPhase = contentPhase === 'text' ? (blob.text || '') : '';
+  // 단계별 width 제어를 위한 텍스트 (현재는 바로 텍스트 표시)
+  const widthTextForPhase = blob.text || '';
 
   // 단계별 컬러 제어
   // - T1(empty), T3(text): 감정 고유 그라데이션 사용 (blob.gradient)
   // - T2(dots): 고유색을 제거한 중립 그라데이션 사용
   //   → 중앙은 화이트 글로우, 우측 끝에는 옅은 핑크가 남도록 조정
   const neutralGradient = 'linear-gradient(253deg, hsl(345, 92%, 72%) 0%, hsl(10, 100%, 97%) 32%, hsl(345, 92%, 75%) 100%)';
-  const gradientForPhase =
-    contentPhase === 'dots'
-      ? neutralGradient
-      : (blob.gradient || neutralGradient);
+  const gradientForPhase = blob.gradient || neutralGradient;
 
   // 새로 들어온 Now 라인 블롭(가장 최근 인풋, highlighted=true)에만
   // 모바일 오케스트레이션 스타일의 텍스트 효과 적용
@@ -191,49 +168,33 @@ function BlobFadeInWrapper({
       $highlighted={highlighted}
       $gapOffset={gapOffset}
     >
-      {/* 내용 단계에 따라: 빈 블롭 → '...' 모션 → 감정 텍스트 */}
-      {contentPhase === 'empty' && (
-        <span style={{ opacity: 0, position: 'relative', zIndex: 100 }}>{'\u00A0'}</span>
-      )}
-      {contentPhase === 'dots' && (
-        <span style={{ position: 'relative', zIndex: 100, display: 'inline-flex', alignItems: 'center' }}>
-          <S.Dots aria-hidden="true">
-            <S.Dot $visible={dotCount >= 1}>.</S.Dot>
-            <S.Dot $visible={dotCount >= 2}>.</S.Dot>
-            <S.Dot $visible={dotCount >= 3}>.</S.Dot>
-          </S.Dots>
+      {/* 바로 텍스트 표시 */}
+      {isGlowPhase ? (
+        // T3~T4: 효과 있는 텍스트 하나만 보이도록 (검은 텍스트는 렌더하지 않음)
+        <S.FocusBlobGlowText
+          $highlighted={highlighted}
+          $active
+        >
+          {typedText}
+        </S.FocusBlobGlowText>
+      ) : (
+        // 그 외: 기존과 동일한 검은 텍스트만 렌더
+        <span
+          style={{
+            opacity: 1,
+            position: 'relative',
+            zIndex: 100,
+            fontSize: highlighted ? '2.8vw' : '2.4vw',
+            fontWeight: highlighted ? 500 : 400,
+            textShadow: highlighted
+              ? '0 0 1.2vw rgba(255,255,255,0.9), 0 0 1.8vw rgba(255,180,220,0.85)'
+              : 'none',
+            transition:
+              'font-size 700ms cubic-bezier(0.4, 0, 0.2, 1), text-shadow 700ms ease-out',
+          }}
+        >
+          {typedText}
         </span>
-      )}
-      {contentPhase === 'text' && (
-        <>
-          {isGlowPhase ? (
-            // T3~T4: 효과 있는 텍스트 하나만 보이도록 (검은 텍스트는 렌더하지 않음)
-            <S.FocusBlobGlowText
-              $highlighted={highlighted}
-              $active
-            >
-              {typedText}
-            </S.FocusBlobGlowText>
-          ) : (
-            // 그 외(T1/T2/T5 포함): 기존과 동일한 검은 텍스트만 렌더
-            <span
-              style={{
-                opacity: 1,
-                position: 'relative',
-                zIndex: 100,
-                fontSize: highlighted ? '2.8vw' : '2.4vw',
-                fontWeight: highlighted ? 500 : 400,
-                textShadow: highlighted
-                  ? '0 0 1.2vw rgba(255,255,255,0.9), 0 0 1.8vw rgba(255,180,220,0.85)'
-                  : 'none',
-                transition:
-                  'font-size 700ms cubic-bezier(0.4, 0, 0.2, 1), text-shadow 700ms ease-out',
-              }}
-            >
-              {typedText}
-            </span>
-          )}
-        </>
       )}
     </BlobComponent>
   );

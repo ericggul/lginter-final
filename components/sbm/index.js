@@ -56,7 +56,9 @@ export default function SbmScreen() {
       <S.Overlay>
         <S.CenterText key={textKey}>{centerText}</S.CenterText>
       </S.Overlay>
-      <S.QrWrap $show={showQr}>
+      <S.QrWrap $show={showQr}
+      opactiy={{ opacity: stageLabel === "idle" ? 1 : 0 }}
+      >
         <QRCodeSVG
           value={qrUrl}
           size={256}

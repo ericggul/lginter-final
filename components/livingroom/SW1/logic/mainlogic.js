@@ -24,7 +24,9 @@ export const SW1_BLOB_CONFIGS = [
 const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
 // Timeline durations (ms) for staged animations
 const T3_TO_T4_MS = 5000; // allow t3 bloom/entry motion to finish
-const T4_TO_T5_MS = 3800; // allow t4 merge/background pulses to finish
+// T4(오케스트레이션 결과 도착) → T5(최종 값 노출)까지는
+// TV2와 동일하게 약 6초 딜레이를 두어, SW1 결과도 한 번에 뜨도록 맞춘다.
+const T4_TO_T5_MS = 6000;
 const DUMMY_ID_REGEX = /^dummy:/;
 
 // Humidity → mode label
@@ -70,9 +72,10 @@ export function createSocketHandlers({ setDisplayClimate, setNextClimate, setPar
 // Independent SW1 logic hook (no coupling to SW2)
 export function useSW1Logic() {
   // Center climate result (UI-visible)
-  const [displayClimate, setDisplayClimate] = useState({ temp: 23, humidity: 50 });
+  // TV2 기본 랜딩 값과 동일하게 초기 온도/습도(23℃ / 63%)를 사용
+  const [displayClimate, setDisplayClimate] = useState({ temp: 23, humidity: 63 });
   // Next climate from incoming decision (applied at T5)
-  const [nextClimate, setNextClimate] = useState({ temp: 23, humidity: 50 });
+  const [nextClimate, setNextClimate] = useState({ temp: 23, humidity: 63 });
   const [dotCount, setDotCount] = useState(0);
   const [activeUsers, setActiveUsers] = useState(new Set());
   const [timelineState, setTimelineState] = useState('t1'); // t1..t5
@@ -83,6 +86,8 @@ export function useSW1Logic() {
   const [hasDecision, setHasDecision] = useState(false);
   // 각 스테이지 전환/이펙트용 타이머
   const stageTimersRef = useRef({ t3Bloom: null, t4: null, t5: null });
+  // SW1 중앙 값(displayClimate)을 TV2 와 동일하게 약 6초 뒤에 적용하기 위한 타이머
+  const decisionApplyTimerRef = useRef(null);
   const prevTimelineRef = useRef('t1');
   const stageOrder = ['t1', 't2', 't3', 't4', 't5'];
 
@@ -216,6 +221,16 @@ export function useSW1Logic() {
       // timelineState === 't3' 처리(useEffect)에서만 한 번 트리거한다.
       setTypeTick((x) => x + 1);
 
+      // TV2와 동일하게, 새 디시전은 약 6초 뒤에 중앙 값(displayClimate)에 반영
+      // (엔트리 블롭/오빗 블롭 등 애니메이션은 nextClimate 를 바로 사용)
+      if (decisionApplyTimerRef.current) {
+        clearTimeout(decisionApplyTimerRef.current);
+      }
+      const pending = incomingClimate;
+      decisionApplyTimerRef.current = setTimeout(() => {
+        setDisplayClimate(pending);
+      }, 6000);
+
       // Participants (source-of-truth from message)
       const merged = Array.isArray(msg.mergedFrom) ? msg.mergedFrom : [];
       if (merged.length) {
@@ -328,7 +343,15 @@ export function useSW1Logic() {
     },
   });
 
-  useEffect(() => () => clearStageTimers(), [clearStageTimers]);
+  useEffect(
+    () => () => {
+      clearStageTimers();
+      if (decisionApplyTimerRef.current) {
+        clearTimeout(decisionApplyTimerRef.current);
+      }
+    },
+    [clearStageTimers]
+  );
 
   useEffect(() => {
     const prev = prevTimelineRef.current;
@@ -365,7 +388,7 @@ export function useSW1Logic() {
     } else if (timelineState === 't5') {
       setEntryBlob(null);
       setMiniResults((prevList) => prevList.map((r) => (r ? { ...r, isNew: false } : r)));
-      setDisplayClimate(nextClimate);
+      // 중앙 값(displayClimate)은 onDeviceNewDecision 에서 6초 딜레이 후 적용
     }
   }, [timelineState, clearStageTimers, nextClimate, requestStage]);
 
@@ -537,7 +560,8 @@ export function useSW1Logic() {
     blobConfigs: miniBlobDisplay,
     entryBlob,
     centerTemp: displayClimate?.temp ?? 23,
-    centerHumidity: displayClimate?.humidity ?? 50,
+    // TV2 랜딩과 동일하게 초기 및 fallback 습도를 63%로 사용
+    centerHumidity: displayClimate?.humidity ?? 63,
     participantCount,
     dotCount,
     decisionTick: (typeof window !== 'undefined' && window.__sw1DecisionTick) || 0,
