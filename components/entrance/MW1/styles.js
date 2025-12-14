@@ -32,17 +32,28 @@ export const CenterTip = styled.div`
   left: 50%;
   top: 18vh;
   transform: translate(-50%, 0);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 400;
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 700;
+  filter: blur(.3px);
   /* 기본 본문 크기 전체를 조금 더 키움 (어서오세요! 는 strong으로 따로 확대) */
-  font-size: clamp(16px, 3vw, 34px);
-  line-height: 1.1;
+  font-size: clamp(13px, 2.4vw, 28px);
+  line-height: 1.0;
   color: #FFFFFF; /* white text only */
-  background: transparent; /* no modal */
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
+  /* glass box behind text */
+  background: rgba(0, 0, 0, 0.001);
+  border-radius: 55px;
+  /* make only the box wider (text styles unchanged) */
+  width: clamp(320px, 70vw, 605px);
+  max-width: calc(100vw - 8vw);
+  padding: clamp(14px, 2.2vw, 28px) clamp(18px, 3vw, 44px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px) saturate(60%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  box-shadow:
+    0px 10px 30.7px rgba(255, 255, 255, 0.5),
+    0px 18px 40px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.55);
   text-align: center;
   white-space: pre-line; /* 줄바꿈(\n) 허용 */
   text-indent: 0;
@@ -56,8 +67,9 @@ export const CenterTip = styled.div`
   strong {
     display: block;
     font-weight: 600;
-    font-size: 1.2em;
-    margin-bottom: 0; /* 문장 사이 간격 없이 바로 붙도록 */
+    font-size: 1.18em;
+    line-height: 1.0;
+    margin-bottom: -0.12em; /* 줄 간격을 더 타이트하게 */
   }
 `;
 
