@@ -25,7 +25,10 @@ export const EVENTS = {
   NEW_NAME: "new-name",
   NEW_USER: "new-user",
   NEW_VOICE_MOBILE: "new-voice-mobile",
-  NEW_VOICE_DEVICE: "new-voice-device"
+  NEW_VOICE_DEVICE: "new-voice-device",
+
+  // Admin hard reset (full reload)
+  HARD_RESET: "hard-reset",
 };
 
 // Base payload schema for all events

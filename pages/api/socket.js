@@ -234,6 +234,14 @@ export default function handler(req, res) {
       io.to("entrance").emit(EV.ORCHESTRATOR_TIMEOUT, payload);
     });
 
+    // Hard reset: controller can force all display pages to reload
+    socket.on(EV.HARD_RESET, () => {
+      const payload = { ts: Date.now(), source: "controller-hard-reset" };
+      io.to("livingroom").emit(EV.HARD_RESET, payload);
+      io.to("entrance").emit(EV.HARD_RESET, payload);
+      io.to("controller").emit(EV.HARD_RESET, payload);
+    });
+
     // Mobile events - forward to Controller; entrance mirrors for user/name
     socket.on("mobile-new-name", (raw) => {
       const data = { uuid: raw?.uuid || nanoid(), ts: raw?.ts || Date.now(), ...raw };

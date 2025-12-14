@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { EVENTS, createDeviceDecisionPayload, createBasePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
+import attachHardReset from "./useHardReset";
 
 // SW2 is ambience (music / light)
 export default function useSocketSW2(options = {}) {
@@ -10,6 +11,7 @@ export default function useSocketSW2(options = {}) {
 
   useEffect(() => {
     let mounted = true;
+    let detachHardReset = () => {};
 
     (async () => {
       try {
@@ -25,6 +27,7 @@ export default function useSocketSW2(options = {}) {
 
       socketRef.current = s;
       setSocket(s);
+      detachHardReset = attachHardReset(s);
 
       s.on("connect", () => {
         console.log("✅ SW2 socket connected:", s.id);
@@ -48,6 +51,7 @@ export default function useSocketSW2(options = {}) {
       mounted = false;
       console.log("SW2 Hook: Cleaning up socket");
       if (socketRef.current) { 
+        detachHardReset();
         socketRef.current.disconnect(); 
         socketRef.current = null; 
       }

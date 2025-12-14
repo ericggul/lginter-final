@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { SOCKET_CONFIG } from '../constants';
 import { EV } from '@/src/core/events';
+import attachHardReset from './useHardReset';
 
 export default function useSocketController(options = {}) {
   const socketRef = useRef(null);
@@ -26,6 +27,7 @@ export default function useSocketController(options = {}) {
 
   useEffect(() => {
     let mounted = true;
+    let detachHardReset = () => {};
 
     // Warm up API route so the Socket.IO server is ready when we connect.
     fetch('/api/socket').catch(() => {});
@@ -33,6 +35,7 @@ export default function useSocketController(options = {}) {
     const s = io({ path: SOCKET_CONFIG.PATH, transports: SOCKET_CONFIG.TRANSPORTS });
     socketRef.current = s;
     setSocket(s);
+    detachHardReset = attachHardReset(s);
 
     const handleConnect = () => {
       if (!mounted) return;
@@ -71,6 +74,7 @@ export default function useSocketController(options = {}) {
       socketRef.current = null;
       setSocket(null);
       setStatus('disconnected');
+      detachHardReset();
     };
   }, []);
 

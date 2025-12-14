@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { SOCKET_CONFIG } from "@/utils/constants";
 import { EV } from "@/src/core/events";
 import { LABELS, STAGES } from "@/src/core/timeline";
+import attachHardReset from "@/utils/hooks/useHardReset";
 
 const VIDEO_MAP = {
   "1": "/video/sbm/sbm1.mp4",
@@ -26,6 +27,7 @@ export function useSbmPlayer(slugKey) {
   useEffect(() => {
     let mounted = true;
     let cleanup = () => {};
+    let detachHardReset = () => {};
 
     (async () => {
       try {
@@ -41,6 +43,7 @@ export function useSbmPlayer(slugKey) {
       });
       socketRef.current = s;
       setSocketStatus("connecting");
+      detachHardReset = attachHardReset(s);
 
       const handleConnect = () => {
         if (!mounted) return;
@@ -84,6 +87,7 @@ export function useSbmPlayer(slugKey) {
       s.on(EV.ENTRANCE_NEW_USER, handleEntranceNewUser);
 
       cleanup = () => {
+        detachHardReset();
         s.off("connect", handleConnect);
         s.off("disconnect", handleDisconnect);
         s.off(EV.TIMELINE_STAGE, handleTimeline);

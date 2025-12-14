@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import useSocketController from '@/utils/hooks/useSocketController';
 import useControllerFlow from './hooks/useControllerFlow';
 import { CONTROLLER_SYSTEM_MIN_PROMPT, CONTROLLER_SYSTEM_PROMPT, SW2_MAPPING_PROMPT } from '@/ai/prompts/controller';
+import { EV } from '@/src/core/events';
 import {
   Container,
   TopSection,
@@ -10,6 +11,7 @@ import {
   UserCountLabel,
   UserCountValue,
   ResetButton,
+  HardResetButton,
   SettingsPanel,
   SettingsTitle,
   SettingsGrid,
@@ -48,6 +50,9 @@ export default function ControllerView() {
   const users = snapshot.users || [];
   const assignments = snapshot.assignments || {};
   const lastDecision = snapshot.lastDecision || null;
+  const handleHardReset = () => {
+    sockets.emit?.(EV.HARD_RESET, { ts: Date.now(), source: 'controller' });
+  };
 
   return (
     <Container>
@@ -57,11 +62,11 @@ export default function ControllerView() {
             <UserCountLabel>서버에 입장한<br />사람의 수</UserCountLabel>
             <UserCountValue>{users.length}</UserCountValue>
           </UserCountCard>
-          <ResetButton onClick={orchestrator.handleReset}>
-            서버 타임바틀
+          <HardResetButton onClick={handleHardReset}>
+            하드 리셋
             <br />
-            (재시작)
-          </ResetButton>
+            (전체 새로고침)
+          </HardResetButton>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2vh' }}>
