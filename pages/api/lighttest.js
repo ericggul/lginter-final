@@ -27,12 +27,17 @@ function resolveHueConfig() {
     process.env.HUE_GROUP_ID != null && process.env.HUE_GROUP_ID !== ""
       ? Number(process.env.HUE_GROUP_ID)
       : undefined;
-  const lightIds = (process.env.HUE_LIGHT_IDS || "")
+  // Support both:
+  // - HUE_LIGHT_IDS=1,2,3 (preferred)
+  // - HUE_LIGHT_ID=1 (legacy / common typo)
+  // Note: Hue light IDs are typically 1-based. "0" is not a valid light id.
+  const rawLightIds = process.env.HUE_LIGHT_IDS || process.env.HUE_LIGHT_ID || "";
+  const lightIds = String(rawLightIds)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)
     .map((n) => Number(n))
-    .filter((n) => Number.isFinite(n));
+    .filter((n) => Number.isFinite(n) && n >= 1);
 
   return { enabled, ip, username, groupId, lightIds };
 }

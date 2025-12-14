@@ -14,6 +14,7 @@ export default function LightTestPage() {
   const [brightnessBri, setBrightnessBri] = useState(200);
   const [pendingAction, setPendingAction] = useState(null);
   const [status, setStatus] = useState("대기 중");
+  const [lights, setLights] = useState([]);
 
   const rgbPreview = useMemo(() => {
     const { r, g, b } = hexToRgb(color);
@@ -38,10 +39,17 @@ export default function LightTestPage() {
       } else if (!data.ok) {
         setStatus(data.error || "명령 실행 실패");
       } else {
-        setStatus("완료! 조명에 적용되었습니다.");
+        if (body.action === "list-lights") {
+          setStatus("조명 목록을 가져왔습니다.");
+        } else {
+          setStatus("완료! 조명에 적용되었습니다.");
+        }
       }
+
+      return data;
     } catch (err) {
       setStatus(`에러: ${err.message}`);
+      return { ok: false, error: err.message };
     } finally {
       setPendingAction(null);
     }
@@ -61,6 +69,13 @@ export default function LightTestPage() {
       brightness: brightnessBri,
     });
 
+  const handleListLights = async () => {
+    const data = await sendCommand({ action: "list-lights" });
+    if (data?.ok && Array.isArray(data?.lights)) {
+      setLights(data.lights);
+    }
+  };
+
   return (
     <div style={styles.page}>
       <div style={styles.panel}>
@@ -71,6 +86,42 @@ export default function LightTestPage() {
       </div>
 
       <div style={styles.grid}>
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>0. 조명 ID 목록</h2>
+          <p style={styles.subtext}>
+            먼저 목록을 불러와서 <strong>ID</strong>를 확인하세요.
+          </p>
+          <div style={styles.buttonRow}>
+            <button
+              style={styles.primaryButton}
+              onClick={handleListLights}
+              disabled={pendingAction === "list-lights"}
+            >
+              {pendingAction === "list-lights" ? "불러오는 중..." : "조명 목록 불러오기"}
+            </button>
+          </div>
+          <div style={styles.lightsBox}>
+            {lights?.length ? (
+              <ul style={styles.lightsList}>
+                {lights.map((l) => (
+                  <li key={String(l?.id)} style={styles.lightRow}>
+                    <strong style={styles.lightId}>#{l?.id}</strong>{" "}
+                    <span style={styles.lightName}>{l?.name || "Unnamed"}</span>
+                    <span style={styles.lightMeta}>
+                      {l?.type ? ` · ${l.type}` : ""}
+                      {l?.modelId ? ` · ${l.modelId}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span style={styles.lightsEmpty}>
+                아직 목록이 없습니다. 위 버튼을 눌러주세요.
+              </span>
+            )}
+          </div>
+        </section>
+
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>1. 색상 팔레트 (RGB)</h2>
           <div style={styles.colorRow}>
@@ -319,6 +370,38 @@ const styles = {
   statusValue: {
     fontSize: "1.4vw",
     fontWeight: 600,
+  },
+  lightsBox: {
+    padding: "1.2vw",
+    borderRadius: "1vw",
+    border: "0.15vw solid rgba(255, 255, 255, 0.15)",
+    background: "rgba(0, 0, 0, 0.25)",
+  },
+  lightsEmpty: {
+    fontSize: "1.05vw",
+    color: "rgba(255, 255, 255, 0.7)",
+  },
+  lightsList: {
+    margin: 0,
+    paddingLeft: "1.2vw",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.6vw",
+  },
+  lightRow: {
+    fontSize: "1.05vw",
+    color: "rgba(255, 255, 255, 0.9)",
+  },
+  lightId: {
+    fontSize: "1.05vw",
+    letterSpacing: "0.05vw",
+  },
+  lightName: {
+    fontSize: "1.05vw",
+  },
+  lightMeta: {
+    fontSize: "0.95vw",
+    color: "rgba(255, 255, 255, 0.65)",
   },
 };
 
