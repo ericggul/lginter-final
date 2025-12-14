@@ -230,8 +230,8 @@ export const ClimateGroup = styled.div`
   /* 블러 처리된 블롭보다 항상 위 레이어로 */
   z-index: 3;
   display: grid; gap: 86.4px;
-  /* 우측 온습도 텍스트도 불투명 블랙 */
-  color: #000;
+  /* 우측 온습도 텍스트 컬러: 중립 다크 그레이(#545454) */
+  color: #545454;
   /* 그룹 자체는 블렌드 없이, 언더레이만 soft-light/color-burn 사용 */
   mix-blend-mode: normal;
   /* blend-mode가 배경과 상호작용하도록 드롭섀도우 필터 제거 */
@@ -247,7 +247,7 @@ export const ClimateRow = styled.div`
   /* 온도/습도 텍스트도 중간 수준으로 (살짝 축소) */
   font-size: 76px;
   font-weight: 500;
-  color: #000;
+  color: #545454;
   /* 실제 글립은 FadeSlideText에서 hard-light 블렌드를 사용 */
   mix-blend-mode: normal;
   animation: ${climatePush} 2s cubic-bezier(0.22, 1, 0.36, 1);
@@ -301,7 +301,7 @@ export const NoticeTyping = styled.div`
   font-size: 46px;
   font-weight: 400;
   letter-spacing: 0.02em;
-  color: #000;
+  color: #545454;
   mix-blend-mode: normal;
   overflow: hidden;
   white-space: nowrap;
@@ -317,7 +317,7 @@ export const ReasonCaption = styled.span`
   padding-top: 6px;
   font-size: 34px;
   line-height: 1.2;
-  color: #000;
+  color: #545454;
   opacity: 1;
   text-shadow: none;
 `;

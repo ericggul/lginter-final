@@ -16,6 +16,10 @@ export const BlobRotator = styled(SharedBlobRotator)`
 export const ContentRotator = styled(SharedContentRotator)`
   /* 텍스트/내용도 함께 회전하지 않도록 별도로 애니메이션 제거 */
   animation: none;
+  /* SW2 미니 블롭 텍스트 주변에 불필요한 배경/박스가 생기지 않도록 투명 처리 */
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
 `;
 
 /**
@@ -258,7 +262,8 @@ export const TopStatus = styled.div`
   top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
-  color: #000000;
+  /* SW2 상단 상태 텍스트 컬러: 중립 다크 그레이(#545454) */
+  color: #545454;
   font-weight: 600;
   letter-spacing: -0.005208vw;
   text-align: center;
@@ -475,10 +480,11 @@ const captionEnter = keyframes`
 `;
 
 export const HeadText = styled.div`
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 600; /* Semi Bold */
   font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
-  color: #000000;
+  /* SW2 중앙 곡명 텍스트 색상: 중립 다크 그레이(#545454) */
+  color: #545454;
   letter-spacing: 0.02em;
   /* 중앙 곡명: 검정 텍스트 + 흰색 계열 글로시 글로우만 남김 */
   text-shadow:
@@ -495,10 +501,11 @@ export const HeadText = styled.div`
 
 export const SubText = styled.div`
   margin-top: 0.375vw; /* 제목과의 간격 */
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 400;
   font-size: clamp(0.520833vw, 3.0vmin, 1.8vw);
-  color: #000000;
+  /* SW2 중앙 가수명 텍스트 색상도 중립 다크 그레이(#545454) */
+  color: #545454;
   letter-spacing: 0.02em;
   /* 가수명: 검정 텍스트 + 흰색 계열 글로시 글로우 */
   text-shadow:
@@ -516,10 +523,11 @@ export const SubText = styled.div`
 
 /* SW2 중앙 곡명/가수 타이포 – TV2 TrackTitle / Artist 스타일을 축소해서 사용 */
 export const SubTitle = styled.div`
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 500; /* TV2 TrackTitle 과 유사한 두께 */
   font-size: clamp(0.520833vw, 3.0vmin, 1.666667vw);
-  color: #000000;
+  /* SW2 하단 앨범명 텍스트 색상도 중립 다크 그레이(#545454) */
+  color: #545454;
   letter-spacing: 0.02em;
   text-shadow:
     0 0.20vw 0.72vw rgba(255, 255, 255, 0.82),
@@ -527,10 +535,11 @@ export const SubTitle = styled.div`
 `;
 
 export const SubArtist = styled.div`
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 400; /* Regular */
   font-size: clamp(0.416667vw, 2.4vmin, 1.458333vw);
-  color: #000000;
+  /* SW2 하단 가수명 텍스트 색상도 중립 다크 그레이(#545454) */
+  color: #545454;
   letter-spacing: 0.02em;
   text-shadow:
     0 0.16vw 0.60vw rgba(255, 255, 255, 0.82),

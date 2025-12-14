@@ -194,8 +194,8 @@ export const MusicRow = styled.div`
   font-size: 70px;
   font-weight: 500;
   text-transform: uppercase;
-  /* TV2 좌측 텍스트는 불투명 블랙 */
-  color: #000;
+  /* TV2 좌측 텍스트 컬러: 중립 다크 그레이(#545454) */
+  color: #545454;
   /* 텍스트 자체는 블렌드는 FadeSlideText에서 처리 */
   mix-blend-mode: normal;
   /* 쉐도우 제거 */
@@ -663,8 +663,8 @@ export const TrackTitle = styled.div`
   font-size: 80px;
   text-transform: uppercase;
   font-weight: 500;
-  /* TV2 트랙 타이틀은 불투명 블랙 */
-  color: ${props => props.$color || '#000'};
+  /* TV2 트랙 타이틀 컬러: 중립 다크 그레이(#545454) */
+  color: ${props => props.$color || '#545454'};
   mix-blend-mode: normal;
   /* 밝은 배경에서 시인성 확보용 얇은 스트로크 */
   -webkit-text-stroke: 1px rgba(0,0,0,0.2);
@@ -693,7 +693,8 @@ export const Artist = styled.div`
   /* 아티스트 텍스트 폰트 키움 */
   font-size: 64px;
   font-weight: 400;
-  color: ${props => props.$color || '#000'};
+  /* 아티스트 컬러: 중립 다크 그레이(#545454) */
+  color: ${props => props.$color || '#545454'};
   mix-blend-mode: normal;
   /* 실제 텍스트는 FadeSlideText에서 애니메이션 처리 (좌→우) */
   will-change: opacity;
@@ -759,7 +760,8 @@ export const EmotionFlow = styled.div`
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #000;
+    /* 감정 플로우 텍스트 컬러도 중립 다크 그레이(#545454) */
+    color: #545454;
     mix-blend-mode: normal;
     text-shadow: none;
     animation: ${emotionFlow} 10s linear infinite;

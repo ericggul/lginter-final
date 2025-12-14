@@ -306,8 +306,8 @@ export default function TV2Controls() {
     } catch {}
   }, [triggerT4Animations, isT4, decisionKey]);
 
-  // 곡명 컬러는 불투명 블랙으로 고정 (화이트 글로우는 스타일에 적용)
-  const titleColor = '#000';
+  // 곡명 컬러는 중립 다크 그레이(#545454)로 고정 (화이트 글로우는 스타일에 적용)
+  const titleColor = '#545454';
 
   // 모든 정보가 한 번에 뜨도록 공통 로딩 상태
   const isLoading =
