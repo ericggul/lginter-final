@@ -49,18 +49,17 @@ export const Root = styled.div`
   height: 2160px;
   overflow: hidden;
   background: #ffffff;
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  /* TV2 전체 기본 폰트: Noto/BrandKorean 제거, 기본 Pretendard 스택으로 통일 */
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 
-  /* 언어별 폰트 분기: 한글은 지정 폰트, 영문은 Pretendard */
+  /* 언어별 분기에서도 Noto/BrandKorean 을 사용하지 않고 Pretendard 로 유지 */
   & :lang(ko) {
-    font-family: "BrandKorean", "Noto Sans KR", "Pretendard", sans-serif;
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     font-weight: 400;
     font-synthesis-weight: none;
   }
   & :lang(en) {
-    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      "Helvetica Neue", Arial, system-ui, sans-serif;
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   }
 `;
 

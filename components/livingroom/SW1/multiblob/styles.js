@@ -138,7 +138,8 @@ export const TopStatus = styled.div`
   top: 2.8125vw;
   left: 50%;
   transform: translateX(-50%);
-  color: #000000;
+  /* SW1 상단 상태 텍스트 컬러: 중립 다크 그레이(#545454) */
+  color: #545454;
   font-weight: 600;
   letter-spacing: -0.005208vw;
   text-align: center;
@@ -797,12 +798,13 @@ export const CenterMark = styled.img`
 `;
 
 export const CenterTemp = styled.div`
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 600; /* SW2 HeadText와 동일한 두께 */
   font-size: clamp(0.729167vw, 4.8vmin, 2.5vw);
   line-height: 1.12;
   letter-spacing: 0.02em;
-  color: #000000;
+  /* SW1 중앙 온도 텍스트 색상: 중립 다크 그레이(#545454) */
+  color: #545454;
   /* 중앙 온도 텍스트: 안쪽은 또렷한 블랙, 바깥으로 퍼지는 부분은 살짝 분홍빛 블러 */
   text-shadow:
     0 0 0.16vw rgba(0, 0, 0, 0.32),
@@ -811,11 +813,12 @@ export const CenterTemp = styled.div`
 
 export const CenterMode = styled.div`
   margin-top: 0.6vmin;
-  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 400;
   font-size: clamp(0.520833vw, 3.0vmin, 1.8vw);
   letter-spacing: 0.02em;
-  color: #000000;
+  /* 모드 텍스트도 중립 다크 그레이(#545454) */
+  color: #545454;
   /* 모드 텍스트도 동일하게 바깥 블러에 은은한 분홍빛을 더해 중심과 연결 */
   text-shadow:
     0 0 0.14vw rgba(0, 0, 0, 0.30),

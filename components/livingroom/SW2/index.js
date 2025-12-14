@@ -106,10 +106,12 @@ export default function SW2Controls() {
   const isLanding = !hasRealKeywords;
 
   // 특정 앨범 전용 컬러 튜닝 플래그
-  // - albumData.displayTitle 가 'happy stroll' 이라서, 공백 제거 + 소문자 기준으로 비교
+  // - albumData.displayTitle 을 공백 제거 + 소문자 기준으로 비교
   const normalizedTitle = (title || '').toLowerCase().replace(/\s+/g, '');
   const isHappyStroll = normalizedTitle === 'happystroll';
   const isCleanSoul = normalizedTitle === 'cleansoul';
+  // Life is Color 전용: 중앙 레드, 외곽 옐로우 계열로만 구성 (그린 계열 제거)
+  const isLifeIsColor = normalizedTitle === 'lifeiscolor';
 
   // TV2와 동일한 앨범 그라디언트 데이터 (최대 5색 팔레트)
   const trackGradient = useMemo(() => {
@@ -272,9 +274,10 @@ export default function SW2Controls() {
   //  - TV2와 동일하게 "앨범 팔레트(최대 4~5색)"를 그대로 가져오되,
   //  - 가장 어두운 컬러일수록 내부(core)에, 가장 밝은 컬러일수록 외곽에 배치
   //  - 앨범 컬러가 들어온 경우(coverSrc 존재) 에만 중심 코어 채도를 강하게 올려준다.
-  //  - Happy Stroll / Clean Soul 은 개별 스펙:
-  //      · Happy Stroll  : 바깥 전체는 카드뮴 옐로우, 안쪽만 레드/오렌지 계열
-  //      · Clean Soul    : 블루 + 옐로우 위주 팔레트 (브라운/그린 제거)
+  //  - Happy Stroll / Clean Soul / Life is Color 는 개별 스펙:
+  //      · Happy Stroll    : 바깥 전체는 카드뮴 옐로우, 안쪽만 레드/오렌지 계열
+  //      · Clean Soul      : 블루 + 옐로우 위주 팔레트 (브라운/그린 제거)
+  //      · Life is Color   : 중심은 레드, 외곽은 강한 옐로우 (그린 계열 제거)
   const albumInnerBackground = useMemo(() => {
     // 1) Happy Stroll 전용 컬러 스펙 (앨범 팔레트와 무관하게 강제 값 사용)
     if (isHappyStroll && coverSrc) {
@@ -304,7 +307,21 @@ export default function SW2Controls() {
       );
     }
 
-    // 3) 일반 앨범 팔레트 → 어두운색은 안쪽, 밝은색은 바깥
+    // 3) Life is Color 전용 컬러 스펙 – 중심 레드, 외곽 옐로우 (그린 톤 제거)
+    if (isLifeIsColor && coverSrc) {
+      return (
+        'radial-gradient(65% 65% at 50% 50%,' +
+        // 중심: 강한 레드
+        ' hsla(5, 88%, 52%, 1.0) 0%,' +
+        // 중간: 오렌지 레드 계열
+        ' hsla(18, 92%, 60%, 0.98) 36%,' +
+        // 외곽: 채도 높은 옐로우
+        ' #FFD600 100%' +
+        ')'
+      );
+    }
+
+    // 4) 일반 앨범 팔레트 → 어두운색은 안쪽, 밝은색은 바깥
     if (trackGradient && Array.isArray(trackGradient.colors) && trackGradient.colors.length) {
       const colors = trackGradient.colors;
       // 팔레트 전체를 HSL로 변환해서 명도 기준으로 정렬
@@ -357,13 +374,13 @@ export default function SW2Controls() {
 
     // fallback: 단일 HSL 톤 기반 (이전 로직 유지)
     return (
-      'radial-gradient(65% 65% at 50% 50%,' +
+    'radial-gradient(65% 65% at 50% 50%,' +
       ' hsla(var(--album-h, 340), calc(var(--album-s, 70%) * 1.25), calc(var(--album-l, 70%) + 10%), 0.98) 0%,' +
       ' hsla(var(--album-h, 340), calc(var(--album-s, 70%) * 1.10), var(--album-l, 70%), 0.96) 52%,' +
       ' hsla(var(--album-h, 340), var(--album-s, 70%), calc(var(--album-l, 70%) + 18%), 1.00) 100%' +
       ')'
     );
-  }, [trackGradient, isHappyStroll, isCleanSoul, coverSrc]);
+  }, [trackGradient, isHappyStroll, isCleanSoul, isLifeIsColor, coverSrc]);
   // TV2/모바일과 동일한 "결정(lightColor)"를 SW2 중앙에도 아주 은은하게 반영한다.
   // - 앨범 기반 룩은 유지
   // - 비용이 큰 애니메이션/루프 없이 background transition만 사용
@@ -403,6 +420,17 @@ export default function SW2Controls() {
       );
     }
 
+    // Life is Color 전용: 레드 → 옐로우 그라디언트 (그린/브라운 톤 제거)
+    if (isLifeIsColor) {
+      return (
+        'radial-gradient(60% 60% at 50% 50%,' +
+        ' rgba(240, 60, 72, 0.98) 0%,' +   // 안쪽 레드
+        ' rgba(255, 204, 0, 0.94) 46%,' +  // 중간 옐로우
+        ' rgba(255, 204, 0, 0.0) 100%' +   // 바깥 투명 옐로우
+        ')'
+      );
+    }
+
     if (trackGradient && Array.isArray(trackGradient.colors) && trackGradient.colors.length) {
       const colors = trackGradient.colors;
       // 채도/명도 값을 한 단계 올려서, 지금보다 전체적으로 더 진하게 보이도록 조정
@@ -430,7 +458,7 @@ export default function SW2Controls() {
       ' hsla(var(--album-h, 340), calc(var(--album-s, 70%) * 0.7), calc(var(--album-l, 70%) + 20%), 0.0) 100%' +
       ')'
     );
-  }, [coverSrc, levaPinkBackground, trackGradient, isHappyStroll, isCleanSoul]);
+  }, [coverSrc, levaPinkBackground, trackGradient, isHappyStroll, isCleanSoul, isLifeIsColor]);
 
   const centerGlowBackground = useMemo(() => {
     const base = coverSrc ? albumInnerBackground : levaPinkBackground;
@@ -453,13 +481,20 @@ export default function SW2Controls() {
       return { top, mid, bottom };
     }
 
+    // Life is Color 전용: 전체를 레드~옐로우 축으로만 구성 (그린 배제)
+    if (isLifeIsColor && coverSrc) {
+      const mid = 'hsla(14, 86%, 70%, 0.96)';    // 살구빛 오렌지 레드
+      const bottom = 'hsla(45, 96%, 78%, 0.88)'; // 따뜻한 옐로우
+      return { top, mid, bottom };
+    }
+
     // 그 외: 앨범 기반 파스텔 톤 (채도/명도 상향 버전)
     const mid =
       'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 1.1), calc(var(--album-l, 80%) + 8%), 0.98)';
     const bottom =
       'hsla(var(--album-h, 340), calc(var(--album-s, 65%) * 0.9), calc(var(--album-l, 86%) + 14%), 0.82)';
     return { top, mid, bottom };
-  }, [coverSrc, isCleanSoul]);
+  }, [coverSrc, isCleanSoul, isLifeIsColor]);
 
   // SW2: timeline t3 진입 시, 화면 밖 하단에서 상단으로 올라오는 EntryCircle 애니메이션 시작에 맞춰 효과음 1회 재생
   useEffect(() => {
@@ -499,7 +534,7 @@ export default function SW2Controls() {
 
   // 백엔드에서 곡 정보가 안 온 초기 상태에서는
   // 실제 곡명/가수명 대신 '...' 플레이스홀더만 애니메이션으로 노출
-  // 곡/아티스트가 바뀔 때마다 2초간 '...' 상태를 보여준 뒤,
+  // 곡/아티스트가 바뀔 때마다 약 6초간 '...' 상태를 유지한 뒤,
   // 블러 + 오퍼시티 + 업(translateY) 애니메이션으로 새 텍스트를 표시한다.
   useEffect(() => {
     // 렌딩(처음) 상태에서는 중앙 캡션 대신 블롭 키워드 쪽에서만 '...'을 보여주므로 스킵
@@ -527,7 +562,7 @@ export default function SW2Controls() {
       return;
     }
 
-    setCaptionState('waiting'); // 2초 동안 '...' 상태
+    setCaptionState('waiting'); // 약 6초 동안 '...' 상태
     let cancelled = false;
     const currentDecision = decisionTick;
 
@@ -539,7 +574,7 @@ export default function SW2Controls() {
       setDisplayArtist(newArtist);
       setCaptionState('enter'); // 블러 + 업 애니메이션 시작
       lastDecisionRef.current = currentDecision;
-    }, 2000);
+    }, 6000);
 
     return () => {
       cancelled = true;
@@ -659,9 +694,9 @@ export default function SW2Controls() {
       )}
 
       <S.BlobRotator $duration={animation.rotationDuration}>
-          {tunedBlobConfigs.map((blob, idx) => {
-            const Component = S[blob.componentKey];
-            const kwItem = keywords[idx];
+        {tunedBlobConfigs.map((blob, idx) => {
+          const Component = S[blob.componentKey];
+          const kwItem = keywords[idx];
             const rawKeyword =
               (typeof kwItem === 'string' ? kwItem : kwItem?.text) ||
               blob.labelBottom;
@@ -671,41 +706,41 @@ export default function SW2Controls() {
               typeof kwItem === 'object' && kwItem?.songTitle
                 ? kwItem.songTitle
                 : musicTitle;
-            return (
-              <Component
-                key={blob.id}
-                $depthLayer={blob.depthLayer}
+          return (
+            <Component
+              key={blob.id}
+              $depthLayer={blob.depthLayer}
                 ref={(node) => {
                   if (node) blobRefs.current[blob.id] = node;
                   else delete blobRefs.current[blob.id];
                 }}
-                style={{
-                  '--blob-top': `${blob.anchor.y}vw`,
-                  '--blob-left': `${blob.anchor.x}vw`,
-                  '--blob-size': `${blob.size.base}vw`,
+              style={{
+                '--blob-top': `${blob.anchor.y}vw`,
+                '--blob-left': `${blob.anchor.x}vw`,
+                '--blob-size': `${blob.size.base}vw`,
                   // 뒤쪽 5개의 미니 블롭은 메인 블롭보다 한 단계 더 연한 파스텔 톤을 사용
                   '--blob-bg': miniBlobBackground,
-                }}
-              >
-                <S.ContentRotator $duration={animation.rotationDuration}>
+              }}
+            >
+              <S.ContentRotator $duration={animation.rotationDuration}>
                   {/* 렌딩 상태에서는 실제 키워드/음악 대신
                       SW1 미니 블롭과 동일하게 단순 '...' 텍스트를 노출 */}
-                  {isLanding ? (
-                    <>
+                {isLanding ? (
+                  <>
                       <S.MiniKeywordLine>...</S.MiniKeywordLine>
                       <S.MiniMusicLine>...</S.MiniMusicLine>
-                    </>
-                  ) : (
-                    <>
-                      {/* 위: 감정 키워드(사용자 인풋), 아래: 곡명만 한 줄 노출 (가수명 제거) */}
-                      <S.MiniKeywordLine>{rawKeyword}</S.MiniKeywordLine>
+                  </>
+                ) : (
+                  <>
+                    {/* 위: 감정 키워드(사용자 인풋), 아래: 곡명만 한 줄 노출 (가수명 제거) */}
+                    <S.MiniKeywordLine>{rawKeyword}</S.MiniKeywordLine>
                       <S.MiniMusicLine>{perBlobMusicTitle}</S.MiniMusicLine>
-                    </>
-                  )}
-                </S.ContentRotator>
-              </Component>
-            );
-          })}
+                  </>
+                )}
+              </S.ContentRotator>
+            </Component>
+          );
+        })}
       </S.BlobRotator>
       <S.TopStatus>
         <span>사용자 {participantCount}명을 위한 조율중</span>
