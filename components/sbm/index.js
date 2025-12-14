@@ -59,7 +59,7 @@ export default function SbmScreen() {
       <S.QrWrap $show={showQr}>
         <QRCodeSVG
           value={qrUrl}
-          size={256}
+          size={220}
           level="H"
           bgColor="transparent"
           fgColor="#f5f5f5"
