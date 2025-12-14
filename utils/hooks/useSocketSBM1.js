@@ -38,9 +38,6 @@ export default function useSocketSBM1(options = {}) {
       s.on('device:ping', () => {
         s.emit('device:heartbeat', { deviceId: s.id, type: 'sbm1', version: '1.0.0', ts: Date.now() });
       });
-      if (typeof window !== 'undefined') {
-        s.on('client:reload', () => { window.location.reload(); });
-      }
 
       // 주기적 heartbeat
       const hb = setInterval(() => {
