@@ -13,6 +13,7 @@ export default function useSocketSBM(options = {}) {
     onDisconnect: options.onDisconnect,
     onTimelineStage: options.onTimelineStage,
     onEntranceNewUser: options.onEntranceNewUser,
+    onEntranceNewVoice: options.onEntranceNewVoice,
   });
 
   useEffect(() => {
@@ -21,8 +22,9 @@ export default function useSocketSBM(options = {}) {
       onDisconnect: options.onDisconnect,
       onTimelineStage: options.onTimelineStage,
       onEntranceNewUser: options.onEntranceNewUser,
+      onEntranceNewVoice: options.onEntranceNewVoice,
     };
-  }, [options.onConnect, options.onDisconnect, options.onTimelineStage, options.onEntranceNewUser]);
+  }, [options.onConnect, options.onDisconnect, options.onTimelineStage, options.onEntranceNewUser, options.onEntranceNewVoice]);
 
   useEffect(() => {
     let mounted = true;
@@ -60,17 +62,20 @@ export default function useSocketSBM(options = {}) {
 
       const handleTimeline = (payload) => handlersRef.current.onTimelineStage?.(payload);
       const handleEntranceNewUser = (payload) => handlersRef.current.onEntranceNewUser?.(payload);
+      const handleEntranceNewVoice = (payload) => handlersRef.current.onEntranceNewVoice?.(payload);
 
       s.on("connect", handleConnect);
       s.on("disconnect", handleDisconnect);
       s.on(EV.TIMELINE_STAGE, handleTimeline);
       s.on(EV.ENTRANCE_NEW_USER, handleEntranceNewUser);
+      s.on("entrance-new-voice", handleEntranceNewVoice);
 
       return () => {
         s.off("connect", handleConnect);
         s.off("disconnect", handleDisconnect);
         s.off(EV.TIMELINE_STAGE, handleTimeline);
         s.off(EV.ENTRANCE_NEW_USER, handleEntranceNewUser);
+        s.off("entrance-new-voice", handleEntranceNewVoice);
         detachHardReset();
         s.close();
         socketRef.current = null;

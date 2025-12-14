@@ -13,6 +13,7 @@ const TIMELINE_WHITELIST = new Set(["t1", "t3", "t5"]);
 export function useSbmPlayer(slugKey) {
   const [socketStatus, setSocketStatus] = useState("disconnected");
   const [stageLabel, setStageLabel] = useState("idle");
+  const [lastVoiceText, setLastVoiceText] = useState("");
 
   const normalizedSlug = useMemo(() => {
     if (slugKey === "2" || slugKey === "3") return slugKey;
@@ -40,11 +41,16 @@ export function useSbmPlayer(slugKey) {
       if (stage === STAGES.RESULT) setStageLabel("t5");
     },
     onEntranceNewUser: () => setStageLabel("t1"),
+    onEntranceNewVoice: (payload = {}) => {
+      const text = payload.text || payload.originalText || payload.emotion || "";
+      if (text) setLastVoiceText(String(text));
+    },
   });
 
   return {
     videoSrc,
     stageLabel,
     socketStatus,
+    lastVoiceText,
   };
 }

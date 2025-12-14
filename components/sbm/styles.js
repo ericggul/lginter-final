@@ -10,7 +10,6 @@ export const Container = styled.div`
   inset: 0;
   background: #000;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #fff;
 `;
 
@@ -49,4 +48,28 @@ export const CenterText = styled.div`
   font-size: clamp(16px, 2.4vw, 26px);
   line-height: 1.15;
   text-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+`;
+
+export const QrWrap = styled.div`
+  position: absolute;
+  right: clamp(16px, 3vw, 32px);
+  bottom: clamp(16px, 3vw, 32px);
+  width: clamp(180px, 28vw, 300px);
+  height: clamp(180px, 28vw, 300px);
+  background: rgba(12, 12, 12, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 2.6vw, 18px);
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: ${({ $show }) => ($show ? 1 : 0)};
+  transform: ${({ $show }) => ($show ? "translateY(0)" : "translateY(10px)")};
+  transition: opacity 320ms ease, transform 320ms ease;
+  pointer-events: none;
 `;
