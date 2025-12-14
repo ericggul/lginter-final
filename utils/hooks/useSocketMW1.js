@@ -39,9 +39,6 @@ export default function useSocketMW1(options = {}) {
       s.on('device:ping', ({ deviceId }) => {
         s.emit('device:heartbeat', { deviceId: s.id, type: 'mw1', version: '1.0.0', ts: Date.now() });
       });
-      if (typeof window !== 'undefined') {
-        s.on('client:reload', () => { window.location.reload(); });
-      }
 
       // 주기적 heartbeat
       const hb = setInterval(() => {

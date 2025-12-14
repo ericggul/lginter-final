@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { DEFAULT_ENV, createControllerState, ensureUser, updateUserName, updateUserVoice, updateUserDecision, persistPreference, getActivePreferences, applyAggregatedEnv, updateDeviceHeartbeatState, resetUsers, buildSnapshot } from '../stateStore';
 import { requestControllerDecision } from '../openaiEngine';
 import { computeFairAverage } from '../logic/controllerMerge';
+import { EV } from '@/src/core/events';
 
 const DECISION_DEBOUNCE_MS = 500;
 const HEARTBEAT_TIMEOUT = 30 * 1000;
@@ -175,6 +176,7 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
 
   const handleReset = useCallback(() => {
     const now = Date.now();
+    // 1) Reset controller-side state only
     timersRef.current.forEach((id) => clearTimeout(id));
     timersRef.current.clear();
     preferencesRef.current.clear();
@@ -182,13 +184,12 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
     usersRef.current = resetUsers(usersRef.current);
     publishSnapshot();
 
-    const decisionId = `reset-${now}`;
-    emit?.('controller-new-decision', {
-      uuid: decisionId,
+    // 2) Broadcast orchestrator-timeout to all displays via server
+    //    Devices will interpret this as \"soft reset\" (timeline / state reset)
+    emit?.(EV.ORCHESTRATOR_TIMEOUT, {
+      uuid: `reset-${now}`,
       ts: now,
-      userId: 'controller',
-      params: { ...DEFAULT_ENV },
-      reason: 'Reset to default environment',
+      source: 'controller-timeout',
     });
   }, [emit, publishSnapshot]);
 

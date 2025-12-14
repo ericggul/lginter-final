@@ -35,8 +35,9 @@ export default function useSocketTV2(options = {}) {
         console.log("❌ TV2 socket disconnected");
       });
       // ping/reload
-      s.on('device:ping', () => { s.emit('device:heartbeat', { deviceId: s.id, type: 'tv2', version: '1.0.0', ts: Date.now() }); });
-      if (typeof window !== 'undefined') s.on('client:reload', () => window.location.reload());
+      s.on('device:ping', () => {
+        s.emit('device:heartbeat', { deviceId: s.id, type: 'tv2', version: '1.0.0', ts: Date.now() });
+      });
 
       const hb = setInterval(() => { if (s.connected) s.emit('device:heartbeat', { deviceId: s.id, type: 'tv2', version: '1.0.0', ts: Date.now() }); }, 15000);
       s.on('disconnect', () => clearInterval(hb));

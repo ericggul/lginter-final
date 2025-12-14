@@ -40,8 +40,9 @@ export default function useSocketTV1(options = {}) {
         console.log("📺 TV1 received new-name:", data);
       });
       // ping/reload
-      s.on('device:ping', () => { s.emit('device:heartbeat', { deviceId: s.id, type: 'tv1', version: '1.0.0', ts: Date.now() }); });
-      if (typeof window !== 'undefined') s.on('client:reload', () => window.location.reload());
+      s.on('device:ping', () => {
+        s.emit('device:heartbeat', { deviceId: s.id, type: 'tv1', version: '1.0.0', ts: Date.now() });
+      });
 
       const hb = setInterval(() => { if (s.connected) s.emit('device:heartbeat', { deviceId: s.id, type: 'tv1', version: '1.0.0', ts: Date.now() }); }, 15000);
       s.on('disconnect', () => clearInterval(hb));

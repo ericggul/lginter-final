@@ -28,8 +28,9 @@ export const EV = {
   // Server → clients ack/notification
   LIGHT_APPLIED: "light-applied",
 
-  // Global Timeline
+  // Global Timeline / Orchestrator control
   TIMELINE_STAGE: "timeline-stage",
+  ORCHESTRATOR_TIMEOUT: "orchestrator-timeout",
 
   // Server → Entrance (broadcast)
   ENTRANCE_NEW_USER: "entrance-new-user",

@@ -24,7 +24,9 @@ export const Header = styled.div`
   position: absolute; top: 0; left: 0; right: 0;
   /* 상단 파란 박스를 조금 더 두껍게 */
   height: 324px; min-height: 96px;
-  display: flex; align-items: center; gap: 76.8px; padding: 0 115.2px;
+  /* 좌측 패딩과 아이콘-텍스트 간격을 좌측 패널 MusicRow 와 동일하게 맞춰
+     상단 조명 텍스트와 음악 텍스트의 좌측 정렬이 정확히 일치하도록 조정 */
+  display: flex; align-items: center; gap: 60px; padding: 0 115.2px;
   color: #fff;
   /* 좌→우로 흐르는 그라데이션 모션 */
   background: linear-gradient(90deg,
@@ -35,7 +37,8 @@ export const Header = styled.div`
   /* 컬러 영역을 넓혀 자연스럽게 - 잘림 방지를 위해 더 크게 설정 */
   background-size: 300% 100%;
   overflow: hidden;
-  /* 조명 컬러가 바뀐 뒤에는 좌측을 살짝 더 어둡게 눌러주는 비네트 느낌 */
+  /* 조명 컬러가 바뀐 뒤에는 좌측을 앨범 다크 컬러로 강하게 눌러주고,
+     우측으로 갈수록 빠르게 풀리는 비네트 느낌 */
   &::before {
     content: '';
     position: absolute;
@@ -44,9 +47,9 @@ export const Header = styled.div`
     z-index: 1;
     background: linear-gradient(
       90deg,
-      rgba(0, 0, 0, 0.34) 0%,
-      rgba(0, 0, 0, 0.18) 36%,
-      rgba(0, 0, 0, 0.00) 60%
+      ${props => props.$sweepContrast || 'rgba(0,0,0,0.75)'} 0%,
+      ${props => props.$sweepContrast || 'rgba(0,0,0,0.75)'} 24%,
+      rgba(0, 0, 0, 0.00) 70%
     );
     mix-blend-mode: soft-light;
   }
@@ -58,27 +61,28 @@ export const Header = styled.div`
     inset: -2px;
     pointer-events: none;
     z-index: 2;
-    /* 좌: 앨범 다크(0~8) → 메인(8~47) → 화이트(47~53) → 메인(53~92) → 앨범 다크(92~100) */
+    /* 좌: 앨범 다크(0~14) → 메인(14~47) → 화이트(47~53) → 메인(53~86) → 앨범 다크(86~100) */
     background: linear-gradient(
       90deg,
       ${props => props.$sweepContrast || 'rgba(0,0,0,0.0)'} 0%,
-      ${props => props.$sweepContrast || 'rgba(0,0,0,0.0)'} 8%,
+      ${props => props.$sweepContrast || 'rgba(0,0,0,0.0)'} 14%,
       ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 47%,
       ${props => props.$sweepWhite || 'rgba(255,255,255,0.0)'} 53%,
-      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 92%,
+      ${props => props.$sweepMain || 'rgba(120,220,255,0.0)'} 86%,
       ${props => props.$sweepContrast || 'rgba(0,0,0,0.0)'} 100%
     );
     background-size: 420% 100%;
-    /* 텍스트/아이콘과 자연스럽게 섞이도록, 강한 덮어쓰기 대신 soft-light 블렌드 사용 */
-    mix-blend-mode: soft-light;
+    /* 앨범 컬러 스윕이 더 진하게 드러나도록 overlay 블렌드 사용 */
+    mix-blend-mode: overlay;
     /* 상단 텍스트/아이콘은 위 레이어(z-index 5)에 있기 때문에,
        애니메이션 레이어에만 더 넓은 블러를 걸어 그라디언트 경계를 부드럽게 풀어준다. */
-    filter: blur(56px);
-    opacity: ${props => (props.$sweepActive ? 0.8 : 0)};
+    /* 지나가는 밴드의 윤곽을 조금 또렷하게 + 더 진하게 보이도록 조정 */
+    filter: blur(36px);
+    opacity: ${props => (props.$sweepActive ? 0.98 : 0)};
     transition: opacity 800ms ease-out, filter 800ms ease-out;
     ${props => props.$sweepActive && css`
-      /* 약간 더 빠르게 흐르도록 조정 (45s → 32s) */
-      animation: ${headerColorSweep} 32s linear infinite;
+      /* 더 빨리 흐르도록 조정 (45s → 18s) */
+      animation: ${headerColorSweep} 18s linear infinite;
     `}
   }
   /* T4: 위치 이동 없이, 컬러가 부드럽게 드러나는 페이드 인 */
@@ -138,41 +142,72 @@ export const HeaderIcon = styled.div`
   color: #fff;
   position: relative;
   z-index: 5; /* 컬러 스윕/비네트 레이어보다 항상 위 */
-  /* 통일된 그림자 + 글로우 */
+  /* 아이콘은 언더 섀도우는 아주 살짝, 글로우는 강하게 */
   svg {
     width: 70%;
     height: 70%;
+    color: #fff;
+    opacity: 1;
+    mix-blend-mode: normal;
     filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+      brightness(2.4)
+      saturate(0)
+      drop-shadow(0 4px 14px rgba(0,0,0,0.24))
+      drop-shadow(0 0 34px rgba(255,255,255,1))
+      drop-shadow(0 0 82px rgba(255,255,255,0.96));
   }
   img {
     width: 70%;
     height: 70%;
     object-fit: contain;
     display: block;
+    opacity: 1;
+    mix-blend-mode: normal;
     filter:
-      drop-shadow(0 8px 24px rgba(0,0,0,0.45))
-      drop-shadow(0 16px 48px rgba(0,0,0,0.25))
-      drop-shadow(0 0 28px rgba(255,255,255,0.85));
+      brightness(2.4)
+      saturate(0)
+      drop-shadow(0 4px 14px rgba(0,0,0,0.24))
+      drop-shadow(0 0 34px rgba(255,255,255,1))
+      drop-shadow(0 0 82px rgba(255,255,255,0.96));
   }
 `;
 
 export const HeaderTitle = styled.div`
-  /* 텍스트 크기도 중간 수준으로 조정 */
-  font-size: 80px;
-  font-weight: 400;
+  /* 텍스트 크기 살짝 축소 */
+  font-size: 70px;
+  font-weight: 600;
   letter-spacing: 0.02em;
   text-align: left;
+  /* 상단 타이틀은 불투명 블랙 텍스트 */
   color: #000;
-  mix-blend-mode: soft-light;
+  /* 상단 텍스트는 항상 또렷하게 보이도록 기본 렌더링 */
+  mix-blend-mode: normal;
   position: relative;
   z-index: 5; /* 상단 컬러 스윕보다 텍스트가 항상 위에 보이도록 */
   /* 쉐도우 제거 */
   text-shadow: none;
 
-  &::before, &::after { content: none !important; }
+  /* 상단 조명 텍스트 뒤에도 다른 텍스트와 동일하게
+     앨범에서 뽑은 가장 밝은 컬러 기반 soft-light 언더레이를 깔아 아주 연하게 눌러준다 */
+  &::before {
+    content: '';
+    position: absolute;
+    /* 텍스트 주변을 크게 감싸도록 inset 범위 설정 */
+    inset: -28% -20%;
+    border-radius: 40px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.55)'} 0%,
+      ${props => props.$backdrop || 'rgba(255,255,255,0.26)'} 46%,
+      rgba(255,255,255,0.0) 88%
+    );
+    filter: blur(32px);
+    mix-blend-mode: soft-light;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.12;
+  }
+  &::after { content: none; }
 `;
 
 export const Content = styled.div`
