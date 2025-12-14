@@ -109,9 +109,17 @@ export function useSW2Logic() {
   const [ambienceData, setAmbienceData] = useState(null);
   const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
   // 최근 사용자 키워드 (음성 텍스트 / emotionKeyword) 최대 5개까지 유지
-  // 초기에는 감정 관련 더미 키워드 5개를 채워둔다
+  // 각 키워드에는, 나중에 결정된 곡명(songTitle)을 함께 저장해서
+  // 감정이 사라지기 전까지는 해당 곡명이 고정되도록 한다.
   const initialKeywords = useMemo(
-    () => BLOB_CONFIGS.map((b) => ({ text: b.labelBottom || '', isNew: false, id: Date.now() + Math.random() })),
+    () =>
+      BLOB_CONFIGS.map((b) => ({
+        text: b.labelBottom || '',
+        raw: b.labelBottom || '',
+        isNew: false,
+        id: Date.now() + Math.random(),
+        songTitle: '',
+      })),
     []
   );
   const [keywords, setKeywords] = useState(() => initialKeywords);
@@ -189,6 +197,8 @@ export function useSW2Logic() {
           raw: original,
           isNew: true,
           id: Date.now(),
+          // 곡명은 아직 모름 → 나중에 결정이 들어올 때 songTitle 을 채운다.
+          songTitle: '',
         },
       ];
       while (next.length > BLOB_CONFIGS.length) next.shift();
@@ -310,6 +320,23 @@ export function useSW2Logic() {
       }
     } else {
       setTempo(100);
+    }
+
+    // 새 곡이 결정될 때, 아직 곡명이 할당되지 않은 최신 감정들에만 곡명을 매핑
+    if (t) {
+      setKeywords((prev) => {
+        let changed = false;
+        const next = [...prev];
+        for (let i = next.length - 1; i >= 0; i -= 1) {
+          const k = next[i];
+          if (!k || typeof k !== 'object') continue;
+          if (!k.songTitle) {
+            next[i] = { ...k, songTitle: t };
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
     }
 
     // 초기엔 즉시 적용

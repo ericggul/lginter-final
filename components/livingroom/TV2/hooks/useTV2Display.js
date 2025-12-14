@@ -993,7 +993,6 @@ export function useTV2DisplayLogic({
   // - color3: SW1의 온도 기반 컬러를 그대로 사용 (중앙 핵심 온도 컬러)
   const baseRightColor1 = levaControls?.rightCircleColor1 || '#f8e9eb';
   const baseRightColor2 = levaControls?.rightCircleColor2 || '#e8adbe';
-  const baseRightColor4 = levaControls?.rightCircleColor4 || '#fff3ed';
   const albumMixRatio = 0.7; // 0.7: 기본 색 70% + 앨범 색 30%
 
   const rightCircleColor1Base = albumPalette?.left1
@@ -1022,11 +1021,12 @@ export function useTV2DisplayLogic({
   // 중앙 color3은 온도 기반 색상을 그대로 사용 (앨범 팔레트/화이트와 섞지 않음)
   const rightCircleColor3Rgba = tempBasedColor3;
 
-  const rightCircleColor4Base = albumPalette?.left4
-    ? mixHex(baseRightColor4, albumPalette.left4, albumMixRatio)
-    : baseRightColor4;
-  const rightCircleColor4Rgba = hexToRgba(
-    rightCircleColor4Base,
+  // 가장 바깥 원(color4)은 앨범 컬러 대신 "온도 컬러"를 한 단계 더 밝고 옅게 사용
+  // - 동일한 Hue(warmHue)를 유지하면서 L 을 올려 외곽이 가장 연하게 보이도록 설정
+  const rightCircleColor4Rgba = toHslaSW1(
+    warmHue,
+    55,
+    86,
     levaControls?.rightCircleColor4Opacity || 0.6,
   );
 
