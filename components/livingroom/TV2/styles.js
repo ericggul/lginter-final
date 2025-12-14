@@ -120,15 +120,15 @@ export const PageOverlay = styled.div`
   ${props =>
     props.$isIdle &&
     css`
-      animation: ${pageIdleBreath} 3.4s ease-in-out infinite;
-    `}
+    animation: ${pageIdleBreath} 3.4s ease-in-out infinite;
+  `}
 
   /* 새로운 결정(T4) 도착 시, 1회성 스윕 트랜지션 */
   ${props =>
     props.$triggerT4 &&
     css`
-      animation: ${pageDecisionSweep} 0.9s ease-in-out;
-    `}
+    animation: ${pageDecisionSweep} 0.9s ease-in-out;
+  `}
 `;
 
 /* Idle thinking overlay */
@@ -136,7 +136,7 @@ export const PageOverlay = styled.div`
 const dotPulse = keyframes`
   0%,
   80%,
-  100% {
+    100% {
     transform: scale(0.8);
     opacity: 0.45;
   }
@@ -206,7 +206,7 @@ export const ChangeMessage = styled.div`
   pointer-events: none;
   z-index: 15;
   animation: ${changeMessageFade} 3s ease-in-out forwards;
-  text-shadow:
+  text-shadow: 
     0 0 12px rgba(255, 255, 255, 0.6),
     0 2px 8px rgba(0, 0, 0, 0.3);
 `;

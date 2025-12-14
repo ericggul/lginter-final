@@ -221,6 +221,19 @@ export default function handler(req, res) {
     socket.on("sw2-init", () => socket.join("livingroom"));
     socket.on("tv2-init", () => socket.join("livingroom"));
 
+    // Global orchestrator timeout: controller asks all displays to soft-reset.
+    socket.on(EV.ORCHESTRATOR_TIMEOUT, (raw) => {
+      const ts = Date.now();
+      const payload = {
+        uuid: raw?.uuid || `timeout-${ts}`,
+        ts,
+        source: raw?.source || 'controller-timeout',
+      };
+      // Broadcast to all display groups; they will handle reset locally without reload.
+      io.to("livingroom").emit(EV.ORCHESTRATOR_TIMEOUT, payload);
+      io.to("entrance").emit(EV.ORCHESTRATOR_TIMEOUT, payload);
+    });
+
     // Mobile events - forward to Controller; entrance mirrors for user/name
     socket.on("mobile-new-name", (raw) => {
       const data = { uuid: raw?.uuid || nanoid(), ts: raw?.ts || Date.now(), ...raw };
