@@ -168,11 +168,16 @@ export function useTV2DisplayLogic({
 
   // Device control (AC / purifier fan) based on env temp/humidity targets.
   const hueGradientStops = useMemo(() => {
-    const a = [
-      cssColorToHex(headerGradientStartRgba),
-      cssColorToHex(headerGradientMidRgba),
-      cssColorToHex(headerGradientEndRgba),
-    ].filter(Boolean);
+    // IMPORTANT:
+    // This hook must run before the later headerGradient* variables are initialized.
+    // So derive stops from inputs that are already available here.
+    const headerStartBase =
+      hexColor && hexColor.match(/^#[0-9A-F]{6}$/i)
+        ? hexColor
+        : (levaControls?.headerGradientStart || '#4880e2');
+
+    const a = [String(headerStartBase || '').toUpperCase(), String(headerStartBase || '').toUpperCase(), '#FFFFFF']
+      .filter(Boolean);
     // De-dupe while preserving order
     const out = [];
     const seen = new Set();
@@ -184,7 +189,7 @@ export function useTV2DisplayLogic({
       out.push(key);
     });
     return out;
-  }, [headerGradientStartRgba, headerGradientMidRgba, headerGradientEndRgba]);
+  }, [hexColor, levaControls?.headerGradientStart]);
 
   useTV2Devices(env, { decisionToken, hueGradientStops });
 
