@@ -45,6 +45,33 @@ function postDeviceCommand(deviceType, payload) {
   }
 }
 
+function postHueCommand(body) {
+  try {
+    return fetch('/api/lighttest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+      keepalive: true,
+    }).then(async (res) => {
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        // ignore
+      }
+      if (!res.ok || data?.ok === false) {
+        console.warn('[TV2][hue] /api/lighttest failed', res.status, body, data);
+      } else {
+        console.log('[TV2][hue] /api/lighttest ok', res.status, body?.action, data);
+      }
+      return data;
+    });
+  } catch (err) {
+    console.warn('[TV2][hue] /api/lighttest threw', err?.message);
+    return Promise.resolve(null);
+  }
+}
+
 function normalizeHexStops(stops) {
   const out = [];
   const seen = new Set();
@@ -116,25 +143,20 @@ export function useTV2Devices(env, options = {}) {
       if ((changed || tokenBump) && !tooSoon) {
         lastHueGradientKeyRef.current = hueGradientKey;
         lastHueSyncedAtRef.current = now;
-        try {
-          fetch('/api/lighttest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'gradient',
-              source: 'tv2',
-              mode: 'hybrid',
-              continuous: true,
-              // Use top-panel gradient colors
-              stops: hueGradientStops,
-              // Optional tuning knobs (server has defaults)
-              tickMs: 2000,
-              waveMinDelayMs: 60,
-              waveMaxDelayMs: 240,
-            }),
-            keepalive: true,
-          }).catch(() => {});
-        } catch {}
+        postHueCommand({
+          action: 'gradient',
+          source: 'tv2',
+          mode: 'hybrid',
+          continuous: true,
+          // Use top-panel gradient colors
+          stops: hueGradientStops,
+          // Optional tuning knobs (server has defaults)
+          tickMs: 2000,
+          waveMinDelayMs: 60,
+          waveMaxDelayMs: 240,
+          // Visibility knobs (server has defaults)
+          blinkEnabled: true,
+        }).catch(() => {});
       }
       return;
     }
@@ -142,14 +164,7 @@ export function useTV2Devices(env, options = {}) {
     if (HEX_COLOR_RE.test(hexColor) && hexColor !== lastHueSyncedColorRef.current && !tooSoon) {
       lastHueSyncedColorRef.current = hexColor;
       lastHueSyncedAtRef.current = now;
-      try {
-        fetch('/api/lighttest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'color', color: hexColor, source: 'tv2' }),
-          keepalive: true,
-        }).catch(() => {});
-      } catch {}
+      postHueCommand({ action: 'color', color: hexColor, source: 'tv2' }).catch(() => {});
     }
 
   }, [env?.temp, env?.humidity, env?.lightColor, options?.decisionToken, options?.hueGradientStops]);

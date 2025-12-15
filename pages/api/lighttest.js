@@ -554,6 +554,46 @@ export default async function handler(req, res) {
 
     let result;
     switch (action) {
+      case "debug": {
+        const isTv2 = String(req.body?.source || "").toLowerCase() === "tv2";
+        const loop = {
+          active: !!tv2GradientLoop.active,
+          gen: tv2GradientLoop.gen,
+          hasConfig: !!tv2GradientLoop.config,
+          tickMs: tv2GradientLoop.config?.tickMs || null,
+          periodMs: tv2GradientLoop.config?.periodMs || null,
+          lightCount: Array.isArray(tv2GradientLoop.config?.lightIds) ? tv2GradientLoop.config.lightIds.length : 0,
+          stopsCount: Array.isArray(tv2GradientLoop.config?.stops) ? tv2GradientLoop.config.stops.length : 0,
+        };
+
+        let lightsProbe = null;
+        try {
+          const listed = await listLights({ configOverride });
+          lightsProbe = listed?.ok
+            ? { ok: true, count: Array.isArray(listed?.lights) ? listed.lights.length : 0 }
+            : { ok: false, error: listed?.error || "listLights failed" };
+        } catch (e) {
+          lightsProbe = { ok: false, error: e?.message || String(e) };
+        }
+
+        result = {
+          ok: true,
+          isTv2,
+          proxy: {
+            proxyBaseUrlConfigured: !!normalizeBaseUrl(process.env.HUE_CONTROL_PROXY_URL),
+            requestHasHopHeader: !!req.headers?.[hopHeader],
+          },
+          hueConfig: {
+            enabled: !!configOverride?.enabled,
+            remoteEnabled: !!configOverride?.remoteEnabled,
+            groupId: configOverride?.groupId ?? null,
+            lightIdsConfiguredCount: Array.isArray(configOverride?.lightIds) ? configOverride.lightIds.length : 0,
+          },
+          loop,
+          lightsProbe,
+        };
+        break;
+      }
       case "list-lights": {
         result = await listLights({ configOverride });
         break;
