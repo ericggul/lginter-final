@@ -135,27 +135,24 @@ export function useTV2Devices(env, options = {}) {
     const now = Date.now();
     const tooSoon = now - (lastHueSyncedAtRef.current || 0) < 700;
 
-    // Prefer sending gradient stops when available (continuous hybrid mode).
-    // Fall back to single color when stops are missing.
-    if (hueGradientStops.length >= 3) {
-      const changed = hueGradientKey && hueGradientKey !== lastHueGradientKeyRef.current;
+    // User request: keep the same single HEX color as the top panel, but make visibility obvious
+    // by continuously pulsing brightness per bulb on the server.
+    const pulseColor = HEX_COLOR_RE.test(hexColor) ? hexColor : (hueGradientStops?.[0] || '');
+    if (HEX_COLOR_RE.test(pulseColor)) {
+      const changed = pulseColor !== lastHueSyncedColorRef.current;
       const tokenBump = options?.decisionToken && options?.decisionToken !== 0;
       if ((changed || tokenBump) && !tooSoon) {
-        lastHueGradientKeyRef.current = hueGradientKey;
+        lastHueSyncedColorRef.current = pulseColor;
         lastHueSyncedAtRef.current = now;
         postHueCommand({
-          action: 'gradient',
+          action: 'pulse',
           source: 'tv2',
-          mode: 'hybrid',
-          continuous: true,
-          // Use top-panel gradient colors
-          stops: hueGradientStops,
-          // Optional tuning knobs (server has defaults)
-          tickMs: 2000,
-          waveMinDelayMs: 60,
-          waveMaxDelayMs: 240,
-          // Visibility knobs (server has defaults)
-          blinkEnabled: true,
+          color: pulseColor,
+          // Faster tick makes the pulsing clearly visible.
+          tickMs: 350,
+          // Very tight per-bulb jitter for "sparkly" effect.
+          waveMinDelayMs: 0,
+          waveMaxDelayMs: 120,
         }).catch(() => {});
       }
       return;

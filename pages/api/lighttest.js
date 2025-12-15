@@ -18,6 +18,14 @@ let tv2GradientLoop = {
   config: null,
 };
 
+let tv2PulseLoop = {
+  active: false,
+  runningTick: false,
+  gen: 0,
+  timer: null,
+  config: null,
+};
+
 // NOTE: Hardcoding secrets in source code is risky.
 // Prefer `.env.local` in the project root.
 // (Fallbacks intentionally left empty to avoid secrets in source.)
@@ -321,6 +329,154 @@ function stopTv2GradientLoop() {
   }
 }
 
+function stopTv2PulseLoop() {
+  tv2PulseLoop.gen += 1;
+  tv2PulseLoop.active = false;
+  tv2PulseLoop.config = null;
+  tv2PulseLoop.runningTick = false;
+  if (tv2PulseLoop.timer) {
+    clearInterval(tv2PulseLoop.timer);
+    tv2PulseLoop.timer = null;
+  }
+}
+
+function brightnessPctToHueBri(pct) {
+  const p = clampInt(pct, 0, 100);
+  if (p <= 0) return 0;
+  return clampInt(Math.round((p / 100) * 254), 1, 254);
+}
+
+function pickSparklyBrightnessPct() {
+  // Bias toward obvious flashes:
+  // - mostly OFF
+  // - often FULL
+  // - sometimes medium
+  const r = Math.random();
+  if (r < 0.55) return 0;
+  if (r < 0.87) return 100;
+  return 30 + Math.floor(Math.random() * 61); // 30..90
+}
+
+async function tv2PulseTick(genAtStart) {
+  if (!tv2PulseLoop.active) return;
+  if (genAtStart !== tv2PulseLoop.gen) return;
+  if (tv2PulseLoop.runningTick) return;
+
+  const cfg = tv2PulseLoop.config;
+  if (!cfg) return;
+
+  tv2PulseLoop.runningTick = true;
+  try {
+    const ids = cfg.lightIds || [];
+    if (!ids.length) return;
+
+    const waveMin = clampInt(cfg.waveMinDelayMs || 40, 0, 2000);
+    const waveMax = clampInt(cfg.waveMaxDelayMs || 220, waveMin, 5000);
+
+    // Pick a random brightness per bulb, 0..100.
+    const plan = ids.map((id) => ({
+      id,
+      pct: pickSparklyBrightnessPct(),
+    }));
+
+    const order = shuffleInPlace([...plan]);
+
+    // Run in parallel with per-bulb jitter for more "sparkly" timing.
+    await Promise.all(
+      order.map(async ({ id, pct }) => {
+        if (!tv2PulseLoop.active) return;
+        if (genAtStart !== tv2PulseLoop.gen) return;
+
+        const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
+        await sleep(jitter);
+        if (!tv2PulseLoop.active) return;
+        if (genAtStart !== tv2PulseLoop.gen) return;
+
+        const bri = brightnessPctToHueBri(pct);
+        if (bri <= 0) {
+          await setLightOnOff(false, {
+            configOverride: cfg.configOverride,
+            targets: { lightIds: [id], groupId: undefined },
+          });
+        } else {
+          // Ensure on + brightness; Hue will keep last color (we set it on loop start).
+          await setLightBrightness(bri, {
+            configOverride: cfg.configOverride,
+            targets: { lightIds: [id], groupId: undefined },
+          });
+        }
+      })
+    );
+  } catch (err) {
+    console.warn("[lighttest][tv2-pulse] tick failed", err?.message || String(err));
+  } finally {
+    tv2PulseLoop.runningTick = false;
+  }
+}
+
+async function startTv2PulseLoop({
+  configOverride,
+  color,
+  tickMs,
+  waveMinDelayMs,
+  waveMaxDelayMs,
+}) {
+  // Pulse mode replaces any previous loop(s) to avoid fighting.
+  stopTv2GradientLoop();
+  stopTv2PulseLoop();
+
+  const ids = await resolveLightIdsSorted({ configOverride });
+  if (!ids.length) return { ok: false, error: "No Hue lights found to control" };
+
+  const c = String(color || "").trim().toUpperCase();
+  if (!/^#[0-9A-F]{6}$/.test(c)) {
+    return { ok: false, error: "Invalid color hex. Expected '#RRGGBB'." };
+  }
+
+  // Set base color once across all bulbs (in a wave so it's obvious).
+  // This avoids re-sending color on every brightness tick.
+  try {
+    const order = shuffleInPlace(ids.map((id) => id));
+    await Promise.all(
+      order.map(async (id) => {
+        const jitter = Math.floor(0 + Math.random() * 120);
+        await sleep(jitter);
+        await setLightColor({
+          color: c,
+          configOverride,
+          targets: { lightIds: [id], groupId: undefined },
+        });
+      })
+    );
+  } catch (err) {
+    console.warn("[lighttest][tv2-pulse] initial color apply failed", err?.message || String(err));
+  }
+
+  const tick = clampInt(tickMs || 350, 150, 10_000);
+  const gen = tv2PulseLoop.gen + 1;
+  tv2PulseLoop = {
+    active: true,
+    runningTick: false,
+    gen,
+    timer: null,
+    config: {
+      configOverride,
+      lightIds: ids,
+      color: c,
+      tickMs: tick,
+      waveMinDelayMs: waveMinDelayMs != null ? clampInt(waveMinDelayMs, 0, 5000) : 0,
+      waveMaxDelayMs: waveMaxDelayMs != null ? clampInt(waveMaxDelayMs, 0, 8000) : 120,
+    },
+  };
+
+  void tv2PulseTick(gen);
+  tv2PulseLoop.timer = setInterval(() => {
+    void tv2PulseTick(gen);
+  }, tick);
+
+  return { ok: true, active: true, mode: "tv2-pulse", count: ids.length, tickMs: tick };
+}
+
 async function tv2GradientTick(genAtStart) {
   if (!tv2GradientLoop.active) return;
   if (genAtStart !== tv2GradientLoop.gen) return;
@@ -613,6 +769,7 @@ export default async function handler(req, res) {
 
         // If a continuous gradient loop is running, stop it before applying a one-shot override.
         stopTv2GradientLoop();
+        stopTv2PulseLoop();
 
         // Determine targets without hardcoding IDs:
         // - Prefer configured HUE_LIGHT_IDS (explicit list)
@@ -670,6 +827,30 @@ export default async function handler(req, res) {
         })();
 
         result = { ok: true, scheduled: true, mode: "tv2-wave", count: ids.length };
+        break;
+      }
+      case "pulse": {
+        // TV2-only: set a single base color, then forever pulse brightness randomly 0-100 per bulb.
+        const isTv2 = String(req.body?.source || "").toLowerCase() === "tv2";
+        if (!isTv2) {
+          return res.status(400).json({ ok: false, error: "pulse action is restricted to TV2" });
+        }
+        result = await startTv2PulseLoop({
+          configOverride,
+          color: req.body?.color,
+          tickMs: req.body?.tickMs,
+          waveMinDelayMs: req.body?.waveMinDelayMs,
+          waveMaxDelayMs: req.body?.waveMaxDelayMs,
+        });
+        break;
+      }
+      case "stop-pulse": {
+        const isTv2 = String(req.body?.source || "").toLowerCase() === "tv2";
+        if (!isTv2) {
+          return res.status(400).json({ ok: false, error: "stop-pulse is restricted to TV2" });
+        }
+        stopTv2PulseLoop();
+        result = { ok: true, stopped: true };
         break;
       }
       case "gradient": {
