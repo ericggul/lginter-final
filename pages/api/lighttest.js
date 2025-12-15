@@ -83,6 +83,34 @@ function safeUrlHost(url) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shuffleInPlace(arr) {
+  // Fisher–Yates
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+function toUniqueNumericLightIds(ids) {
+  const out = [];
+  const seen = new Set();
+  for (const v of ids || []) {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 1) continue;
+    if (seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   // Allow Render → notebook proxying without exposing the token to the browser:
   // - Render sets HUE_CONTROL_PROXY_URL=https://<your-tunnel-domain>
@@ -183,7 +211,70 @@ export default async function handler(req, res) {
           return res.status(400).json({ ok: false, error: "Color value is required" });
         }
         const bri = brightness != null ? normalizeBrightness(brightness) : undefined;
-        result = await setLightColor({ color, brightness: bri, configOverride });
+        // TV2-only: apply a "wave" (random order + random timing) so bulbs don't change simultaneously.
+        // TV2 marks requests with { source: "tv2" } in the body.
+        const isTv2 = String(req.body?.source || "").toLowerCase() === "tv2";
+        if (!isTv2) {
+          result = await setLightColor({ color, brightness: bri, configOverride });
+          break;
+        }
+
+        // Determine targets without hardcoding IDs:
+        // - Prefer configured HUE_LIGHT_IDS (explicit list)
+        // - Otherwise, enumerate via Hue API (listLights)
+        let lightIds = toUniqueNumericLightIds(configOverride?.lightIds);
+        if (!lightIds.length) {
+          const listed = await listLights({ configOverride });
+          if (listed?.ok && Array.isArray(listed?.lights)) {
+            lightIds = toUniqueNumericLightIds(listed.lights.map((l) => l?.id));
+          }
+        }
+
+        // If we still have no ids, fall back to existing behavior.
+        if (!lightIds.length) {
+          result = await setLightColor({ color, brightness: bri, configOverride });
+          break;
+        }
+
+        // Schedule sequential per-bulb updates with random delays.
+        // We respond immediately (TV2 doesn't consume the response) while the wave continues in the background.
+        const ids = shuffleInPlace([...lightIds]);
+        const io = res?.socket?.server?.io;
+        void (async () => {
+          try {
+            // Tune these to taste; total wave time ~ N * avgDelay.
+            const minDelayMs = 60;
+            const maxDelayMs = 240;
+            for (let i = 0; i < ids.length; i += 1) {
+              const id = ids[i];
+              const jitter = Math.floor(minDelayMs + Math.random() * (maxDelayMs - minDelayMs + 1));
+              // eslint-disable-next-line no-await-in-loop
+              await sleep(jitter);
+              // eslint-disable-next-line no-await-in-loop
+              await setLightColor({
+                color,
+                brightness: bri,
+                configOverride,
+                // Force per-light targeting (avoid group apply which changes simultaneously).
+                targets: { lightIds: [id], groupId: undefined },
+              });
+            }
+
+            // After the wave finishes, broadcast latest average Hue state (if socket server is present).
+            try {
+              if (io) {
+                const state = await getHueStateAverageHex({ configOverride });
+                if (state?.ok) {
+                  io.to("livingroom").emit("hue-state", state);
+                }
+              }
+            } catch {}
+          } catch (err) {
+            console.warn("[lighttest][tv2-wave] failed", err?.message || String(err));
+          }
+        })();
+
+        result = { ok: true, scheduled: true, mode: "tv2-wave", count: ids.length };
         break;
       }
       case "brightness": {
@@ -206,7 +297,8 @@ export default async function handler(req, res) {
     // Push latest Hue state to livingroom clients (TV2) when socket server is present.
     try {
       const io = res?.socket?.server?.io;
-      if (io && result?.ok) {
+      // For TV2 wave we emit at the end of the wave (above), not immediately.
+      if (io && result?.ok && result?.mode !== "tv2-wave") {
         const state = await getHueStateAverageHex({ configOverride });
         if (state?.ok) {
           io.to("livingroom").emit("hue-state", state);

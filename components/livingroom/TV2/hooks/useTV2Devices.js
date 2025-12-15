@@ -97,7 +97,8 @@ export function useTV2Devices(env) {
         fetch('/api/lighttest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'color', color: hexColor }),
+          // Mark this request as coming from TV2 so the API can apply TV2-only behavior (wave timing).
+          body: JSON.stringify({ action: 'color', color: hexColor, source: 'tv2' }),
           keepalive: true,
         }).catch(() => {});
       } catch {}
