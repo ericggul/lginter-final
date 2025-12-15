@@ -159,6 +159,113 @@ function mixRgb(a, b, t) {
   };
 }
 
+function rgbToHsl({ r, g, b }) {
+  const rr = clamp01((Number(r) || 0) / 255);
+  const gg = clamp01((Number(g) || 0) / 255);
+  const bb = clamp01((Number(b) || 0) / 255);
+  const max = Math.max(rr, gg, bb);
+  const min = Math.min(rr, gg, bb);
+  const d = max - min;
+  let h = 0;
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  if (d !== 0) {
+    if (max === rr) h = ((gg - bb) / d) % 6;
+    else if (max === gg) h = (bb - rr) / d + 2;
+    else h = (rr - gg) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h, s, l };
+}
+
+function hslToRgb({ h, s, l }) {
+  const hh = ((Number(h) % 360) + 360) % 360;
+  const ss = clamp01(s);
+  const ll = clamp01(l);
+  const c = (1 - Math.abs(2 * ll - 1)) * ss;
+  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+  const m = ll - c / 2;
+  let r1 = 0, g1 = 0, b1 = 0;
+  if (hh < 60) { r1 = c; g1 = x; b1 = 0; }
+  else if (hh < 120) { r1 = x; g1 = c; b1 = 0; }
+  else if (hh < 180) { r1 = 0; g1 = c; b1 = x; }
+  else if (hh < 240) { r1 = 0; g1 = x; b1 = c; }
+  else if (hh < 300) { r1 = x; g1 = 0; b1 = c; }
+  else { r1 = c; g1 = 0; b1 = x; }
+  return {
+    r: Math.round(clamp01(r1 + m) * 255),
+    g: Math.round(clamp01(g1 + m) * 255),
+    b: Math.round(clamp01(b1 + m) * 255),
+  };
+}
+
+function normalizeHueDegrees(h) {
+  const hh = Number(h);
+  if (!Number.isFinite(hh)) return 0;
+  return ((hh % 360) + 360) % 360;
+}
+
+function clampHueDelta(from, to, maxDelta) {
+  const a = normalizeHueDegrees(from);
+  const b = normalizeHueDegrees(to);
+  let d = b - a;
+  // shortest path
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  const md = Math.max(0, Math.min(Number(maxDelta) || 0, 180));
+  const dd = Math.max(-md, Math.min(md, d));
+  return normalizeHueDegrees(a + dd);
+}
+
+function computeWarmAnalogHex(baseHex) {
+  const rgb = hexToRgb(baseHex);
+  if (!rgb) return "";
+  const hsl = rgbToHsl(rgb);
+
+  // "Warm-ish but not complementary":
+  // - For greens (≈80..160): shift toward yellow (≈60) but cap shift.
+  // - For other hues: gently pull toward warm amber range (≈50) with small cap.
+  const warmTarget = 55;
+  const maxShift = (hsl.h >= 80 && hsl.h <= 160) ? 35 : 25;
+  const warmHue = clampHueDelta(hsl.h, warmTarget, maxShift);
+
+  // Keep it pleasant and LED-visible: slightly higher saturation + a bit brighter.
+  const s = Math.min(1, Math.max(0.18, hsl.s * 1.1));
+  const l = Math.min(0.82, Math.max(0.45, hsl.l + 0.12));
+  return rgbToHex(hslToRgb({ h: warmHue, s, l }));
+}
+
+function enhanceStopsForVisibility(stops) {
+  const list = (stops || []).map((s) => String(s || "").trim().toUpperCase()).filter(Boolean);
+  const out = [];
+  const seen = new Set();
+  const push = (hex) => {
+    const h = String(hex || "").trim().toUpperCase();
+    if (!/^#[0-9A-F]{6}$/.test(h)) return;
+    if (seen.has(h)) return;
+    seen.add(h);
+    out.push(h);
+  };
+
+  list.forEach((hex) => {
+    push(hex);
+    // Insert a warm-analog accent near the base colors (but not for pure white/black).
+    if (hex !== "#FFFFFF" && hex !== "#000000") {
+      const warm = computeWarmAnalogHex(hex);
+      push(warm);
+    }
+  });
+
+  // If the palette is still too small, add a warm white to help create a visible gradient.
+  if (out.length < 3) {
+    push("#FFE6B3"); // warm white / amber-ish
+    push("#FFFFFF");
+  }
+
+  return out;
+}
+
 function computeSpreadBaseHex(stopsHex, t) {
   const stops = (stopsHex || []).map(hexToRgb).filter(Boolean);
   if (!stops.length) return "";
@@ -174,13 +281,21 @@ function computeSpreadBaseHex(stopsHex, t) {
 function makeWeakCyclePalette(baseHex, strength = 0.08) {
   const base = hexToRgb(baseHex);
   if (!base) return [String(baseHex || "").toUpperCase()].filter(Boolean);
-  const white = { r: 255, g: 255, b: 255 };
-  const black = { r: 0, g: 0, b: 0 };
+
+  // LED-friendly: cycling only via brightness is often hard to notice.
+  // Add a small warm-analog hue nudge plus light/dark so the motion is visible but not complementary.
+  const hsl = rgbToHsl(base);
   const s = clamp01(strength);
-  const light = mixRgb(base, white, s);
-  const dark = mixRgb(base, black, s);
-  // Keep base in the middle so the cycle feels subtle.
-  return [rgbToHex(dark), rgbToHex(base), rgbToHex(light)];
+  const warmHue = clampHueDelta(hsl.h, 55, 22);
+  const coolHue = clampHueDelta(hsl.h, 210, 18);
+
+  const baseS = Math.min(1, Math.max(0.2, hsl.s));
+  const baseL = Math.min(0.8, Math.max(0.42, hsl.l));
+  const warm = rgbToHex(hslToRgb({ h: warmHue, s: Math.min(1, baseS + 0.08), l: Math.min(0.82, baseL + 0.10 * s) }));
+  const cool = rgbToHex(hslToRgb({ h: coolHue, s: Math.min(1, baseS + 0.05), l: Math.max(0.38, baseL - 0.06 * s) }));
+  const mid = rgbToHex(hslToRgb({ h: hsl.h, s: baseS, l: baseL }));
+
+  return [cool, mid, warm];
 }
 
 async function resolveLightIdsSorted({ configOverride }) {
@@ -224,6 +339,11 @@ async function tv2GradientTick(genAtStart) {
     const waveMin = clampInt(cfg.waveMinDelayMs || 60, 0, 2000);
     const waveMax = clampInt(cfg.waveMaxDelayMs || 240, waveMin, 5000);
     const cycleStrength = Number(cfg.cycleStrength != null ? cfg.cycleStrength : 0.08);
+    const blinkEnabled = cfg.blinkEnabled !== false; // default true
+    const blinkProbability = clamp01(cfg.blinkProbability != null ? cfg.blinkProbability : 0.35);
+    const blinkOffMs = clampInt(cfg.blinkOffMs != null ? cfg.blinkOffMs : 140, 40, 800);
+    const blinkMinIntervalMs = clampInt(cfg.blinkMinIntervalMs != null ? cfg.blinkMinIntervalMs : 3000, 500, 30_000);
+    cfg._lastBlinkAtById = cfg._lastBlinkAtById || {};
 
     // Precompute per-bulb target color (spread + weak cycle).
     const perBulb = ids.map((id, idx) => {
@@ -248,6 +368,19 @@ async function tv2GradientTick(genAtStart) {
       const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
       // eslint-disable-next-line no-await-in-loop
       await sleep(jitter);
+
+      // Optional blink to make the change visible on LED bulbs.
+      // Keep it gentle: only some bulbs, short off, and rate-limited per bulb.
+      if (blinkEnabled && Math.random() < blinkProbability) {
+        const lastBlinkAt = Number(cfg._lastBlinkAtById[id] || 0);
+        if (!lastBlinkAt || now - lastBlinkAt >= blinkMinIntervalMs) {
+          cfg._lastBlinkAtById[id] = now;
+          // eslint-disable-next-line no-await-in-loop
+          await setLightOnOff(false, { configOverride: cfg.configOverride, targets: { lightIds: [id], groupId: undefined } });
+          // eslint-disable-next-line no-await-in-loop
+          await sleep(blinkOffMs);
+        }
+      }
       // eslint-disable-next-line no-await-in-loop
       await setLightColor({
         color: hex,
@@ -272,6 +405,10 @@ async function startTv2GradientLoop({
   waveMinDelayMs,
   waveMaxDelayMs,
   cycleStrength,
+  blinkEnabled,
+  blinkProbability,
+  blinkOffMs,
+  blinkMinIntervalMs,
 }) {
   stopTv2GradientLoop();
 
@@ -288,6 +425,8 @@ async function startTv2GradientLoop({
     return { ok: false, error: "At least 2 valid hex stops are required" };
   }
 
+  const enhancedStops = enhanceStopsForVisibility(cleanStops);
+
   const tick = clampInt(tickMs || 2000, 500, 30_000);
   const gen = tv2GradientLoop.gen + 1;
 
@@ -299,13 +438,19 @@ async function startTv2GradientLoop({
     config: {
       configOverride,
       lightIds: ids,
-      stops: cleanStops,
+      stops: enhancedStops,
       tickMs: tick,
       periodMs: periodMs != null ? clampInt(periodMs, tick, 120_000) : Math.max(6000, tick * 3),
       brightness: brightness != null ? clampInt(brightness, 1, 254) : undefined,
       waveMinDelayMs: waveMinDelayMs != null ? clampInt(waveMinDelayMs, 0, 5000) : 60,
       waveMaxDelayMs: waveMaxDelayMs != null ? clampInt(waveMaxDelayMs, 0, 8000) : 240,
-      cycleStrength: cycleStrength != null ? Number(cycleStrength) : 0.08,
+      // Slightly stronger by default so changes are actually visible on LED strips/bulbs.
+      cycleStrength: cycleStrength != null ? Number(cycleStrength) : 0.18,
+      // Blink settings (TV2-only, for visibility)
+      blinkEnabled: blinkEnabled != null ? Boolean(blinkEnabled) : true,
+      blinkProbability: blinkProbability != null ? Number(blinkProbability) : 0.35,
+      blinkOffMs: blinkOffMs != null ? Number(blinkOffMs) : 140,
+      blinkMinIntervalMs: blinkMinIntervalMs != null ? Number(blinkMinIntervalMs) : 3000,
     },
   };
 
@@ -508,6 +653,10 @@ export default async function handler(req, res) {
           waveMinDelayMs: req.body?.waveMinDelayMs,
           waveMaxDelayMs: req.body?.waveMaxDelayMs,
           cycleStrength: req.body?.cycleStrength,
+          blinkEnabled: req.body?.blinkEnabled,
+          blinkProbability: req.body?.blinkProbability,
+          blinkOffMs: req.body?.blinkOffMs,
+          blinkMinIntervalMs: req.body?.blinkMinIntervalMs,
         });
         break;
       }
