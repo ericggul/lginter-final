@@ -30,12 +30,15 @@ export default function LightTestPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      const statusCode = response.status;
       const data = await response.json();
-      console.log("body and data", {body, data});
+      console.log("body and data", { body, statusCode, data });
 
       
       if (data.disabled) {
         setStatus("Hue 비활성화 상태입니다. .env 설정을 확인하세요.");
+      } else if (statusCode === 401) {
+        setStatus(data?.hint || "Unauthorized (401). Render env에서 HUE_CONTROL_TOKEN/PROXY 설정을 확인하세요.");
       } else if (!data.ok) {
         setStatus(data.error || "명령 실행 실패");
       } else {

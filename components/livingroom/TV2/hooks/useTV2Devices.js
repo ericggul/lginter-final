@@ -47,6 +47,7 @@ function postDeviceCommand(deviceType, payload) {
 
 export function useTV2Devices(env) {
   const lastHueSyncedColorRef = useRef('');
+  const lastHueSyncedAtRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -85,13 +86,19 @@ export function useTV2Devices(env) {
       postDeviceCommand('airpurifierfan', { mode: 'AUTO' });
     }
     // --- Hue sync (lighting) ---
-    if (HEX_COLOR_RE.test(hexColor) && hexColor !== lastHueSyncedColorRef.current) {
+    // Drive physical Hue lights from the *decision* color (env.lightColor).
+    // Debounce to avoid spamming if TV2 re-renders rapidly.
+    const now = Date.now();
+    const tooSoon = now - (lastHueSyncedAtRef.current || 0) < 700;
+    if (HEX_COLOR_RE.test(hexColor) && hexColor !== lastHueSyncedColorRef.current && !tooSoon) {
       lastHueSyncedColorRef.current = hexColor;
+      lastHueSyncedAtRef.current = now;
       try {
         fetch('/api/lighttest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'color', color: hexColor }),
+          // Mark this request as coming from TV2 so the API can apply TV2-only behavior (wave timing).
+          body: JSON.stringify({ action: 'color', color: hexColor, source: 'tv2' }),
           keepalive: true,
         }).catch(() => {});
       } catch {}

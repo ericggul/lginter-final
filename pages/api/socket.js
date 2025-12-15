@@ -19,6 +19,9 @@ import { MobileNewUser, MobileNewName, MobileNewVoice, ControllerDecision, Devic
 import { EV } from "../../src/core/events";
 import { STAGES, DURATIONS, buildStagePayload, createTimelineScheduler } from "../../src/core/timeline";
 import { initHue, setLightColor, isHueEnabled } from "../../lib/hue/hueClient-old";
+import { getHueStateAverageHex } from "../../lib/hue/hueClient";
+import { MUSIC_CATALOG } from "../../utils/data/musicCatalog";
+import { getAlbumNumberByTrackName, getAlbumByNumber } from "../../utils/data/albumData";
 
 // Utils: convert incoming color (hex/rgb/hsl) to hsl(h, s%, l%) for Hue application
 function clamp(n, min, max) {
@@ -135,6 +138,65 @@ function toEmotionKeyword(input) {
   return original;
 }
 
+function normalizeDecisionMusicId(music) {
+  const raw = String(music || '').trim();
+  if (!raw) return 'happy-alley';
+  // If already a catalog id, keep it
+  const ids = new Set(MUSIC_CATALOG.map((m) => String(m.id)));
+  if (ids.has(raw)) return raw;
+
+  // Reject generic placeholders
+  if (raw === 'ambient' || raw === 'neutral') return 'happy-alley';
+
+  // Try mapping from human-readable track name to album number -> catalog id
+  try {
+    const n = getAlbumNumberByTrackName(raw);
+    const data = n ? getAlbumByNumber(n) : null;
+    const id = data?.catalogId ? String(data.catalogId) : '';
+    if (id && ids.has(id)) return id;
+  } catch {}
+
+  // Final fallback
+  return 'happy-alley';
+}
+
+function normalizedLenNoSpace(input) {
+  const s = String(input || '').replace(/\s+/g, '');
+  return s.length;
+}
+
+// Convert canonical keywords to colloquial (구어체) emotion words
+function toColloquialEmotion(keyword) {
+  const k = String(keyword || '').trim();
+  if (!k) return '중립';
+  const map = {
+    // core emotions
+    '기쁨': '기뻐',
+    '슬픔': '슬퍼',
+    '불안': '불안해',
+    '분노': '화나',
+    '짜증': '짜증나',
+    '피곤': '피곤해',
+    '무기력': '힘없어',
+    '자기확신': '자신있어',
+    // mood/quality
+    '상쾌함': '상쾌해',
+    '맑음': '맑아',
+    '지루': '심심해',
+    '답답': '답답해',
+    '차분': '차분해',
+    '집중': '집중돼',
+    // physical
+    '더위': '더워',
+    '추위': '추워',
+    '건조': '건조해',
+    '습함': '습해',
+    // neutral
+    '중립': '중립',
+  };
+  return map[k] || k;
+}
+
 export const config = {
   api: { bodyParser: false },
 };
@@ -175,6 +237,29 @@ export default function handler(req, res) {
   const emitDeviceDecision = (payload) => {
     io.to("livingroom").emit(EV.DEVICE_DECISION, payload);
     io.to("livingroom").emit(EV.DEVICE_NEW_DECISION, payload); // backward-compat
+  };
+
+  // --- Hue state broadcaster (TV2 uses this to display actual Hue average color) ---
+  io.__hueState = io.__hueState || { last: null, inFlight: null };
+  const broadcastHueState = async (opts = {}) => {
+    const { socket } = opts || {};
+    if (io.__hueState.inFlight) return io.__hueState.inFlight;
+    io.__hueState.inFlight = (async () => {
+      try {
+        const state = await getHueStateAverageHex();
+        if (state?.ok) {
+          io.__hueState.last = state;
+          io.to("livingroom").emit("hue-state", state);
+          if (socket) socket.emit("hue-state", state);
+        }
+        return state;
+      } catch (e) {
+        return { ok: false, error: e?.message || String(e) };
+      } finally {
+        io.__hueState.inFlight = null;
+      }
+    })();
+    return io.__hueState.inFlight;
   };
 
   // periodic GC for TTL idempotency map
@@ -219,7 +304,14 @@ export default function handler(req, res) {
     socket.on("tv1-init", () => socket.join("entrance"));
     socket.on("sw1-init", () => socket.join("livingroom"));
     socket.on("sw2-init", () => socket.join("livingroom"));
-    socket.on("tv2-init", () => socket.join("livingroom"));
+    socket.on("tv2-init", async () => {
+      socket.join("livingroom");
+      if (io.__hueState?.last) {
+        socket.emit("hue-state", io.__hueState.last);
+      } else {
+        await broadcastHueState({ socket }).catch(() => {});
+      }
+    });
 
     // Global orchestrator timeout: controller asks all displays to soft-reset.
     socket.on(EV.ORCHESTRATOR_TIMEOUT, (raw) => {
@@ -286,10 +378,18 @@ export default function handler(req, res) {
       const keyword = toEmotionKeyword(originalText);
       console.log("🎤 Original text:", originalText, "→ Mapped keyword:", keyword);
       
-      // Entrance & LivingRoom: 원본 텍스트를 우선 사용 (TV1에서 그라데이션 매칭을 위해)
-      // 매핑된 키워드가 "중립"이거나 원본과 다르면 원본 텍스트 사용
-      const finalText = (keyword === '중립' || !keyword || keyword === originalText) ? originalText : keyword;
-      console.log("🎤 Final text to send:", finalText, "(original:", originalText, ", keyword:", keyword, ")");
+      // Entrance: 너무 긴 문장은 노출하지 않고(5자 이상), 구어체 감정 단어로 변환
+      const isLong = normalizedLenNoSpace(originalText) >= 5;
+      let finalText;
+      if (isLong) {
+        const base = (keyword && keyword !== '중립') ? keyword : '복잡해';
+        const colloq = toColloquialEmotion(base);
+        finalText = (colloq && colloq !== '중립') ? colloq : '복잡해';
+      } else {
+        // 짧은 입력은 기존 동작 유지: 매핑된 키워드가 유의미하면 키워드, 아니면 원문
+        finalText = (keyword === '중립' || !keyword || keyword === originalText) ? originalText : keyword;
+      }
+      console.log("🎤 Final text to send:", finalText, "(original:", originalText, ", keyword:", keyword, ", long:", isLong, ")");
       
       io.to("entrance").emit("entrance-new-voice", { 
         userId: payload.userId, 
@@ -356,23 +456,23 @@ export default function handler(req, res) {
       const decisionId = d.id;
 
       // Update deviceState snapshots
-      // TV2: 개인 디시전만 사용 (폴백 제거). 개인 결과가 없으면 TV2 업데이트/전송을 수행하지 않는다.
-      const tv2Env = personal
-        ? { temp: personal.temp, humidity: personal.humidity, lightColor: personal.lightColor, music: personal.music }
-        : null;
-      
-      if (tv2Env) {
-        console.log('📤 Sending to TV2:', { tv2Env, decisionId, userId: payload.userId });
-      } else {
-        console.warn('⚠️ TV2 env is null - personal decision missing');
-      }
+      // TV2: 온도/습도는 무조건 오케스트레이션(aggregated) 값 사용 (SW1과 동일해야 함)
+      //      조명/음악은 개인 결과가 있으면 개인을 우선(없으면 params/aggregated로 폴백)
+      const tv2Env = {
+        temp: aggregatedEnv.temp,
+        humidity: aggregatedEnv.humidity,
+        lightColor: personal?.lightColor || aggregatedEnv.lightColor,
+        music: normalizeDecisionMusicId(personal?.music || payload.params?.music || aggregatedEnv.music),
+      };
+      console.log('📤 Sending to TV2:', { tv2Env, decisionId, userId: payload.userId });
+
       // SW1: keep aggregated climate
       const sw1Env = { temp: aggregatedEnv.temp, humidity: aggregatedEnv.humidity };
       // SW2: 개인 디시전만 사용 (폴백 제거). 개인 결과가 없으면 SW2 업데이트/전송을 수행하지 않는다.
       const sw2Env = personal
         ? { lightColor: personal.lightColor, music: personal.music }
         : null;
-      if (tv2Env) updateDeviceApplied('tv2', tv2Env, decisionId);
+      updateDeviceApplied('tv2', tv2Env, decisionId);
       updateDeviceApplied('sw1', sw1Env, decisionId);
       // SW2는 5초 지연 전환을 위해 updateDeviceApplied를 emit 시점에 수행합니다.
       
@@ -386,16 +486,14 @@ export default function handler(req, res) {
       }, DURATIONS.T4_TO_T5_MS);
 
       // split fan-out
-      if (tv2Env) {
-        emitDeviceDecision({
-          target: 'tv2',
-          env: tv2Env,
-          reason: payload.reason,
-          emotionKeyword: payload.emotionKeyword,
-          decisionId,
-          mergedFrom: [payload.userId],
-        });
-      }
+      emitDeviceDecision({
+        target: 'tv2',
+        env: tv2Env,
+        reason: payload.reason,
+        emotionKeyword: payload.emotionKeyword,
+        decisionId,
+        mergedFrom: [payload.userId],
+      });
       // SW1/SW2: 개인 결과(최대 4명)를 함께 전달(프론트는 선택적으로 사용)
       const individuals = [];
       // 0) Always seed current user's personal result if provided
@@ -539,6 +637,9 @@ export default function handler(req, res) {
           };
           io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
           io.to("controller").emit(EV.LIGHT_APPLIED, ack);
+          if (result?.ok) {
+            await broadcastHueState().catch(() => {});
+          }
         }
       } catch (e) {
         console.warn("❌ Hue apply (controller-new-decision) failed:", e?.message || e);
@@ -570,6 +671,9 @@ export default function handler(req, res) {
         const ack = { source: "sw2", ...payload, color: hslColor, ok: !!result?.ok, applied: !!result?.applied, error: result?.error };
         io.to("livingroom").emit(EV.LIGHT_APPLIED, ack);
         io.to("controller").emit(EV.LIGHT_APPLIED, ack);
+        if (result?.ok) {
+          await broadcastHueState().catch(() => {});
+        }
       } catch (e) {
         console.warn("❌ Hue apply (sw2-light-color) failed:", e?.message || e);
         io.to("livingroom").emit(EV.LIGHT_APPLIED, { source: "sw2", ...payload, ok: false, applied: false, error: e?.message || String(e) });

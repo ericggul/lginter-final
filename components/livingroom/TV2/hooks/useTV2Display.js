@@ -71,7 +71,10 @@ export function useTV2DisplayLogic({
   levaControls,
   audioRef,
 }) {
-  const hexColor = (env?.lightColor || '').toUpperCase();
+  // "lightColor" is the *decision/intended* color.
+  // "hueHex" is the *actual Hue average* color pushed from server ("hue-state").
+  // Use hueHex when available so the top panel reflects real Hue lights.
+  const hexColor = (env?.hueHex || env?.lightColor || '').toUpperCase();
   // AI가 준 emotionKeyword를 기반으로, 컬러명이 아니라 "무드" 이름을 우선 노출
   const moodLabel = useMemo(() => {
     const base = (emotionKeyword || '').trim();
@@ -193,6 +196,11 @@ export function useTV2DisplayLogic({
   const [showHumidityLoading, setShowHumidityLoading] = useState(true);
   const [showHeaderLoading, setShowHeaderLoading] = useState(true);
   const [displayTemp, setDisplayTemp] = useState('');
+  // 우측 블롭(온도 컬러)은 SW1처럼 "표시 타이밍(T5)"에 맞춰서만 갱신되도록,
+  // 로딩 중에는 이전 값을 유지하는 별도 숫자 상태를 둔다.
+  const [displayTempC, setDisplayTempC] = useState(
+    typeof env?.temp === 'number' ? env.temp : 24
+  );
   const [displayHumidity, setDisplayHumidity] = useState('');
   const [displayTempLabel, setDisplayTempLabel] = useState('');
   const [displayHumidityLabel, setDisplayHumidityLabel] = useState('');
@@ -369,6 +377,7 @@ export function useTV2DisplayLogic({
       if (motionStateRef.current === 'T5') {
         setShowTempLoading(false);
         setDisplayTemp(`${newTemp}°C`);
+        setDisplayTempC(newTemp);
         setDisplayTempLabel(label);
       } else {
         setTimeout(checkT5, 100);
@@ -565,6 +574,33 @@ export function useTV2DisplayLogic({
         } else {
           audioContext = new AudioContextClass();
           audioContextRef.current = audioContext;
+        }
+
+        // IMPORTANT:
+        // Many browsers keep AudioContext in 'suspended' until a user gesture.
+        // If we create a MediaElementSource while suspended and route to destination,
+        // it can result in "no sound" even though the <audio> element is autoplaying.
+        // So: only attach WebAudio pipeline when AudioContext is actually running.
+        if (audioContext.state !== 'running') {
+          try {
+            await audioContext.resume();
+          } catch {}
+        }
+
+        if (audioContext.state !== 'running') {
+          // Keep plain HTMLMediaElement output (sound) and retry wiring on first gesture.
+          const retry = () => {
+            try {
+              initAudio();
+            } catch {}
+          };
+          window.addEventListener('pointerdown', retry, { once: true });
+          window.addEventListener('keydown', retry, { once: true });
+          window.addEventListener('touchstart', retry, { once: true, passive: true });
+          try {
+            await audioRef.current.play();
+          } catch {}
+          return;
         }
 
         analyser = audioContext.createAnalyser();
@@ -953,7 +989,8 @@ export function useTV2DisplayLogic({
   if (baseSweepHsl) {
     const { h, s, l } = baseSweepHsl;
     const mainL = Math.min(96, l + 10);
-    const mainS = Math.max(5, Math.min(100, s - 8));
+    // 조명 패널 스윕은 너무 쨍하지 않도록 채도를 더 낮춤
+    const mainS = Math.max(5, Math.min(100, s - 18));
     headerSweepMainColor = hsla(h, mainS, mainL, levaControls?.headerGradientOpacity || 0.95);
   }
 
@@ -983,7 +1020,7 @@ export function useTV2DisplayLogic({
     rightCircleColor2Base,
     levaControls?.rightCircleColor2Opacity || 0.69,
   );
-  const tempC = typeof env?.temp === 'number' ? env.temp : 24;
+  const tempC = typeof displayTempC === 'number' ? displayTempC : 24;
   const warmHue = computeMiniWarmHue(tempC);
   const tempBasedColor3 = toHslaSW1(
     warmHue,
