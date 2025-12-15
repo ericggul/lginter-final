@@ -45,9 +45,23 @@ function postDeviceCommand(deviceType, payload) {
   }
 }
 
-export function useTV2Devices(env) {
+function normalizeHexStops(stops) {
+  const out = [];
+  const seen = new Set();
+  (stops || []).forEach((h) => {
+    const s = String(h || '').trim().toUpperCase();
+    if (!HEX_COLOR_RE.test(s)) return;
+    if (seen.has(s)) return;
+    seen.add(s);
+    out.push(s);
+  });
+  return out;
+}
+
+export function useTV2Devices(env, options = {}) {
   const lastHueSyncedColorRef = useRef('');
   const lastHueSyncedAtRef = useRef(0);
+  const lastHueGradientKeyRef = useRef('');
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -59,11 +73,14 @@ export function useTV2Devices(env) {
       temp: env?.temp,
       humidity: env?.humidity,
       lightColor: env?.lightColor,
+      decisionToken: options?.decisionToken,
     });
 
     const temp = toNumberOrNull(env?.temp);
     const humidity = toNumberOrNull(env?.humidity);
     const hexColor = (env?.lightColor || '').toUpperCase();
+    const hueGradientStops = normalizeHexStops(options?.hueGradientStops);
+    const hueGradientKey = hueGradientStops.join('|');
 
     // --- Air conditioner (temperature control) ---
     // Always drive to ON + mode + env temp (one param per request).
@@ -86,10 +103,42 @@ export function useTV2Devices(env) {
       postDeviceCommand('airpurifierfan', { mode: 'AUTO' });
     }
     // --- Hue sync (lighting) ---
-    // Drive physical Hue lights from the *decision* color (env.lightColor).
+    // Drive physical Hue lights from the TV2 top-panel gradient (stops).
     // Debounce to avoid spamming if TV2 re-renders rapidly.
     const now = Date.now();
     const tooSoon = now - (lastHueSyncedAtRef.current || 0) < 700;
+
+    // Prefer sending gradient stops when available (continuous hybrid mode).
+    // Fall back to single color when stops are missing.
+    if (hueGradientStops.length >= 3) {
+      const changed = hueGradientKey && hueGradientKey !== lastHueGradientKeyRef.current;
+      const tokenBump = options?.decisionToken && options?.decisionToken !== 0;
+      if ((changed || tokenBump) && !tooSoon) {
+        lastHueGradientKeyRef.current = hueGradientKey;
+        lastHueSyncedAtRef.current = now;
+        try {
+          fetch('/api/lighttest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'gradient',
+              source: 'tv2',
+              mode: 'hybrid',
+              continuous: true,
+              // Use top-panel gradient colors
+              stops: hueGradientStops,
+              // Optional tuning knobs (server has defaults)
+              tickMs: 2000,
+              waveMinDelayMs: 60,
+              waveMaxDelayMs: 240,
+            }),
+            keepalive: true,
+          }).catch(() => {});
+        } catch {}
+      }
+      return;
+    }
+
     if (HEX_COLOR_RE.test(hexColor) && hexColor !== lastHueSyncedColorRef.current && !tooSoon) {
       lastHueSyncedColorRef.current = hexColor;
       lastHueSyncedAtRef.current = now;
@@ -97,14 +146,13 @@ export function useTV2Devices(env) {
         fetch('/api/lighttest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          // Mark this request as coming from TV2 so the API can apply TV2-only behavior (wave timing).
           body: JSON.stringify({ action: 'color', color: hexColor, source: 'tv2' }),
           keepalive: true,
         }).catch(() => {});
       } catch {}
     }
 
-  }, [env?.temp, env?.humidity, env?.lightColor]);
+  }, [env?.temp, env?.humidity, env?.lightColor, options?.decisionToken, options?.hueGradientStops]);
 }
 
 

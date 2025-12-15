@@ -19,6 +19,59 @@ import { computeCoverScale } from '../logic/scale';
 import { computeWaveformFromAnalyser } from '../logic/waveform';
 import { useTV2Devices } from './useTV2Devices';
 
+function clamp01(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(1, v));
+}
+
+function hslToRgb(h, s, l) {
+  // h: 0..360, s/l: 0..1
+  const hh = ((Number(h) % 360) + 360) % 360;
+  const ss = clamp01(s);
+  const ll = clamp01(l);
+
+  const c = (1 - Math.abs(2 * ll - 1)) * ss;
+  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+  const m = ll - c / 2;
+
+  let r1 = 0, g1 = 0, b1 = 0;
+  if (hh < 60) { r1 = c; g1 = x; b1 = 0; }
+  else if (hh < 120) { r1 = x; g1 = c; b1 = 0; }
+  else if (hh < 180) { r1 = 0; g1 = c; b1 = x; }
+  else if (hh < 240) { r1 = 0; g1 = x; b1 = c; }
+  else if (hh < 300) { r1 = x; g1 = 0; b1 = c; }
+  else { r1 = c; g1 = 0; b1 = x; }
+
+  const to255 = (v) => Math.round(clamp01(v + m) * 255);
+  return { r: to255(r1), g: to255(g1), b: to255(b1) };
+}
+
+function rgbToHex(r, g, b) {
+  const to2 = (n) => Math.max(0, Math.min(255, Number(n) || 0)).toString(16).padStart(2, '0');
+  return `#${to2(r)}${to2(g)}${to2(b)}`.toUpperCase();
+}
+
+function cssColorToHex(color) {
+  const s = String(color || '').trim();
+  if (!s) return '';
+  const mRgb = /^rgba?\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)(?:\s*,\s*([+-]?\d+(?:\.\d+)?))?\s*\)$/i.exec(s);
+  if (mRgb) {
+    return rgbToHex(Math.round(Number(mRgb[1])), Math.round(Number(mRgb[2])), Math.round(Number(mRgb[3])));
+  }
+  const mHsl = /^hsla?\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*(?:,\s*([+-]?\d+(?:\.\d+)?|\.\d+)\s*)?\)$/i.exec(s);
+  if (mHsl) {
+    const h = Number(mHsl[1]);
+    const sat = Number(mHsl[2]) / 100;
+    const lig = Number(mHsl[3]) / 100;
+    const { r, g, b } = hslToRgb(h, sat, lig);
+    return rgbToHex(r, g, b);
+  }
+  const mHex = /^#?([0-9a-f]{6})$/i.exec(s);
+  if (mHex) return `#${mHex[1]}`.toUpperCase();
+  return '';
+}
+
 const HEADER_WARM_MOODS = [
   '따뜻한 무드',
   '포근한 무드',
@@ -114,7 +167,26 @@ export function useTV2DisplayLogic({
   const isIdle = !title && !artist && !coverSrc && (!env || env.music === 'ambient');
 
   // Device control (AC / purifier fan) based on env temp/humidity targets.
-  useTV2Devices(env);
+  const hueGradientStops = useMemo(() => {
+    const a = [
+      cssColorToHex(headerGradientStartRgba),
+      cssColorToHex(headerGradientMidRgba),
+      cssColorToHex(headerGradientEndRgba),
+    ].filter(Boolean);
+    // De-dupe while preserving order
+    const out = [];
+    const seen = new Set();
+    a.forEach((h) => {
+      const key = String(h || '').toUpperCase();
+      if (!key) return;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(key);
+    });
+    return out;
+  }, [headerGradientStartRgba, headerGradientMidRgba, headerGradientEndRgba]);
+
+  useTV2Devices(env, { decisionToken, hueGradientStops });
 
   // T3/T4/T5 Motion State Management
   // T3: Input exists but no decision yet (default waiting)
