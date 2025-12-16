@@ -327,11 +327,22 @@ export default function handler(req, res) {
     });
 
     // Hard reset: controller can force all display pages to reload
-    socket.on(EV.HARD_RESET, () => {
-      const payload = { ts: Date.now(), source: "controller-hard-reset" };
+    socket.on(EV.HARD_RESET, (raw, ack) => {
+      const ts = Date.now();
+      const payload = {
+        uuid: raw?.uuid || `hard-reset-${ts}`,
+        ts,
+        source: raw?.source || "controller-hard-reset",
+      };
       io.to("livingroom").emit(EV.HARD_RESET, payload);
       io.to("entrance").emit(EV.HARD_RESET, payload);
       io.to("controller").emit(EV.HARD_RESET, payload);
+      // ACK for reliability (controller can retry if not acknowledged)
+      try {
+        if (typeof ack === "function") {
+          ack({ ok: true, ts: payload.ts, uuid: payload.uuid, rooms: ["livingroom", "entrance", "controller"] });
+        }
+      } catch {}
     });
 
     // Mobile events - forward to Controller; entrance mirrors for user/name

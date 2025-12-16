@@ -51,8 +51,19 @@ export default function ControllerView() {
   const users = snapshot.users || [];
   const assignments = snapshot.assignments || {};
   const lastDecision = snapshot.lastDecision || null;
-  const handleHardReset = () => {
-    sockets.emit?.(EV.HARD_RESET, { ts: Date.now(), source: 'controller' });
+  const [hardResetBusy, setHardResetBusy] = useState(false);
+  const handleHardReset = async () => {
+    if (hardResetBusy) return;
+    setHardResetBusy(true);
+    try {
+      const result = await sockets.hardResetAll?.();
+      // keep console log for debugging in production
+      console.log('[controller] hard reset result', result);
+    } catch (e) {
+      console.warn('[controller] hard reset failed', e?.message || e);
+    } finally {
+      setHardResetBusy(false);
+    }
   };
 
   useDevicePowerSync(users?.length || 0);
@@ -65,7 +76,7 @@ export default function ControllerView() {
             <UserCountLabel>서버에 입장한<br />사람의 수</UserCountLabel>
             <UserCountValue>{users.length}</UserCountValue>
           </UserCountCard>
-          <HardResetButton onClick={handleHardReset}>
+          <HardResetButton onClick={handleHardReset} disabled={hardResetBusy}>
             하드 리셋
             <br />
             (전체 새로고침)

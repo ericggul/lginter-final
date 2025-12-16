@@ -181,11 +181,11 @@ export function useSW2Logic() {
     clearStageTimers();
 
     if (timelineState === 't3') {
-      const ms = TIMELINE_STATES.t3.entryToCenterMs || 4500;
-      stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), ms);
+      // 딜레이 없이 즉시 전환
+      stageTimersRef.current.t4 = setTimeout(() => requestStage('t4'), 0);
     } else if (timelineState === 't4') {
-      const ms = TIMELINE_STATES.t4.mergeMs || 2600;
-      stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), ms);
+      // 딜레이 없이 즉시 전환
+      stageTimersRef.current.t5 = setTimeout(() => requestStage('t5'), 0);
     }
   }, [timelineState, clearStageTimers, requestStage]);
 

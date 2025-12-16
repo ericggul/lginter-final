@@ -243,22 +243,17 @@ export function useTV2DisplayLogic({
     );
     if (!hasInput) return;
 
-    setMotionState('T4');
-    motionStateRef.current = 'T4';
+    // 요구사항: 딜레이 없이 "결정이 정해지는 즉시" 값이 노출되어야 함.
+    // 따라서 T4 연출을 건너뛰고 바로 T5로 진입한다.
+    setMotionState('T5');
+    motionStateRef.current = 'T5';
     setDecisionKey((prev) => prev + 1);
 
     // 상단 전체 테두리 플래시
     setShowBorderFlash(true);
     const flashTimer = setTimeout(() => setShowBorderFlash(false), 400);
 
-    // 6초 뒤 T5 진입 (정보가 약 6초 딜레이 후 한 번에 뜨도록)
-    const t5Timer = setTimeout(() => {
-      setMotionState('T5');
-      motionStateRef.current = 'T5';
-    }, 6000);
-
     return () => {
-      clearTimeout(t5Timer);
       clearTimeout(flashTimer);
     };
   }, [decisionToken, env]);
@@ -337,11 +332,12 @@ export function useTV2DisplayLogic({
     const coverChanged = newCover !== coverChangeRef.current;
 
     if (titleChanged || artistChanged || coverChanged) {
-      setShowTitleLoading(true);
-      setShowArtistLoading(true);
-      setShowAlbumCover(false);
-      setDisplayTitle('');
-      setDisplayArtist('');
+      // 즉시 반영: 로딩 상태를 사용하지 않는다.
+      setShowTitleLoading(false);
+      setShowArtistLoading(false);
+      setShowAlbumCover(!!newCover);
+      setDisplayTitle(newTitle);
+      setDisplayArtist(newArtist);
 
       setShowChangeMessage(true);
       const messageTimer = setTimeout(() => {
@@ -351,32 +347,6 @@ export function useTV2DisplayLogic({
       titleChangeRef.current = newTitle;
       artistChangeRef.current = newArtist;
       coverChangeRef.current = newCover;
-
-      // Wait for T5 state before showing content (T4 keeps '...' 동안 대기)
-      const checkT5 = () => {
-        if (motionStateRef.current === 'T5') {
-          setShowTitleLoading(false);
-          setShowArtistLoading(false);
-          setShowAlbumCover(true);
-          setDisplayTitle(newTitle);
-          setDisplayArtist(newArtist);
-        } else {
-          // If still in T4, wait a bit more
-          setTimeout(checkT5, 100);
-        }
-      };
-
-      // If already in T5, show immediately. Otherwise 약 6초 뒤에 T5를 체크
-      if (motionStateRef.current === 'T5') {
-        // Already in T5, show immediately
-        checkT5();
-      } else {
-        const timer = setTimeout(checkT5, 6000);
-        return () => {
-          clearTimeout(timer);
-          clearTimeout(messageTimer);
-        };
-      }
 
       return () => {
         clearTimeout(messageTimer);
@@ -403,24 +373,8 @@ export function useTV2DisplayLogic({
 
     if (changed) {
       reasonChangeRef.current = newReason;
-      setShowReasonLoading(true);
-      setDisplayReason('');
-
-      const checkT5 = () => {
-        if (motionStateRef.current === 'T5') {
-          setShowReasonLoading(false);
-          setDisplayReason(newReason);
-        } else {
-          setTimeout(checkT5, 100);
-        }
-      };
-
-      if (motionStateRef.current === 'T5') {
-        checkT5();
-      } else {
-        const timer = setTimeout(checkT5, 6000);
-        return () => clearTimeout(timer);
-      }
+      setShowReasonLoading(false);
+      setDisplayReason(newReason);
     } else if (!newReason) {
       setShowReasonLoading(true);
       setDisplayReason('');
@@ -440,9 +394,8 @@ export function useTV2DisplayLogic({
     tempChangeRef.current = newTemp;
     tempDecisionKeyRef.current = decisionKey;
 
-    setShowTempLoading(true);
-    setDisplayTemp('');
-    setDisplayTempLabel('');
+    // 즉시 반영
+    setShowTempLoading(false);
 
     setShowChangeMessage(true);
     const messageTimer = setTimeout(() => {
@@ -450,21 +403,10 @@ export function useTV2DisplayLogic({
     }, 3000);
 
     const label = classifyTempLabel(newTemp);
-    const checkT5 = () => {
-      if (motionStateRef.current === 'T5') {
-        setShowTempLoading(false);
-        setDisplayTemp(`${newTemp}°C`);
-        setDisplayTempC(newTemp);
-        setDisplayTempLabel(label);
-      } else {
-        setTimeout(checkT5, 100);
-      }
-    };
-
-    const timer = setTimeout(checkT5, 6000);
-
+    setDisplayTemp(`${newTemp}°C`);
+    setDisplayTempC(newTemp);
+    setDisplayTempLabel(label);
     return () => {
-      clearTimeout(timer);
       clearTimeout(messageTimer);
     };
   }, [env?.temp, decisionKey]);
@@ -481,9 +423,8 @@ export function useTV2DisplayLogic({
     humidityChangeRef.current = newHumidity;
     humidityDecisionKeyRef.current = decisionKey;
 
-    setShowHumidityLoading(true);
-    setDisplayHumidity('');
-    setDisplayHumidityLabel('');
+    // 즉시 반영
+    setShowHumidityLoading(false);
 
     setShowChangeMessage(true);
     const messageTimer = setTimeout(() => {
@@ -491,20 +432,9 @@ export function useTV2DisplayLogic({
     }, 3000);
 
     const label = classifyHumidityLabel(newHumidity);
-    const checkT5 = () => {
-      if (motionStateRef.current === 'T5') {
-        setShowHumidityLoading(false);
-        setDisplayHumidity(`${newHumidity}%`);
-        setDisplayHumidityLabel(label);
-      } else {
-        setTimeout(checkT5, 100);
-      }
-    };
-
-    const timer = setTimeout(checkT5, 6000);
-
+    setDisplayHumidity(`${newHumidity}%`);
+    setDisplayHumidityLabel(label);
     return () => {
-      clearTimeout(timer);
       clearTimeout(messageTimer);
     };
   }, [env?.humidity, decisionKey]);
@@ -516,43 +446,23 @@ export function useTV2DisplayLogic({
 
     if (headerChanged && newHeaderText) {
       headerChangeRef.current = newHeaderText;
-      setShowHeaderLoading(true);
-      setDisplayHeaderText('');
+      // 즉시 반영
+      setShowHeaderLoading(false);
+      setDisplayHeaderText(newHeaderText);
 
       setShowChangeMessage(true);
       const messageTimer = setTimeout(() => {
         setShowChangeMessage(false);
       }, 3000);
-
-      const checkT5 = () => {
-        if (motionStateRef.current === 'T5') {
-          setShowHeaderLoading(false);
-          setDisplayHeaderText(newHeaderText);
-        } else {
-          setTimeout(checkT5, 100);
-        }
-      };
-
-      const timer = setTimeout(checkT5, 6000);
-
       return () => {
-        clearTimeout(timer);
         clearTimeout(messageTimer);
       };
     }
 
     // 초기 진입 시 색상이 바뀌지 않더라도 첫 값은 반드시 노출되도록 보정
     if (!headerChanged && newHeaderText && !displayHeaderText) {
-      const reveal = () => {
-        setShowHeaderLoading(false);
-        setDisplayHeaderText(newHeaderText);
-      };
-      if (motionStateRef.current === 'T5') {
-        reveal();
-      } else {
-        const t = setTimeout(reveal, 6000);
-        return () => clearTimeout(t);
-      }
+      setShowHeaderLoading(false);
+      setDisplayHeaderText(newHeaderText);
     }
   }, [headerText]);
 

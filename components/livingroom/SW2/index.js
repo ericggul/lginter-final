@@ -686,8 +686,7 @@ export default function SW2Controls() {
 
   // 백엔드에서 곡 정보가 안 온 초기 상태에서는
   // 실제 곡명/가수명 대신 '...' 플레이스홀더만 애니메이션으로 노출
-  // 곡/아티스트/앨범 커버가 바뀔 때마다 약 6초간 '...' 상태를 유지한 뒤,
-  // 블러 + 오퍼시티 + 업(translateY) 애니메이션으로 새 텍스트/커버를 표시한다.
+  // 요구사항: 딜레이 없이 결정되는 즉시 다음 값 반영
   useEffect(() => {
     const newTitle = title || '';
     const newArtist = artist || '';
@@ -731,26 +730,14 @@ export default function SW2Controls() {
       return;
     }
 
-    setCaptionState('waiting'); // 약 6초 동안 로딩 점(...) 상태
-    let cancelled = false;
-    const currentDecision = decisionTick;
-
-    const t = setTimeout(() => {
-      if (cancelled) return;
-      prevTitleRef.current = newTitle;
-      prevArtistRef.current = newArtist;
-      prevCoverRef.current = newCover;
-      setDisplayTitle(newTitle);
-      setDisplayArtist(newArtist);
-      setDisplayCoverSrc(newCover);
-      setCaptionState('enter'); // 블러 + 업 애니메이션 시작
-      lastDecisionRef.current = currentDecision;
-    }, 6000);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
+    prevTitleRef.current = newTitle;
+    prevArtistRef.current = newArtist;
+    prevCoverRef.current = newCover;
+    setDisplayTitle(newTitle);
+    setDisplayArtist(newArtist);
+    setDisplayCoverSrc(newCover);
+    setCaptionState('enter');
+    lastDecisionRef.current = decisionTick;
   }, [title, artist, coverSrc, isLanding, decisionTick]);
 
   // 감정 헤더: 가장 최신 키워드를 그대로 사용 (필터링 없이)
