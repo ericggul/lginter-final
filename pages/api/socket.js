@@ -207,6 +207,8 @@ let __sw2DelayTimer = null;
 // Track unique mobile device connections per deviceId (for decrement on disconnect)
 const __mobileDeviceSockets = new Map(); // deviceId => Set(socketId)
 const __socketToDevice = new Map();
+// Guard to prevent double "user-left" emissions when we force-leave + disconnect
+const __handledSocketLeaves = new Set(); // socketId
 
 export default function handler(req, res) {
   if (res.socket.server.io) {
@@ -269,6 +271,29 @@ export default function handler(req, res) {
 
   io.on("connection", (socket) => {
     console.log(`✅ Socket connected: ${socket.id}`);
+
+    const handleMobileLeave = (socketId, reason = "unknown") => {
+      try {
+        if (__handledSocketLeaves.has(socketId)) return;
+        __handledSocketLeaves.add(socketId);
+
+        const uid = __socketToDevice.get(socketId);
+        if (uid) {
+          const set = __mobileDeviceSockets.get(uid);
+          if (set) {
+            set.delete(socketId);
+            if (set.size === 0) {
+              __mobileDeviceSockets.delete(uid);
+              const userPayload = { userId: uid, ts: Date.now(), reason };
+              io.emit(EV.ENTRANCE_USER_LEFT, userPayload);
+              io.emit(EV.CONTROLLER_USER_LEFT, userPayload);
+            }
+          }
+          __socketToDevice.delete(socketId);
+        }
+      } catch {}
+    };
+
     // --- Init & Rooms ---
     socket.on("mobile-init", (p) => {
       socket.join("mobile");
@@ -293,6 +318,18 @@ export default function handler(req, res) {
         io.emit(EV.ENTRANCE_NEW_USER, userPayload);
         io.emit(EV.CONTROLLER_NEW_USER, userPayload);
       }
+    });
+
+    // Mobile explicit exit: immediately decrement controller/entrance user count
+    socket.on(EV.MOBILE_EXIT, (raw) => {
+      const uid = (raw && raw.userId) ? String(raw.userId) : __socketToDevice.get(socket.id);
+      if (uid) {
+        // Ensure mapping exists so leave can resolve userId even if caller passed nothing
+        try { __socketToDevice.set(socket.id, uid); } catch {}
+      }
+      handleMobileLeave(socket.id, "mobile-exit");
+      // Force disconnect to stop further events from this client
+      try { socket.disconnect(true); } catch {}
     });
     socket.on("livingroom-init", () => socket.join("livingroom"));
     socket.on("entrance-init", () => socket.join("entrance"));
@@ -327,11 +364,22 @@ export default function handler(req, res) {
     });
 
     // Hard reset: controller can force all display pages to reload
-    socket.on(EV.HARD_RESET, () => {
-      const payload = { ts: Date.now(), source: "controller-hard-reset" };
+    socket.on(EV.HARD_RESET, (raw, ack) => {
+      const ts = Date.now();
+      const payload = {
+        uuid: raw?.uuid || `hard-reset-${ts}`,
+        ts,
+        source: raw?.source || "controller-hard-reset",
+      };
       io.to("livingroom").emit(EV.HARD_RESET, payload);
       io.to("entrance").emit(EV.HARD_RESET, payload);
       io.to("controller").emit(EV.HARD_RESET, payload);
+      // ACK for reliability (controller can retry if not acknowledged)
+      try {
+        if (typeof ack === "function") {
+          ack({ ok: true, ts: payload.ts, uuid: payload.uuid, rooms: ["livingroom", "entrance", "controller"] });
+        }
+      } catch {}
     });
 
     // Mobile events - forward to Controller; entrance mirrors for user/name
@@ -605,6 +653,8 @@ export default function handler(req, res) {
         params: payload.params, // aggregated (orchestrated)
         // Prefer per-user params from controller; fall back to null when absent
         individual: individualForMobile,
+        // TV2에 실제로 내려간 값(온/습도/조명/음악 포함). 모바일 UI가 TV2와 동일하게 맞추고 싶을 때 사용.
+        tv2Env,
         reason: payload.reason,
         flags: payload.flags,
         emotionKeyword: payload.emotionKeyword,
@@ -697,22 +747,7 @@ export default function handler(req, res) {
 
     socket.on("disconnect", () => {
       console.log(`❌ Socket disconnected: ${socket.id}`);
-      try {
-        const uid = __socketToDevice.get(socket.id);
-        if (uid) {
-          const set = __mobileDeviceSockets.get(uid);
-          if (set) {
-            set.delete(socket.id);
-            if (set.size === 0) {
-              __mobileDeviceSockets.delete(uid);
-              const userPayload = { userId: uid, ts: Date.now() };
-              io.emit(EV.ENTRANCE_USER_LEFT, userPayload);
-              io.emit(EV.CONTROLLER_USER_LEFT, userPayload);
-            }
-          }
-          __socketToDevice.delete(socket.id);
-        }
-      } catch {}
+      handleMobileLeave(socket.id, "disconnect");
     });
   });
 

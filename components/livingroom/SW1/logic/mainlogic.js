@@ -24,9 +24,8 @@ export const SW1_BLOB_CONFIGS = [
 const MAX_BLOBS = SW1_BLOB_CONFIGS.length;
 // Timeline durations (ms) for staged animations
 const T3_TO_T4_MS = 5000; // allow t3 bloom/entry motion to finish
-// T4(오케스트레이션 결과 도착) → T5(최종 값 노출)까지는
-// TV2와 동일하게 약 6초 딜레이를 두어, SW1 결과도 한 번에 뜨도록 맞춘다.
-const T4_TO_T5_MS = 6000;
+// 요구사항: 딜레이 없이 결정되는 즉시 다음 값이 반영되어야 함
+const T4_TO_T5_MS = 0;
 const DUMMY_ID_REGEX = /^dummy:/;
 
 // Humidity → mode label
@@ -86,7 +85,7 @@ export function useSW1Logic() {
   const [hasDecision, setHasDecision] = useState(false);
   // 각 스테이지 전환/이펙트용 타이머
   const stageTimersRef = useRef({ t3Bloom: null, t4: null, t5: null });
-  // SW1 중앙 값(displayClimate)을 TV2 와 동일하게 약 6초 뒤에 적용하기 위한 타이머
+  // 중앙 값(displayClimate) 즉시 반영 (딜레이 제거)
   const decisionApplyTimerRef = useRef(null);
   const prevTimelineRef = useRef('t1');
   const stageOrder = ['t1', 't2', 't3', 't4', 't5'];
@@ -221,15 +220,9 @@ export function useSW1Logic() {
       // timelineState === 't3' 처리(useEffect)에서만 한 번 트리거한다.
       setTypeTick((x) => x + 1);
 
-      // TV2와 동일하게, 새 디시전은 약 6초 뒤에 중앙 값(displayClimate)에 반영
-      // (엔트리 블롭/오빗 블롭 등 애니메이션은 nextClimate 를 바로 사용)
-      if (decisionApplyTimerRef.current) {
-        clearTimeout(decisionApplyTimerRef.current);
-      }
-      const pending = incomingClimate;
-      decisionApplyTimerRef.current = setTimeout(() => {
-        setDisplayClimate(pending);
-      }, 6000);
+      // 즉시 중앙 값 반영
+      if (decisionApplyTimerRef.current) clearTimeout(decisionApplyTimerRef.current);
+      setDisplayClimate(incomingClimate);
 
       // Participants (source-of-truth from message)
       const merged = Array.isArray(msg.mergedFrom) ? msg.mergedFrom : [];

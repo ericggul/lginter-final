@@ -6,6 +6,8 @@ export const EV = {
   MOBILE_NEW_USER: "mobile-new-user",
   MOBILE_NEW_NAME: "mobile-new-name",
   MOBILE_NEW_VOICE: "mobile-new-voice",
+  // Mobile → Server (explicit leave so controller count drops immediately)
+  MOBILE_EXIT: "mobile-exit",
 
   // Controller → Server
   CONTROLLER_NEW_DECISION: "controller-new-decision",

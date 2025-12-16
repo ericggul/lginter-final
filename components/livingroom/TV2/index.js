@@ -1,7 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { parseMusicString, normalizeTrackName } from '@/utils/data/albumData';
 import { MUSIC_CATALOG } from '@/utils/data/musicCatalog';
-import { useControls } from "leva";
 import { useBlobVars } from "./blob/blob.logic";
 import * as S from './styles';
 import { useTV2Logic, useTV2DisplayLogic } from './logic';
@@ -11,7 +10,16 @@ import useTTS from "@/utils/hooks/useTTS";
 export default function TV2Controls() {
   const { env, title, artist, coverSrc, audioSrc, reason, emotionKeyword, decisionToken } = useTV2Logic();
   const scalerRef = useRef(null);
-  const audioRef = useRef(null);
+  // 안정적인 음악 스왑을 위해 오디오 엘리먼트를 2개(A/B)로 유지하고,
+  // "다음 곡이 준비될 때까지" 기존 곡을 계속 재생한다.
+  const audioARef = useRef(null);
+  const audioBRef = useRef(null);
+  const [activeSlot, setActiveSlot] = useState('a'); // 'a' | 'b'
+  const [activeAudioSrc, setActiveAudioSrc] = useState('');
+  const [pendingAudioSrc, setPendingAudioSrc] = useState('');
+  const [pendingReady, setPendingReady] = useState(false);
+  const preloadTokenRef = useRef(0);
+  const lastGoodAudioSrcRef = useRef('');
   const lastTransitionKeyRef = useRef(null);
   const t5SpokenRef = useRef(-1);
 
@@ -20,21 +28,74 @@ export default function TV2Controls() {
   // 언어 감지: 한글 포함 여부로 ko/en 분기
   const getLang = (s) => /[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/.test(String(s || '')) ? 'ko' : 'en';
 
-
-  // Leva 컨트롤
+  // TV2에서 Leva(레바) 패널 제거: 기존 기본값을 고정으로 사용
+  const TV2_CONTROLS = useMemo(() => ({
+    edgeBlurAmount: 37,
+    edgeBlurWidth: 56,
+    headerGradientStart: '#4880e2',
+    headerGradientMid: '#ffe9f4',
+    headerGradientEnd: '#fcfcfc',
+    headerGradientMidPos: 10,
+    headerGradientEndPos: 90,
+    headerGradientOpacity: 1,
+    leftPanelColor1: '#ff719c',
+    leftPanelColor2: '#ffe2ea',
+    leftPanelColor3: '#fffded',
+    leftPanelColor4: '#ffbac4',
+    leftPanelColor5: '#f2e1e1',
+    leftPanelGradientPos1: 0,
+    leftPanelGradientPos2: 0,
+    leftPanelGradientPos3: 150,
+    leftPanelGradientPos4: 283,
+    leftPanelBlur: 1,
+    rightCircleRight: 20,
+    rightCircleTop: -3,
+    rightCircleScale: 1.1,
+    rightCircleWidth: 2200,
+    rightCircleHeight: 2200,
+    rightCircleColor1: '#f8e9eb',
+    rightCircleColor1Opacity: 1,
+    rightCircleColor2: '#e8adbe',
+    rightCircleColor2Opacity: 0.69,
+    rightCircleColor3: '#d87199',
+    rightCircleColor3Opacity: 0.37,
+    rightCircleColor4: '#fff3ed',
+    rightCircleColor4Opacity: 0.6,
+    rightCircleGradientPos1: 15.2,
+    rightCircleGradientPos2: 56.2,
+    rightCircleGradientPos3: 79.9,
+    rightCircleOpacity: 1,
+    rightPanelBgColor1: '#ffffff',
+    rightPanelBgColor1Opacity: 0.95,
+    rightPanelBgColor2: '#efebe1',
+    rightPanelBgColor2Opacity: 0.78,
+    rightPanelBgColor2Pos: 55,
+    rightPanelBgColor3: '#d8f5f8',
+    rightPanelBgColor3Opacity: 0.9,
+    textGlowColor: '#e9ffe6',
+    textShadowColor: '#1c1b76',
+    textShadowOpacity: 0.19,
+    textShadowBlur: 8,
+    textShadowOffsetX: 1,
+    textShadowOffsetY: 0,
+    // UI는 이미 스타일로 처리되어 있어도 로직에서 참조할 수 있으니 유지
+    textBlendMode: 'overlay',
+    iconGlowColor: '#e9ffe6',
+    iconShadowColor: '#1c1b76',
+    iconShadowOpacity: 0.19,
+    iconShadowBlur: 8,
+    iconShadowOffsetX: 1,
+    iconShadowOffsetY: 0,
+  }), []);
   const {
-    // 1. 경계 블러값과 범위 조절
     edgeBlurAmount,
     edgeBlurWidth,
-    // 2. 상단 헤더 그라데이션
     headerGradientStart,
     headerGradientMid,
-    
     headerGradientEnd,
     headerGradientMidPos,
     headerGradientEndPos,
     headerGradientOpacity,
-    // 3. 좌측 패널 백그라운드 그라데이션
     leftPanelColor1,
     leftPanelColor2,
     leftPanelColor3,
@@ -45,7 +106,6 @@ export default function TV2Controls() {
     leftPanelGradientPos3,
     leftPanelGradientPos4,
     leftPanelBlur,
-    // 4. 우측 원
     rightCircleRight,
     rightCircleTop,
     rightCircleScale,
@@ -63,7 +123,6 @@ export default function TV2Controls() {
     rightCircleGradientPos2,
     rightCircleGradientPos3,
     rightCircleOpacity,
-    // 5. 우측 패널 배경색
     rightPanelBgColor1,
     rightPanelBgColor1Opacity,
     rightPanelBgColor2,
@@ -71,93 +130,90 @@ export default function TV2Controls() {
     rightPanelBgColor2Pos,
     rightPanelBgColor3,
     rightPanelBgColor3Opacity,
-    // 6. 텍스트/아이콘 그림자 및 글로우
     textGlowColor,
     textShadowColor,
     textShadowOpacity,
     textShadowBlur,
     textShadowOffsetX,
     textShadowOffsetY,
-    textBlendMode,
     iconGlowColor,
     iconShadowColor,
     iconShadowOpacity,
     iconShadowBlur,
     iconShadowOffsetX,
     iconShadowOffsetY,
-  } = useControls('TV2 Controls', {
-    // 1. 경계 블러값과 범위 조절
-    edgeBlurAmount: { value: 37, min: 0, max: 100, step: 1, label: '경계 블러 강도' },
-    edgeBlurWidth: { value: 56, min: 0, max: 120, step: 1, label: '경계 블러 범위' },
-    // 2. 상단 헤더 그라데이션
-    headerGradientStart: { value: '#4880e2', label: '헤더 시작 색상' },
-    headerGradientMid: { value: '#ffe9f4', label: '헤더 중간 색상' },
-    headerGradientEnd: { value: '#fcfcfc', label: '헤더 끝 색상' },
-    headerGradientMidPos: { value: 10, min: 0, max: 100, step: 1, label: '헤더 중간 위치(%)' },
-    headerGradientEndPos: { value: 90, min: 0, max: 100, step: 1, label: '헤더 우측 위치(%)' },
-    headerGradientOpacity: { value: 1, min: 0, max: 1, step: 0.01, label: '헤더 투명도' },
-    // 3. 좌측 패널 백그라운드 그라데이션
-    leftPanelColor1: { value: '#ff719c', label: '좌측 색상1' },
-    leftPanelColor2: { value: '#ffe2ea', label: '좌측 색상2' },
-    leftPanelColor3: { value: '#fffded', label: '좌측 색상3' },
-    leftPanelColor4: { value: '#ffbac4', label: '좌측 색상4' },
-    leftPanelColor5: { value: '#f2e1e1', label: '좌측 색상5' },
-    leftPanelGradientPos1: { value: 0, min: 0, max: 360, step: 1, label: '좌측 그라데이션 위치1(deg)' },
-    leftPanelGradientPos2: { value: 0, min: 0, max: 360, step: 0.1, label: '좌측 그라데이션 위치2(deg)' },
-    leftPanelGradientPos3: { value: 150, min: 0, max: 360, step: 0.1, label: '좌측 그라데이션 위치3(deg)' },
-    leftPanelGradientPos4: { value: 283, min: 0, max: 360, step: 1, label: '좌측 그라데이션 위치4(deg)' },
-    leftPanelBlur: { value: 1, min: 0, max: 100, step: 1, label: '좌측 블러' },
-    // 4. 우측 원
-    //    우측 원 전체를 더 위로 올리기 위해 top 기본값과 최소값 조정
-    rightCircleRight: { value: 20, min: -20, max: 20, step: 0.1, label: '우측 원 오른쪽 위치(%)' },
-    rightCircleTop: { value: -3, min: -20, max: 50, step: 0.1, label: '우측 원 상단 위치(%)' },
-    rightCircleScale: { value: 1.1, min: 0.1, max: 3, step: 0.01, label: '우측 원 크기 스케일' },
-    rightCircleWidth: { value: 2200, min: 500, max: 4000, step: 50, label: '우측 원 너비' },
-    rightCircleHeight: { value: 2200, min: 500, max: 4000, step: 50, label: '우측 원 높이' },
-    rightCircleColor1: { value: '#f8e9eb', label: '우측 원 색상1' },
-    rightCircleColor1Opacity: { value: 1, min: 0, max: 1, step: 0.01, label: '우측 원 색상1 투명도' },
-    rightCircleColor2: { value: '#e8adbe', label: '우측 원 색상2' },
-    rightCircleColor2Opacity: { value: 0.69, min: 0, max: 1, step: 0.01, label: '우측 원 색상2 투명도' },
-    rightCircleColor3: { value: '#d87199', label: '우측 원 색상3' },
-    rightCircleColor3Opacity: { value: 0.37, min: 0, max: 1, step: 0.01, label: '우측 원 색상3 투명도' },
-    rightCircleColor4: { value: '#fff3ed', label: '우측 원 색상4' },
-    rightCircleColor4Opacity: { value: 0.60, min: 0, max: 1, step: 0.01, label: '우측 원 색상4 투명도' },
-    //    현재 튜닝된 그라데이션 위치값을 기본값으로 반영
-    rightCircleGradientPos1: { value: 15.2, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치1(%)' },
-    rightCircleGradientPos2: { value: 56.2, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치2(%)' },
-    rightCircleGradientPos3: { value: 79.9, min: 0, max: 100, step: 0.1, label: '우측 원 그라데이션 위치3(%)' },
-    rightCircleOpacity: { value: 1, min: 0, max: 1, step: 0.01, label: '우측 원 전체 투명도' },
-    // 5. 우측 패널 배경색
-    rightPanelBgColor1: { value: '#ffffff', label: '우측 패널 배경색1' },
-    rightPanelBgColor1Opacity: { value: 0.95, min: 0, max: 1, step: 0.01, label: '우측 패널 배경색1 투명도' },
-    rightPanelBgColor2: { value: '#efebe1', label: '우측 패널 배경색2' },
-    rightPanelBgColor2Opacity: { value: 0.78, min: 0, max: 1, step: 0.01, label: '우측 패널 배경색2 투명도' },
-    rightPanelBgColor2Pos: { value: 55, min: 0, max: 100, step: 1, label: '우측 패널 배경색2 위치(%)' },
-    rightPanelBgColor3: { value: '#d8f5f8', label: '우측 패널 배경색3' },
-    rightPanelBgColor3Opacity: { value: 0.90, min: 0, max: 1, step: 0.01, label: '우측 패널 배경색3 투명도' },
-    // 6. 텍스트/아이콘 그림자 및 글로우
-    textGlowColor: { value: '#e9ffe6', label: '텍스트 글로우 색상' },
-    textShadowColor: { value: '#1c1b76', label: '텍스트 그림자 색상' },
-    textShadowOpacity: { value: 0.19, min: 0, max: 1, step: 0.01, label: '텍스트 그림자 투명도' },
-    textShadowBlur: { value: 8, min: 0, max: 20, step: 1, label: '텍스트 그림자 블러' },
-    textShadowOffsetX: { value: 1, min: -10, max: 10, step: 1, label: '텍스트 그림자 X 오프셋' },
-    textShadowOffsetY: { value: 0, min: -10, max: 10, step: 1, label: '텍스트 그림자 Y 오프셋' },
-    textBlendMode: { value: 'overlay', options: ['overlay', 'difference', 'screen', 'multiply'], label: '텍스트 블렌드 모드' },
-    iconGlowColor: { value: '#e9ffe6', label: '아이콘 글로우 색상' },
-    iconShadowColor: { value: '#1c1b76', label: '아이콘 그림자 색상' },
-    iconShadowOpacity: { value: 0.19, min: 0, max: 1, step: 0.01, label: '아이콘 그림자 투명도' },
-    iconShadowBlur: { value: 8, min: 0, max: 20, step: 1, label: '아이콘 그림자 블러' },
-    iconShadowOffsetX: { value: 1, min: -10, max: 10, step: 1, label: '아이콘 그림자 X 오프셋' },
-    iconShadowOffsetY: { value: 0, min: -10, max: 10, step: 1, label: '아이콘 그림자 Y 오프셋' },
-  });
+  } = TV2_CONTROLS;
   
+  const activeAudioRef = activeSlot === 'a' ? audioARef : audioBRef;
+  const inactiveAudioRef = activeSlot === 'a' ? audioBRef : audioARef;
+
+  // pending src 업데이트(즉시 바꾸지 않고, preload만 수행)
+  useEffect(() => {
+    const next = String(audioSrc || '').trim();
+    if (!next) return;
+    // 이미 active/pending과 동일하면 무시
+    if (next === activeAudioSrc || next === pendingAudioSrc) return;
+    setPendingAudioSrc(next);
+    setPendingReady(false);
+  }, [audioSrc, activeAudioSrc, pendingAudioSrc]);
+
+  // pending 곡 preload: 준비가 끝나기 전까지는 기존 곡을 계속 재생
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const next = String(pendingAudioSrc || '').trim();
+    if (!next) return;
+    const token = (preloadTokenRef.current || 0) + 1;
+    preloadTokenRef.current = token;
+    let done = false;
+    const pre = new Audio();
+    pre.preload = 'auto';
+    pre.src = next;
+    const cleanup = () => {
+      try { pre.removeEventListener('canplaythrough', onReady); } catch {}
+      try { pre.removeEventListener('loadeddata', onReady); } catch {}
+      try { pre.removeEventListener('error', onError); } catch {}
+    };
+    const onReady = () => {
+      if (done) return;
+      if (preloadTokenRef.current !== token) return;
+      done = true;
+      cleanup();
+      setPendingReady(true);
+    };
+    const onError = () => {
+      if (done) return;
+      if (preloadTokenRef.current !== token) return;
+      done = true;
+      cleanup();
+      // 실패 시에는 스왑하지 않고 기존 곡 유지
+      setPendingReady(false);
+    };
+    pre.addEventListener('canplaythrough', onReady);
+    pre.addEventListener('loadeddata', onReady);
+    pre.addEventListener('error', onError);
+    try { pre.load(); } catch {}
+    const timeout = setTimeout(() => {
+      if (done) return;
+      onError();
+    }, 12000);
+    return () => {
+      clearTimeout(timeout);
+      cleanup();
+    };
+  }, [pendingAudioSrc]);
+
+  // T5(최종 화면) 진입 시점에만 곡을 실제로 스왑한다.
+  // 다음 곡이 재생 가능한 상태가 될 때까지는 이전 곡이 안전하게 계속 나온다.
+  const requestedSwapKey = useMemo(() => `${pendingAudioSrc}|${pendingReady}`, [pendingAudioSrc, pendingReady]);
+
   // 모든 로직은 logic.js의 useTV2DisplayLogic에서 처리
   const displayLogic = useTV2DisplayLogic({
     env,
     title,
     artist,
     coverSrc,
-    audioSrc,
+    // waveform/오디오 파이프라인은 "현재 실제 재생 중인 곡" 기준으로 묶는다.
+    audioSrc: activeAudioSrc || '',
     reason,
     emotionKeyword,
     decisionToken,
@@ -216,7 +272,7 @@ export default function TV2Controls() {
       iconShadowOffsetX,
       iconShadowOffsetY,
     },
-    audioRef,
+    audioRef: activeAudioRef,
   });
   
   // 모든 로직은 displayLogic에서 처리됨
@@ -280,6 +336,74 @@ export default function TV2Controls() {
     pulseDelays,
     headerSweepActive,
   } = displayLogic;
+
+  // T5 진입 + pendingReady일 때, inactive 슬롯에 pending 곡을 걸고 재생 성공 시 active로 전환
+  useEffect(() => {
+    try {
+      if (!isT5) return;
+      if (!pendingReady) return;
+      const nextSrc = String(pendingAudioSrc || '').trim();
+      if (!nextSrc) return;
+      if (nextSrc === activeAudioSrc) return;
+      const nextEl = inactiveAudioRef.current;
+      const currEl = activeAudioRef.current;
+      if (!nextEl) return;
+
+      const tryPlay = async () => {
+        try {
+          nextEl.src = nextSrc;
+          nextEl.loop = true;
+          nextEl.preload = 'auto';
+          nextEl.playsInline = true;
+          nextEl.muted = false;
+          nextEl.volume = 1;
+          // "재생 시작"이 보장될 때까지 기존 곡은 유지
+          await nextEl.play();
+          // 새 곡이 안정적으로 시작된 뒤에만 기존 곡 정지
+          try { if (currEl && currEl !== nextEl) currEl.pause(); } catch {}
+          setActiveSlot((s) => (s === 'a' ? 'b' : 'a'));
+          setActiveAudioSrc(nextSrc);
+          lastGoodAudioSrcRef.current = nextSrc;
+          setPendingReady(false);
+        } catch {
+          // 재생 실패: 기존 곡 유지. 다음 사용자 제스처에서 재시도하도록 훅을 걸어둔다.
+          const resume = () => {
+            try { nextEl.play(); } catch {}
+          };
+          if (typeof window !== 'undefined') {
+            window.addEventListener('pointerdown', resume, { once: true });
+            window.addEventListener('keydown', resume, { once: true });
+            window.addEventListener('touchstart', resume, { once: true, passive: true });
+          }
+        }
+      };
+
+      tryPlay();
+    } catch {}
+    // requestedSwapKey: pending src/ready 변화에 반응하도록 포함
+  }, [isT5, requestedSwapKey, pendingAudioSrc, pendingReady, activeAudioSrc, activeSlot, activeAudioRef, inactiveAudioRef]);
+
+  // 최초 진입 시 active 슬롯에 현재 audioSrc를 세팅하고 재생(없으면 무시)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const initial = String(activeAudioSrc || '').trim();
+    const desired = String(audioSrc || '').trim();
+    if (initial) return;
+    if (!desired) return;
+    const el = activeAudioRef.current;
+    if (!el) return;
+    try {
+      el.src = desired;
+      el.loop = true;
+      el.preload = 'auto';
+      el.playsInline = true;
+      el.muted = false;
+      el.volume = 1;
+      el.play().catch(() => {});
+      setActiveAudioSrc(desired);
+      lastGoodAudioSrcRef.current = desired;
+    } catch {}
+  }, [audioSrc, activeAudioSrc, activeAudioRef]);
 
   // T5 안내: 음악/조명/기후 정보 포함
   useEffect(() => {
@@ -603,19 +727,9 @@ export default function TV2Controls() {
                 {showArtistLoading ? <S.LoadingDots><span /><span /><span /></S.LoadingDots> : displayArtist}
               </S.FadeSlideText>
             </S.Artist>
-            {/* 음악 파형 인디케이터 (임시 비활성화) */}
-            {/* 숨김 오디오 요소 */}
-            {audioSrc ? (
-              <audio
-                ref={audioRef}
-                src={audioSrc}
-                autoPlay
-                loop
-                playsInline
-                preload="auto"
-                style={{ display: 'none' }}
-              />
-            ) : null}
+            {/* 숨김 오디오 요소 (A/B 듀얼) */}
+            <audio ref={audioARef} preload="auto" loop playsInline style={{ display: 'none' }} />
+            <audio ref={audioBRef} preload="auto" loop playsInline style={{ display: 'none' }} />
             {/* 좌측 패널 하단: 3초 뒤 음악 변경 안내 (음악 텍스트 정렬에 맞춤) */}
             <S.SetupHint
               $left="calc(115.2px + 220px)" // MusicRow 아이콘 + 간격만큼 안쪽으로

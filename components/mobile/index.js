@@ -23,6 +23,7 @@ import { RingPulse as PressRingPulse, HitArea as PressHitArea } from './sections
 
 import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
 import { playMobileBackgroundLoop } from '@/utils/data/soundeffect';
+import { EV } from '@/src/core/events';
 // public 자산 사용: 문자열 경로로 next/image에 전달
 
 export default function MobileControls() {
@@ -32,6 +33,7 @@ export default function MobileControls() {
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
   const [showResetButton, setShowResetButton] = useState(false);
+  const [isExited, setIsExited] = useState(false);
   const [forceFinalToken, setForceFinalToken] = useState(0);
   const [showEmpathy, setShowEmpathy] = useState(false);
   const [empathyDone, setEmpathyDone] = useState(false);
@@ -153,16 +155,23 @@ export default function MobileControls() {
         // ignore stale broadcasts if user hasn't submitted in this session
         return;
       }
-      // payload (server): { userId, params: { temp, humidity, lightColor, music }, individual?: { temp, humidity, lightColor, music }, reason, emotionKeyword, decisionId }
-      // IMPORTANT: TV2 uses the personal (individual) decision. Mobile should mirror TV2.
-      const chosen = (payload?.individual && typeof payload.individual === 'object')
+      // payload (server):
+      // { userId, params(aggregated), individual(personal), tv2Env(tv2 applied), reason, emotionKeyword, decisionId }
+      // 요구사항:
+      // - 음악: 개인 디시전(individual) 기준
+      // - 온도/습도/조명: TV2에 내려간 디시전(tv2Env) 기준으로 TV2와 통일
+      const tv2Chosen = (payload?.tv2Env && typeof payload.tv2Env === 'object')
+        ? payload.tv2Env
+        : (payload?.params || {});
+      const personal = (payload?.individual && typeof payload.individual === 'object')
         ? payload.individual
-        : payload?.params || {};
+        : null;
+      const personalMusic = personal?.music || payload?.params?.music;
       const rec = {
-        temperature: chosen?.temp,
-        humidity: chosen?.humidity,
-        lightColor: chosen?.lightColor,
-        song: chosen?.music,
+        temperature: tv2Chosen?.temp,
+        humidity: tv2Chosen?.humidity,
+        lightColor: tv2Chosen?.lightColor,
+        song: personalMusic,
         reason: payload?.reason,
         emotionKeyword: payload?.emotionKeyword,
         decisionId: payload?.decisionId,
@@ -467,6 +476,21 @@ export default function MobileControls() {
     setForceFinalToken((t) => t + 1);
   }, [resetShowcase, setOrchestratingLock]);
 
+  const handleExit = useCallback(() => {
+    // 1) UI: 즉시 종료 화면으로 전환 (네트워크 실패에도 UX는 완료)
+    setIsExited(true);
+    setShowResetButton(false);
+    try { window.showOrbits = false; window.clusterSpin = false; } catch {}
+    // 2) 서버: 컨트롤러 인원수에서 즉시 빠지도록 leave 이벤트 송신 + 소켓 종료
+    try {
+      const ts = Date.now();
+      socket?.emit?.(EV.MOBILE_EXIT, { userId: deviceId, ts, uuid: `mobile-exit-${ts}` });
+    } catch {}
+    try { socket?.disconnect?.(); } catch {}
+    // 3) 배경 음악 정지
+    try { if (bgAudioRef.current) bgAudioRef.current.pause(); } catch {}
+  }, [socket, deviceId]);
+
   // iOS Safari 등에서 타이머/애니메이션이 지연되더라도,
   // 결정이 도착한 뒤에는 오케스트레이팅 락이 영원히 풀리지 않는 것을 방지하는 안전장치.
   useEffect(() => {
@@ -572,6 +596,14 @@ export default function MobileControls() {
 
   return (
     <AppContainer $isModal={isModal}>
+      {isExited && (
+        <ExitOverlay>
+          <ExitMessage>
+            <div className="title">room3 체험이 종료 되었습니다!</div>
+            <div className="sub">즐거운 하루 되시길 바라요</div>
+          </ExitMessage>
+        </ExitOverlay>
+      )}
       {showBrandLogo && (
         <BrandLogoWrap>
           <Image src="/brand/furon_logo.png" alt="Furon" priority width={24} height={24} />
@@ -661,7 +693,7 @@ export default function MobileControls() {
         <>
           {/* Left: Exit (design only) */}
           <CornerWrap $side="left" $fadeIn>
-            <CornerArea $side="left">
+            <CornerArea $side="left" onClick={handleExit} role="button" aria-label="exit experience">
               <CornerLabel>종료</CornerLabel>
             </CornerArea>
           </CornerWrap>
@@ -842,5 +874,44 @@ const BrandLogoWrap = styled.div`
     width: 100%;
     height: 100%;
     object-fit: contain;
+  }
+`;
+
+const exitIn = keyframes`
+  0% { opacity: 0; transform: translateY(18px); filter: blur(14px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0px); }
+`;
+
+const ExitOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+`;
+
+const ExitMessage = styled.div`
+  text-align: center;
+  color: #111;
+  padding: 24px;
+  animation: ${exitIn} 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+
+  .title {
+    font-family: ${fonts.ui};
+    font-weight: 900;
+    font-size: clamp(1.4rem, 6vw, 2.2rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+  .sub {
+    margin-top: 10px;
+    font-family: ${fonts.ui};
+    font-weight: 700;
+    font-size: clamp(1.05rem, 4.6vw, 1.5rem);
+    line-height: 1.4;
+    color: rgba(17,17,17,0.78);
   }
 `;

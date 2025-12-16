@@ -31,8 +31,11 @@ export function useTV2Logic() {
     onDeviceNewDecision: (msg) => {
       if (!msg) return;
       const target = msg.target || msg.device;
-      if (target && target !== 'tv2') return;
-      const e = msg.env || {};
+      // TV2는 주로 target: 'tv2' 메시지를 받지만,
+      // "오케스트레이션(공유) 온/습도"는 SW1 payload에 담겨 들어올 수 있어
+      // target: 'sw1'도 받아서 온/습도만 동기화한다.
+      if (target && target !== 'tv2' && target !== 'sw1') return;
+      const e = msg.env || msg.final || {};
       console.log('🎯 TV2 received decision:', {
         target,
         env: e,
@@ -56,12 +59,18 @@ export function useTV2Logic() {
           e.humidity,
           prev?.humidity ?? DEFAULT_ENV.humidity,
         );
+        // target: 'sw1' → 온/습도만 오케스트레이션 값으로 동기화 (개인 music/light는 건드리지 않음)
+        const isSw1ClimateOnly = target === 'sw1';
         const next = {
           ...prev,
           temp: nextTemp,
           humidity: nextHumidity,
-          lightColor: e.lightColor || prev.lightColor || DEFAULT_ENV.lightColor,
-          music: typeof e.music === 'string' && e.music ? e.music : prev.music,
+          ...(isSw1ClimateOnly
+            ? null
+            : {
+                lightColor: e.lightColor || prev.lightColor || DEFAULT_ENV.lightColor,
+                music: typeof e.music === 'string' && e.music ? e.music : prev.music,
+              }),
         };
         next.lightLabel = next.lightColor ? `Light ${next.lightColor}` : prev.lightLabel;
         console.log('📺 TV2 env updated:', {
@@ -73,10 +82,11 @@ export function useTV2Logic() {
         return next;
       });
       // 음악 선택 이유 & 감정 키워드 저장
-      if (msg.reason && typeof msg.reason === 'string') {
+      // SW1 온/습도 동기화 메시지에는 reason/emotion 이 없을 수 있으니, TV2 타겟일 때만 갱신.
+      if (target === 'tv2' && msg.reason && typeof msg.reason === 'string') {
         setReason(msg.reason);
       }
-      if (msg.emotionKeyword && typeof msg.emotionKeyword === 'string') {
+      if (target === 'tv2' && msg.emotionKeyword && typeof msg.emotionKeyword === 'string') {
         try {
           const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
           setEmotionKeyword(sanitizeEmotion(msg.emotionKeyword, { strict: true }));
@@ -86,6 +96,7 @@ export function useTV2Logic() {
       }
 
       // env 내용이 동일하더라도, 새로운 디시전이 들어왔다는 사실 자체를 전달하기 위한 토큰
+      // (오케스트레이션 온/습도 동기화(target: sw1)에서도 토큰을 올려 UI가 최신 기후로 갱신되도록 함)
       setDecisionToken((prev) => prev + 1);
     },
     onHueState: (p) => {

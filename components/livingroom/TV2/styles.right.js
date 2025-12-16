@@ -15,6 +15,14 @@ const t4RightBlobSlide = keyframes`
   100% { transform: translateX(0) rotate(-90deg); opacity: 1; }
 `;
 
+/* 오케스트레이션 순간: 우측 패널 블롭이 살짝 작아졌다가 다시 커짐 */
+const orchestrationBlobPulse = keyframes`
+  0%   { transform: rotate(-90deg) scale(1); }
+  35%  { transform: rotate(-90deg) scale(0.94); }
+  72%  { transform: rotate(-90deg) scale(1.02); }
+  100% { transform: rotate(-90deg) scale(1); }
+`;
+
 /* 기후 정보 트랜지션: 아래에서 위로 + 블러 → 선명 + 오퍼시티 페이드인 */
 const climatePush = keyframes`
   0% {
@@ -144,6 +152,12 @@ export const RightSw1Ellipse = styled.div`
   /* T4: Right-to-left slide animation (3 seconds) */
   ${props => props.$isT4 && props.$triggerT4 ? css`
     animation: ${t4RightBlobSlide} 3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  ` : ''}
+
+  /* Orchestration pulse: trigger on demand (short, subtle) */
+  ${props => props.$orchestratePulse ? css`
+    animation: ${orchestrationBlobPulse} 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
   ` : ''}
 `;
 

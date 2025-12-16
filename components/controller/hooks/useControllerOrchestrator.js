@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { DEFAULT_ENV, createControllerState, ensureUser, updateUserName, updateUserVoice, updateUserDecision, persistPreference, getActivePreferences, applyAggregatedEnv, updateDeviceHeartbeatState, resetUsers, buildSnapshot } from '../stateStore';
+import { DEFAULT_ENV, createControllerState, ensureUser, updateUserName, updateUserVoice, updateUserDecision, persistPreference, getActivePreferences, applyAggregatedEnv, updateDeviceHeartbeatState, resetUsers, buildSnapshot, removeUser } from '../stateStore';
 import { requestControllerDecision } from '../openaiEngine';
 import { computeFairAverage } from '../logic/controllerMerge';
 import { EV } from '@/src/core/events';
@@ -169,6 +169,15 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
     scheduleDecision(payload);
   }, [publishSnapshot, scheduleDecision]);
 
+  const onUserLeft = useCallback((payload) => {
+    const userId = payload?.userId;
+    if (!userId) return;
+    clearUserTimer(userId);
+    try { preferencesRef.current.delete(userId); } catch {}
+    removeUser(usersRef.current, userId);
+    publishSnapshot();
+  }, [clearUserTimer, publishSnapshot]);
+
   const onDeviceHeartbeat = useCallback((payload) => {
     updateDeviceHeartbeatState(controllerStateRef.current, payload);
     publishSnapshot();
@@ -205,6 +214,7 @@ export default function useControllerOrchestrator({ emit, systemPrompt }) {
     onNewUser,
     onNewName,
     onNewVoice,
+    onUserLeft,
     onDeviceHeartbeat,
     handleReset,
     getDeviceStatus,

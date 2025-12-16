@@ -13,6 +13,9 @@ const TARGET_HUMIDITY = 55; // %
 const HUM_DEADBAND = 3;
 
 const HEX_COLOR_RE = /^#[0-9A-F]{6}$/i;
+// TV2는 "표시용 UI" 디바이스이고, 실제 Hue 조명 제어는 서버/컨트롤러가 담당한다.
+// 배포 환경에서 의도치 않은 조명 변경을 막기 위해 기본값은 OFF.
+const ENABLE_TV2_HUE_SYNC = process.env.NEXT_PUBLIC_TV2_HUE_SYNC === 'true';
 
 const toNumberOrNull = (v) => {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -130,8 +133,9 @@ export function useTV2Devices(env, options = {}) {
       postDeviceCommand('airpurifierfan', { mode: 'AUTO' });
     }
     // --- Hue sync (lighting) ---
-    // Drive physical Hue lights from the TV2 top-panel gradient (stops).
-    // Debounce to avoid spamming if TV2 re-renders rapidly.
+    // Disabled by default. When enabled, will drive physical Hue lights.
+    if (!ENABLE_TV2_HUE_SYNC) return;
+
     const now = Date.now();
     const tooSoon = now - (lastHueSyncedAtRef.current || 0) < 700;
 

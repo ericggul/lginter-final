@@ -348,9 +348,9 @@ export const BetweenIcon = styled.img`
 
 export const QRFloat = styled.div`
   position: absolute; top: 69vh; left: 50%; transform: translate(-50%, -50%);
-  /* Make QR noticeably larger on big displays (LG Swing) */
-  width: clamp(300px, 46vmin, 600px);
-  height: clamp(300px, 46vmin, 600px);
+  /* QR too large → keep it readable but not dominating on large displays */
+  width: clamp(220px, 28vmin, 420px);
+  height: clamp(220px, 28vmin, 420px);
   display:flex; align-items:center; justify-content:center; z-index: 1;
   /* only QR visible */
   background: transparent; border: 0; border-radius: 0; box-shadow: none;
