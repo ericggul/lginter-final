@@ -45,9 +45,50 @@ function postDeviceCommand(deviceType, payload) {
   }
 }
 
-export function useTV2Devices(env) {
+function postHueCommand(body) {
+  try {
+    return fetch('/api/lighttest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+      keepalive: true,
+    }).then(async (res) => {
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        // ignore
+      }
+      if (!res.ok || data?.ok === false) {
+        console.warn('[TV2][hue] /api/lighttest failed', res.status, body, data);
+      } else {
+        console.log('[TV2][hue] /api/lighttest ok', res.status, body?.action, data);
+      }
+      return data;
+    });
+  } catch (err) {
+    console.warn('[TV2][hue] /api/lighttest threw', err?.message);
+    return Promise.resolve(null);
+  }
+}
+
+function normalizeHexStops(stops) {
+  const out = [];
+  const seen = new Set();
+  (stops || []).forEach((h) => {
+    const s = String(h || '').trim().toUpperCase();
+    if (!HEX_COLOR_RE.test(s)) return;
+    if (seen.has(s)) return;
+    seen.add(s);
+    out.push(s);
+  });
+  return out;
+}
+
+export function useTV2Devices(env, options = {}) {
   const lastHueSyncedColorRef = useRef('');
   const lastHueSyncedAtRef = useRef(0);
+  const lastHueGradientKeyRef = useRef('');
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -59,11 +100,14 @@ export function useTV2Devices(env) {
       temp: env?.temp,
       humidity: env?.humidity,
       lightColor: env?.lightColor,
+      decisionToken: options?.decisionToken,
     });
 
     const temp = toNumberOrNull(env?.temp);
     const humidity = toNumberOrNull(env?.humidity);
     const hexColor = (env?.lightColor || '').toUpperCase();
+    const hueGradientStops = normalizeHexStops(options?.hueGradientStops);
+    const hueGradientKey = hueGradientStops.join('|');
 
     // --- Air conditioner (temperature control) ---
     // Always drive to ON + mode + env temp (one param per request).
@@ -86,25 +130,41 @@ export function useTV2Devices(env) {
       postDeviceCommand('airpurifierfan', { mode: 'AUTO' });
     }
     // --- Hue sync (lighting) ---
-    // Drive physical Hue lights from the *decision* color (env.lightColor).
+    // Drive physical Hue lights from the TV2 top-panel gradient (stops).
     // Debounce to avoid spamming if TV2 re-renders rapidly.
     const now = Date.now();
     const tooSoon = now - (lastHueSyncedAtRef.current || 0) < 700;
+
+    // User request: keep the same single HEX color as the top panel, but make visibility obvious
+    // by continuously pulsing brightness per bulb on the server.
+    const pulseColor = HEX_COLOR_RE.test(hexColor) ? hexColor : (hueGradientStops?.[0] || '');
+    if (HEX_COLOR_RE.test(pulseColor)) {
+      const changed = pulseColor !== lastHueSyncedColorRef.current;
+      const tokenBump = options?.decisionToken && options?.decisionToken !== 0;
+      if ((changed || tokenBump) && !tooSoon) {
+        lastHueSyncedColorRef.current = pulseColor;
+        lastHueSyncedAtRef.current = now;
+        postHueCommand({
+          action: 'pulse',
+          source: 'tv2',
+          color: pulseColor,
+          // Faster tick makes the pulsing clearly visible.
+          tickMs: 350,
+          // Very tight per-bulb jitter for "sparkly" effect.
+          waveMinDelayMs: 0,
+          waveMaxDelayMs: 120,
+        }).catch(() => {});
+      }
+      return;
+    }
+
     if (HEX_COLOR_RE.test(hexColor) && hexColor !== lastHueSyncedColorRef.current && !tooSoon) {
       lastHueSyncedColorRef.current = hexColor;
       lastHueSyncedAtRef.current = now;
-      try {
-        fetch('/api/lighttest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          // Mark this request as coming from TV2 so the API can apply TV2-only behavior (wave timing).
-          body: JSON.stringify({ action: 'color', color: hexColor, source: 'tv2' }),
-          keepalive: true,
-        }).catch(() => {});
-      } catch {}
+      postHueCommand({ action: 'color', color: hexColor, source: 'tv2' }).catch(() => {});
     }
 
-  }, [env?.temp, env?.humidity, env?.lightColor]);
+  }, [env?.temp, env?.humidity, env?.lightColor, options?.decisionToken, options?.hueGradientStops]);
 }
 
 
