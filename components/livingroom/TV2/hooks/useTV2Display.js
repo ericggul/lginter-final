@@ -128,6 +128,17 @@ export function useTV2DisplayLogic({
   // "hueHex" is the *actual Hue average* color pushed from server ("hue-state").
   // Use hueHex when available so the top panel reflects real Hue lights.
   const hexColor = (env?.hueHex || env?.lightColor || '').toUpperCase();
+  // UI 표시 전용: 어떤 컬러가 오더라도 "파스텔톤(저채도/고명도)"로 보이게 변환한다.
+  // IMPORTANT: 이 값은 오직 프론트 렌더링에만 사용하고, 실제 Hue 제어에는 절대 사용하지 않는다.
+  const uiLightHsl = useMemo(() => {
+    const base = hexToHsl(hexColor);
+    if (!base) return null;
+    // keep hue, but clamp to pastel: 낮은 채도 + 높은 명도
+    // 너무 하얗게 뜨지 않도록: 채도는 조금 올리고, 명도는 중간 파스텔로 내린다.
+    const s = Math.max(18, Math.min(58, Math.round(base.s * 0.75 + 6)));
+    const l = Math.max(64, Math.min(84, Math.round(base.l + 8)));
+    return { h: base.h, s, l };
+  }, [hexColor]);
   // AI가 준 emotionKeyword를 기반으로, 컬러명이 아니라 "무드" 이름을 우선 노출
   const moodLabel = useMemo(() => {
     const base = (emotionKeyword || '').trim();
@@ -792,34 +803,18 @@ export function useTV2DisplayLogic({
     hexColor && hexColor.match(/^#[0-9A-F]{6}$/i)
       ? hexColor
       : levaControls?.headerGradientStart || '#4880e2';
-  // 상단 기본 헤더 그라디언트는 "조명 컬러(lightColor)"만 기준으로 사용
-  // (앨범 컬러는 별도의 스윕 레이어에서만 일부 사용)
-  const headerStartColor = headerStartBase;
-  const headerMidColor = headerStartBase;
-  const headerEndColor = '#ffffff';
-  // 조명 컬러 변경이 더 확실히 느껴지도록,
-  // HSL 기반으로 채도를 살짝 높여서 상단 그라디언트에 반영
-  const headerCoreHsl = hexToHsl(headerStartColor);
-  const headerGradientStartRgba = headerCoreHsl
-    ? hsla(
-        headerCoreHsl.h,
-        Math.min(100, headerCoreHsl.s * 1.35),
-        headerCoreHsl.l,
-        levaControls?.headerGradientOpacity || 1,
-      )
-    : hexToRgba(headerStartColor, levaControls?.headerGradientOpacity || 1);
-  const headerGradientMidRgba = headerCoreHsl
-    ? hsla(
-        headerCoreHsl.h,
-        Math.min(100, headerCoreHsl.s * 1.35),
-        headerCoreHsl.l,
-        levaControls?.headerGradientOpacity || 1,
-      )
-    : hexToRgba(headerMidColor, levaControls?.headerGradientOpacity || 1);
-  const headerGradientEndRgba = hexToRgba(
-    headerEndColor,
-    levaControls?.headerGradientOpacity || 1,
-  );
+  // UI 표시에서는 파스텔톤으로만 보이게 한다.
+  const headerOpacity = levaControls?.headerGradientOpacity || 1;
+  const headerGradientStartRgba = uiLightHsl
+    ? hsla(uiLightHsl.h, uiLightHsl.s, uiLightHsl.l, headerOpacity)
+    : hexToRgba(headerStartBase, headerOpacity);
+  const headerGradientMidRgba = uiLightHsl
+    ? hsla(uiLightHsl.h, uiLightHsl.s, uiLightHsl.l, headerOpacity)
+    : hexToRgba(headerStartBase, headerOpacity);
+  // 끝단 화이트도 약간 틴트를 주면 "거의 하얀색"으로 뭉개지는 느낌이 줄어든다.
+  const headerGradientEndRgba = uiLightHsl
+    ? hsla(uiLightHsl.h, Math.max(6, Math.round(uiLightHsl.s * 0.35)), 96, headerOpacity)
+    : hexToRgba('#ffffff', headerOpacity);
 
   // Smooth header gradient transition:
   // Crossfade from the previous gradient to the new one (cheap: opacity only, debounced by React render).
@@ -967,18 +962,15 @@ export function useTV2DisplayLogic({
     return headerStartBase;
   }, [trackGradient, albumTone, headerStartBase, levaControls?.headerGradientOpacity]);
 
-  // 헤더 상단 패널용 컬러 스윕(좌→우 루프) 색상 세트
+  // 헤더 상단 패널용 컬러 스윕(좌→우 루프) 색상 세트 (UI 파스텔톤 기반)
   // - 메인 컬러: "조명 컬러(lightColor)"를 기반으로 한 파스텔 톤 (긴 구간을 담당)
   // - 대비 컬러: 앨범 컬러 중 가장 어두운 톤 (아주 짧은 구간만 스쳐 지나가도록)
   // - 화이트: 끝단을 정리하는 하이라이트
-  let headerSweepMainColor = headerStartBase;
-  const baseSweepHsl = hexToHsl(headerStartBase);
-  if (baseSweepHsl) {
-    const { h, s, l } = baseSweepHsl;
-    const mainL = Math.min(96, l + 10);
-    // 조명 패널 스윕은 너무 쨍하지 않도록 채도를 더 낮춤
-    const mainS = Math.max(5, Math.min(100, s - 18));
-    headerSweepMainColor = hsla(h, mainS, mainL, levaControls?.headerGradientOpacity || 0.95);
+  let headerSweepMainColor = headerGradientStartRgba;
+  if (uiLightHsl) {
+    const mainL = Math.min(96, uiLightHsl.l + 6);
+    const mainS = Math.max(6, Math.min(44, uiLightHsl.s));
+    headerSweepMainColor = hsla(uiLightHsl.h, mainS, mainL, headerOpacity);
   }
 
   const headerSweepContrastColor = albumDarkSweepColor || headerSweepMainColor;

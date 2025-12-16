@@ -12,6 +12,7 @@ export default function useSocketController(options = {}) {
     onNewUser: options.onNewUser,
     onNewName: options.onNewName,
     onNewVoice: options.onNewVoice,
+    onUserLeft: options.onUserLeft,
     onDeviceHeartbeat: options.onDeviceHeartbeat,
   });
 
@@ -21,9 +22,10 @@ export default function useSocketController(options = {}) {
       onNewUser: options.onNewUser,
       onNewName: options.onNewName,
       onNewVoice: options.onNewVoice,
+      onUserLeft: options.onUserLeft,
       onDeviceHeartbeat: options.onDeviceHeartbeat,
     };
-  }, [options.onNewUser, options.onNewName, options.onNewVoice, options.onDeviceHeartbeat]);
+  }, [options.onNewUser, options.onNewName, options.onNewVoice, options.onUserLeft, options.onDeviceHeartbeat]);
 
   useEffect(() => {
     let mounted = true;
@@ -55,11 +57,13 @@ export default function useSocketController(options = {}) {
     const handleNewUser = (payload) => handlersRef.current.onNewUser?.(payload);
     const handleNewName = (payload) => handlersRef.current.onNewName?.(payload);
     const handleNewVoice = (payload) => handlersRef.current.onNewVoice?.(payload);
+    const handleUserLeft = (payload) => handlersRef.current.onUserLeft?.(payload);
     const handleDeviceHeartbeat = (payload) => handlersRef.current.onDeviceHeartbeat?.(payload);
 
     s.on(EV.CONTROLLER_NEW_USER, handleNewUser);
     s.on(EV.CONTROLLER_NEW_NAME, handleNewName);
     s.on(EV.CONTROLLER_NEW_VOICE, handleNewVoice);
+    s.on(EV.CONTROLLER_USER_LEFT, handleUserLeft);
     s.on('device-heartbeat', handleDeviceHeartbeat);
 
     return () => {
@@ -69,6 +73,7 @@ export default function useSocketController(options = {}) {
       s.off(EV.CONTROLLER_NEW_USER, handleNewUser);
       s.off(EV.CONTROLLER_NEW_NAME, handleNewName);
       s.off(EV.CONTROLLER_NEW_VOICE, handleNewVoice);
+      s.off(EV.CONTROLLER_USER_LEFT, handleUserLeft);
       s.off('device-heartbeat', handleDeviceHeartbeat);
       s.close();
       socketRef.current = null;

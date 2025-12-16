@@ -261,6 +261,23 @@ export default function TV1Controls() {
   // 시간 표시 배열 (블롭 생성 시 시간대 변경 시 자동 생성)
   // 각 시간 표시: { hour: number, top: number, visible: boolean, timestamp: number }
   const [timeMarkers, setTimeMarkers] = useState([]);
+  // 첫 실제 입력 이후 상단 더미 블롭들이 겹치지 않도록 한 번만 정리
+  const dummyClearedRef = useRef(false);
+  useEffect(() => {
+    try {
+      if (dummyClearedRef.current) return;
+      const hasDynamic = Array.isArray(newBlobs) && newBlobs.some((b) => b && !b.isFixed);
+      if (!hasDynamic) return;
+      dummyClearedRef.current = true;
+      setVisibleBlobs((prev) => {
+        const next = { ...prev };
+        Object.keys(next || {}).forEach((k) => {
+          if (next[k]) next[k] = { ...next[k], visible: false };
+        });
+        return next;
+      });
+    } catch {}
+  }, [newBlobs]);
   
   // 블롭 타입을 컴포넌트로 매핑하는 함수
   const getBlobComponent = (blobType) => {
@@ -566,13 +583,13 @@ export default function TV1Controls() {
         
         {/* 동적 시간 표시 (블롭 생성 시 시간대 변경 시 자동 생성) */}
         {timeMarkers.map((marker) => (
-          <React.Fragment key={`time-${marker.hour}`}>
+          <React.Fragment key={`time-${marker.key || marker.hour || marker.timestamp}`}>
             <S.LeftTime2 
               $top={`${marker.top}vw`}
               $visible={marker.visible}
               $isFocusMode={isFocusMode}
             >
-              {String(marker.hour).padStart(2, '0')}:00
+              {marker.label || `${String(marker.hour).padStart(2, '0')}:00`}
             </S.LeftTime2>
             <S.LeftWhiteShape 
               $top={`${marker.top}vw`}

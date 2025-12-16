@@ -310,10 +310,12 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const blurPx = Math.round(blurBase * (baseBlobSize / designBase))
   // T5: make orbits more vivid (slightly less blur, higher saturation/brightness, higher opacity)
   const t5Phase = showFinalOrb || hasShownKeywords
-  const orbitBlur = Math.max(18, blurPx - (t5Phase ? 10 : 0))
-  const orbitSat = t5Phase ? 1.28 : 1.0
-  const orbitBright = t5Phase ? 1.08 : 1.0
-  const orbitOpacity = t5Phase ? 0.96 : 0.85
+  // 최종 단계에서 오브가 흐릿하게 뭉개져 보이는 문제가 있어,
+  // blur를 더 강하게 낮추고(형태가 또렷하게) 대신 채도/밝기/불투명도를 약간 올린다.
+  const orbitBlur = t5Phase ? Math.max(8, blurPx - 22) : Math.max(18, blurPx - 10)
+  const orbitSat = t5Phase ? 1.42 : 1.0
+  const orbitBright = t5Phase ? 1.12 : 1.0
+  const orbitOpacity = t5Phase ? 0.98 : 0.85
   const shape1W = baseBlobSize * 0.534 // ≈ 187/350
   const shape1H = baseBlobSize * 0.554 // ≈ 194/350
   const shape2W = baseBlobSize * 0.735 // ≈ 257/350
@@ -325,6 +327,21 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const blobTransition = isIOS
     ? `transform ${uiScaleTransitionMs}ms ease, opacity ${blobOpacityMs}ms ease`
     : `transform ${uiScaleTransitionMs}ms ease, opacity ${blobOpacityMs}ms ease, filter ${blobOpacityMs}ms ease`
+
+  // T5(최종 결과)에서 메인/미러 블롭이 너무 블러리해지는 문제를 방지:
+  // - blurPx를 줄여 형태를 좀 더 또렷하게 만든다(과도한 샤프는 피함).
+  const mainBlurPx = t5Phase
+    ? Math.max(12, Math.round((blobSettings.blurPx || 0) * 0.34))
+    : (blobSettings.blurPx || 0)
+  const mirrorBlurPx = t5Phase
+    ? Math.max(14, Math.round((mirrorSettings.blurPx || 0) * 0.34))
+    : (mirrorSettings.blurPx || 0)
+  const mainInnerBlurPx = t5Phase
+    ? Math.max(8, Math.round((blobSettings.innerBlur || 0) * 0.6))
+    : (blobSettings.innerBlur || 0)
+  const mirrorInnerBlurPx = t5Phase
+    ? Math.max(8, Math.round((mirrorSettings.innerBlur || 0) * 0.6))
+    : (mirrorSettings.innerBlur || 0)
 
   return (
     <>
@@ -406,9 +423,9 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
                 '--center-y': `${blobSettings.centerY}%`,
                 '--start': `${blobSettings.start}%`,
                 '--end': `${blobSettings.end}%`,
-                '--blur': `${blobSettings.blurPx + blurIncrease}px`,
+                '--blur': `${mainBlurPx + blurIncrease}px`,
                 '--feather': `${blobSettings.feather}%`,
-                '--inner-blur': `${blobSettings.innerBlur}px`,
+                '--inner-blur': `${mainInnerBlurPx}px`,
                 '--rim-tilt': `${blobSettings.rimTilt}deg`,
                 '--c0': `${blobSettings.color0}`,
                 '--c1': `${blobSettings.color1}`,
@@ -456,9 +473,9 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
               '--center-y': `${mirrorSettings.centerY}%`,
               '--start': `${mirrorSettings.start}%`,
               '--end': `${mirrorSettings.end}%`,
-              '--blur': `${mirrorSettings.blurPx + blurIncrease}px`,
+              '--blur': `${mirrorBlurPx + blurIncrease}px`,
               '--feather': `${mirrorSettings.feather}%`,
-              '--inner-blur': `${mirrorSettings.innerBlur}px`,
+              '--inner-blur': `${mirrorInnerBlurPx}px`,
               '--rim-tilt': `${mirrorSettings.rimTilt}deg`,
               '--c0': `${mirrorSettings.color0}`,
               '--c1': `${mirrorSettings.color1}`,

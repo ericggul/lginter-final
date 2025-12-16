@@ -240,4 +240,116 @@ export const BorderFlash = styled.div`
   mix-blend-mode: screen;
 `;
 
+/* ===== Orchestration overlay (short moment before values snap) ===== */
+
+// Mobile OrchestratingScreen gradient text animation (ported)
+const orchestrationGradientShift = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
+const orchestrationOverlayIn = keyframes`
+  0% { opacity: 0; transform: scale(1.01); filter: blur(0px); }
+  30% { opacity: 1; transform: scale(1); filter: blur(0px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0px); }
+`;
+
+const orchestrationGlowPulse = keyframes`
+  0%, 100% { filter: drop-shadow(0 0 18px rgba(255,255,255,0.55)); }
+  50% { filter: drop-shadow(0 0 34px rgba(255,255,255,0.9)); }
+`;
+
+export const OrchestrationOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  animation: ${orchestrationOverlayIn} 240ms ease-out forwards;
+  /* Make underlying values unreadable while keeping the scene visible */
+  background: radial-gradient(
+      120% 140% at 20% 10%,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(255, 255, 255, 0.78) 42%,
+      rgba(255, 255, 255, 0.62) 100%
+    );
+  backdrop-filter: blur(14px) saturate(1.05);
+`;
+
+export const OrchestrationHeaderPanel = styled.div`
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 324px; /* same as header */
+  background: linear-gradient(
+    90deg,
+    ${props => props.$gradientStart || 'rgba(102,157,255,1)'} 0%,
+    ${props => props.$gradientMid || 'rgba(143,168,224,1)'} ${props => props.$gradientMidPos ?? 10}%,
+    ${props => props.$gradientEnd || '#ffffff'} ${props => props.$gradientEndPos ?? 90}%,
+    ${props => props.$gradientEnd || '#ffffff'} 100%
+  );
+  opacity: 0.96;
+  animation: ${orchestrationGlowPulse} 1.2s ease-in-out infinite;
+  mix-blend-mode: normal;
+`;
+
+export const OrchestrationAlbumCover = styled.div`
+  position: absolute;
+  left: 720px;
+  top: 610px;
+  width: 760px;
+  height: 760px;
+  border-radius: 44px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.25);
+  box-shadow:
+    0 0 0 6px rgba(255,255,255,0.25),
+    0 18px 60px rgba(0,0,0,0.18),
+    0 0 80px rgba(255,255,255,0.55);
+  animation: ${orchestrationGlowPulse} 1.2s ease-in-out infinite;
+`;
+
+export const OrchestrationAlbumImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.06) contrast(1.02);
+`;
+
+export const OrchestrationText = styled.div`
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 110px;
+  text-transform: uppercase;
+  /* Gradient text animation */
+  background-image: linear-gradient(
+    90deg,
+    #ffe6f7 0%,
+    #ff6ec4 20%,
+    #fff6d6 40%,
+    #7873f5 60%,
+    #ffe6f7 80%,
+    #ff6ec4 100%
+  );
+  background-size: 320% 320%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.65);
+  animation: ${orchestrationGradientShift} 15000ms ease-in-out infinite;
+`;
+
+export const OrchestrationSubText = styled.div`
+  margin-top: 26px;
+  font-size: 52px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(40, 40, 40, 0.62);
+`;
+
 

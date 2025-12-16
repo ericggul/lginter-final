@@ -43,9 +43,10 @@ export default function ControllerView() {
       onNewUser: orchestrator.onNewUser,
       onNewName: orchestrator.onNewName,
       onNewVoice: orchestrator.onNewVoice,
+      onUserLeft: orchestrator.onUserLeft,
       onDeviceHeartbeat: orchestrator.onDeviceHeartbeat,
     });
-  }, [orchestrator.onNewUser, orchestrator.onNewName, orchestrator.onNewVoice, orchestrator.onDeviceHeartbeat]);
+  }, [orchestrator.onNewUser, orchestrator.onNewName, orchestrator.onNewVoice, orchestrator.onUserLeft, orchestrator.onDeviceHeartbeat]);
 
   const snapshot = orchestrator.snapshot || {};
   const users = snapshot.users || [];

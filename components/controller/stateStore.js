@@ -142,6 +142,15 @@ export function updateUserDecision(usersMap, userId, decision) {
   return updated;
 }
 
+export function removeUser(usersMap, userId) {
+  try {
+    if (!userId) return false;
+    return usersMap.delete(userId);
+  } catch {
+    return false;
+  }
+}
+
 // normalizeEnv moved to controller/logic/controllerMerge
 
 export function prunePreferences(preferencesMap, now) {
