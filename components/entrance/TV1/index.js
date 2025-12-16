@@ -261,23 +261,6 @@ export default function TV1Controls() {
   // 시간 표시 배열 (블롭 생성 시 시간대 변경 시 자동 생성)
   // 각 시간 표시: { hour: number, top: number, visible: boolean, timestamp: number }
   const [timeMarkers, setTimeMarkers] = useState([]);
-  // 첫 실제 입력 이후 상단 더미 블롭들이 겹치지 않도록 한 번만 정리
-  const dummyClearedRef = useRef(false);
-  useEffect(() => {
-    try {
-      if (dummyClearedRef.current) return;
-      const hasDynamic = Array.isArray(newBlobs) && newBlobs.some((b) => b && !b.isFixed);
-      if (!hasDynamic) return;
-      dummyClearedRef.current = true;
-      setVisibleBlobs((prev) => {
-        const next = { ...prev };
-        Object.keys(next || {}).forEach((k) => {
-          if (next[k]) next[k] = { ...next[k], visible: false };
-        });
-        return next;
-      });
-    } catch {}
-  }, [newBlobs]);
   
   // 블롭 타입을 컴포넌트로 매핑하는 함수
   const getBlobComponent = (blobType) => {
@@ -685,6 +668,15 @@ export default function TV1Controls() {
         {newBlobs.map((blob) => {
           const BlobComponent = getBlobComponent(blob.blobType);
           const isNowColumn = !blob.isFixed && blob.column === 5;
+          // 해당 열에 실데이터(동적 블롭)가 존재하면, 그 열의 더미(고정 블롭)는 렌더하지 않는다.
+          // -> 시간 스탬프가 찍힌 뒤에도 더미 위로 실데이터가 겹치는 문제를 구조적으로 차단.
+          const hasDynamicInSameColumn =
+            blob.isFixed &&
+            (blob.column === 2 || blob.column === 3 || blob.column === 4) &&
+            newBlobs.some((b) => !b.isFixed && b.visible !== false && b.column === blob.column);
+          if (hasDynamicInSameColumn) {
+            return null;
+          }
 
           // logic.js COLUMN_5_TOP 과 동일 값 (Now 기본 위치)
           const baseNowTopVw = 44.6191665;
