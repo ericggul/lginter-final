@@ -18,7 +18,7 @@ import { AppContainer, ContentWrapper } from "./sections/styles/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
 import ReasonPanel from './views/ReasonPanel';
 import InputForm from './views/InputForm';
-import { fonts } from "./sections/styles/tokens";
+import { fonts, colors, spacing, typography } from "./sections/styles/tokens";
 import { RingPulse as PressRingPulse, HitArea as PressHitArea } from './sections/PressOverlay/styles';
 
 import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
@@ -480,7 +480,42 @@ export default function MobileControls() {
     // 1) UI: 즉시 종료 화면으로 전환 (네트워크 실패에도 UX는 완료)
     setIsExited(true);
     setShowResetButton(false);
-    try { window.showOrbits = false; window.clusterSpin = false; } catch {}
+    // 1-1) Background: revert to landing visuals (do not go beyond this state)
+    if (typeof window !== 'undefined') {
+      try {
+        window.isListening = false;
+        window.blobOpacityMs = 600;
+        window.blobOpacity = 1;
+        window.blobScaleMs = 600;
+        window.blobScale = 1;
+        window.bgSettings = {
+          top: '#ECF8FA',
+          mid: '#FAFDFF',
+          low: '#FFE0F8',
+          bottom: '#FFF0FB',
+          midStop: 23,
+          lowStop: 64,
+        };
+        window.showKeywords = false;
+        window.keywordLabels = [];
+        window.clusterSpin = false;
+        window.newOrbEnter = false;
+        window.showOrbits = false;
+        window.mainBlobFade = false;
+        window.showFinalOrb = false;
+        window.showCenterGlow = false;
+        window.orbitRadiusScale = 1;
+        window.wobbleTarget = 1;
+        window.mainBlobStatic = false;
+        window.blobSettings = {
+          color0: '#F7F7E8',
+          color1: '#F4E9D7',
+          color2: '#F79CBF',
+          color3: '#C5F7EA',
+          color4: '#C8F4E9'
+        };
+      } catch {}
+    }
     // 2) 서버: 컨트롤러 인원수에서 즉시 빠지도록 leave 이벤트 송신 + 소켓 종료
     try {
       const ts = Date.now();
@@ -599,8 +634,7 @@ export default function MobileControls() {
       {isExited && (
         <ExitOverlay>
           <ExitMessage>
-            <div className="title">room3 체험이 종료 되었습니다!</div>
-            <div className="sub">즐거운 하루 되시길 바라요</div>
+            <div className="title">즐거운 하루<br/>되시길 바라요</div>
           </ExitMessage>
         </ExitOverlay>
       )}
@@ -611,7 +645,8 @@ export default function MobileControls() {
       )}
       <BackgroundCanvas
         cameraMode="default"
-        showMoodWords={!submitted && showPress}
+        // On exit screen, do NOT show mood words (only landing background + main blob)
+        showMoodWords={!isExited && !submitted && showPress}
       />
       <ContentWrapper $isModal={isModal}>
         {!submitted && !isListening && (
@@ -886,32 +921,30 @@ const ExitOverlay = styled.div`
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: #ffffff;
+  background: transparent;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   pointer-events: auto;
 `;
 
 const ExitMessage = styled.div`
-  text-align: center;
-  color: #111;
-  padding: 24px;
+  width: min(640px, 100%);
+  text-align: left;
+  color: ${colors.textPrimary};
+  /* Slightly lower than the exact landing padding (visual comfort on exit screen) */
+  margin-top: clamp(12px, 2.2vh, 26px);
+  padding-top: ${spacing.container.paddingTop};
+  padding-right: ${spacing.container.paddingRight};
+  padding-bottom: ${spacing.container.paddingBottom};
+  padding-left: ${spacing.container.paddingLeft};
   animation: ${exitIn} 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   .title {
     font-family: ${fonts.ui};
-    font-weight: 900;
-    font-size: clamp(1.4rem, 6vw, 2.2rem);
-    line-height: 1.2;
+    font-weight: ${typography.heroTitleWeight};
+    font-size: ${typography.heroTitleSize};
+    line-height: ${typography.heroTitleLineHeight};
     letter-spacing: -0.02em;
-  }
-  .sub {
-    margin-top: 10px;
-    font-family: ${fonts.ui};
-    font-weight: 700;
-    font-size: clamp(1.05rem, 4.6vw, 1.5rem);
-    line-height: 1.4;
-    color: rgba(17,17,17,0.78);
   }
 `;
