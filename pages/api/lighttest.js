@@ -453,13 +453,15 @@ async function startTv2PulseLoop({
 
   // Set base color once across all bulbs (in a wave so it's obvious), and ensure a visible baseline brightness.
   // This avoids re-sending color on every brightness tick.
+  const applyErrors = [];
+  let appliedCount = 0;
   try {
     const order = shuffleInPlace(ids.map((id) => id));
-    await Promise.all(
+    const settled = await Promise.allSettled(
       order.map(async (id) => {
         const jitter = Math.floor(0 + Math.random() * 120);
         await sleep(jitter);
-        await setLightColor({
+        return await setLightColor({
           color: c,
           brightness: baseBri,
           configOverride,
@@ -467,8 +469,29 @@ async function startTv2PulseLoop({
         });
       })
     );
+
+    settled.forEach((s, i) => {
+      const id = order[i];
+      if (s.status === "fulfilled" && s.value?.ok) {
+        appliedCount += 1;
+      } else {
+        const reason = s.status === "rejected" ? s.reason : s.value;
+        applyErrors.push({ id, error: reason?.error || reason?.message || String(reason) });
+      }
+    });
   } catch (err) {
     console.warn("[lighttest][tv2-pulse] initial color apply failed", err?.message || String(err));
+    applyErrors.push({ id: null, error: err?.message || String(err) });
+  }
+
+  // If we couldn't set the base color on ANY bulb, don't start a loop that only changes brightness.
+  if (appliedCount === 0) {
+    return {
+      ok: false,
+      error:
+        "Failed to apply base Hue color. Hue may be disabled, unreachable, or blocked by proxy/auth config.",
+      details: { attempted: ids.length, applied: appliedCount, errors: applyErrors.slice(0, 10) },
+    };
   }
 
   const tick = clampInt(tickMs || 350, 150, 10_000);
@@ -497,7 +520,15 @@ async function startTv2PulseLoop({
     void tv2PulseTick(gen);
   }, tick);
 
-  return { ok: true, active: true, mode: "tv2-pulse", count: ids.length, tickMs: tick };
+  return {
+    ok: true,
+    active: true,
+    mode: "tv2-pulse",
+    count: ids.length,
+    tickMs: tick,
+    baseColorApplied: { attempted: ids.length, applied: appliedCount, failed: applyErrors.length },
+    ...(applyErrors.length ? { baseColorApplyErrors: applyErrors.slice(0, 10) } : {}),
+  };
 }
 
 async function tv2GradientTick(genAtStart) {
