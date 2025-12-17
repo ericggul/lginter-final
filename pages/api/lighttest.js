@@ -401,6 +401,41 @@ async function tv2PulseTick(genAtStart) {
     const isRemote = !!cfg.remoteEnabled;
     const perTick = isRemote ? clampInt(cfg.remotePerTickCount || 2, 1, 6) : ids.length;
 
+    // Phase 1 (remote-safe): apply base color gradually until all bulbs have the desired color.
+    // This prevents "brightness changes but color never updates" when remote is throttled.
+    if (Array.isArray(cfg.pendingColorIds) && cfg.pendingColorIds.length > 0) {
+      const toApply = isRemote ? 1 : Math.min(3, cfg.pendingColorIds.length);
+      const extraSpacingMs = clampInt(cfg.remoteInterRequestMs || 250, 50, 2000);
+      for (let i = 0; i < toApply; i += 1) {
+        if (!tv2PulseLoop.active) break;
+        if (genAtStart !== tv2PulseLoop.gen) break;
+        if (!cfg.pendingColorIds.length) break;
+
+        const id = cfg.pendingColorIds[0];
+        const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(jitter + (i === 0 ? 0 : extraSpacingMs));
+        // eslint-disable-next-line no-await-in-loop
+        const r = await setLightColor({
+          color: cfg.color,
+          brightness: cfg.baseBri,
+          configOverride: cfg.configOverride,
+          targets: { lightIds: [id], groupId: undefined },
+        });
+        if (r?.ok) {
+          // remove this id from the pending queue
+          cfg.pendingColorIds.shift();
+        } else if (String(r?.error || "").includes("(429)")) {
+          cfg.backoffUntil = Date.now() + clampInt(cfg.remoteBackoffMs || 30_000, 1000, 180_000);
+          break;
+        } else {
+          // Non-rate-limit failure: drop it to avoid blocking the queue forever.
+          cfg.pendingColorIds.shift();
+        }
+      }
+      return;
+    }
+
     // Pick a random brightness per bulb, 0..100.
     const plan = ids.map((id) => ({
       id,
@@ -526,8 +561,11 @@ async function startTv2PulseLoop({
     applyErrors.push({ id: null, error: err?.message || String(err), details: err?.details });
   }
 
-  // If we couldn't set the base color on ANY bulb, don't start a loop that only changes brightness.
-  if (appliedCount === 0) {
+  const isRemote = !!configOverride?.remoteEnabled;
+  const hitRateLimit = applyErrors.some((e) => String(e?.error || "").includes("(429)") || e?.status === 429);
+  // If remote is rate-limited, start the loop anyway and let it apply base color gradually with backoff.
+  // This is better than hard-failing and never syncing colors.
+  if (appliedCount === 0 && !(isRemote && hitRateLimit)) {
     return {
       ok: false,
       error:
@@ -536,7 +574,9 @@ async function startTv2PulseLoop({
     };
   }
 
-  const tick = clampInt(tickMs || 350, 150, 10_000);
+  // Remote needs slower ticks; local/proxy can be fast.
+  const defaultTick = isRemote ? 2000 : 350;
+  const tick = clampInt(tickMs || defaultTick, isRemote ? 1200 : 150, 10_000);
   const gen = tv2PulseLoop.gen + 1;
   tv2PulseLoop = {
     active: true,
@@ -547,6 +587,9 @@ async function startTv2PulseLoop({
       configOverride,
       lightIds: ids,
       color: c,
+      baseBri,
+      // If we didn't manage to apply the color up front (e.g. 429), keep a pending queue.
+      pendingColorIds: appliedCount === 0 ? [...ids] : [],
       tickMs: tick,
       waveMinDelayMs: waveMinDelayMs != null ? clampInt(waveMinDelayMs, 0, 5000) : 0,
       waveMaxDelayMs: waveMaxDelayMs != null ? clampInt(waveMaxDelayMs, 0, 8000) : 120,
@@ -555,11 +598,11 @@ async function startTv2PulseLoop({
       // Keep bulbs ON: never go below this percent.
       minBrightnessPct: minP,
       // Remote-specific throttling
-      remoteEnabled: !!configOverride?.remoteEnabled,
-      remotePerTickCount: 2,
-      remoteInterRequestMs: 250,
-      remoteBackoffMs: 15_000,
-      backoffUntil: 0,
+      remoteEnabled: isRemote,
+      remotePerTickCount: 1,
+      remoteInterRequestMs: 1000,
+      remoteBackoffMs: 30_000,
+      backoffUntil: hitRateLimit ? Date.now() + 30_000 : 0,
     },
   };
 
@@ -576,6 +619,7 @@ async function startTv2PulseLoop({
     tickMs: tick,
     baseColorApplied: { attempted: ids.length, applied: appliedCount, failed: applyErrors.length },
     ...(applyErrors.length ? { baseColorApplyErrors: applyErrors.slice(0, 10) } : {}),
+    ...(appliedCount === 0 && hitRateLimit ? { note: "Rate limited (429). Will retry base color gradually with backoff." } : {}),
   };
 }
 
