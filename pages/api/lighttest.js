@@ -42,6 +42,7 @@ function resolveHueConfig() {
 
   const ip = process.env.HUE_BRIDGE_IP || HUE_BRIDGE_IP_FALLBACK;
   const username = process.env.HUE_USERNAME || HUE_USERNAME_FALLBACK;
+  const bridgeId = process.env.HUE_BRIDGE_ID || process.env.HUE_REMOTE_BRIDGE_ID || "";
 
   const groupId =
     process.env.HUE_GROUP_ID != null && process.env.HUE_GROUP_ID !== ""
@@ -72,6 +73,7 @@ function resolveHueConfig() {
     enabled,
     ip,
     username,
+    bridgeId,
     groupId,
     lightIds,
     remoteEnabled,
@@ -307,15 +309,19 @@ function makeWeakCyclePalette(baseHex, strength = 0.08) {
 }
 
 async function resolveLightIdsSorted({ configOverride }) {
-  let ids = toUniqueNumericLightIds(configOverride?.lightIds);
-  if (!ids.length) {
+  const configured = toUniqueNumericLightIds(configOverride?.lightIds);
+  let discovered = [];
+  try {
     const listed = await listLights({ configOverride });
     if (listed?.ok && Array.isArray(listed?.lights)) {
-      ids = toUniqueNumericLightIds(listed.lights.map((l) => l?.id));
+      discovered = toUniqueNumericLightIds(listed.lights.map((l) => l?.id));
     }
-  }
-  ids.sort((a, b) => a - b);
-  return ids;
+  } catch {}
+
+  // Use union so we can still control all lights even if HUE_LIGHT_IDS is incomplete.
+  const all = toUniqueNumericLightIds([...(configured || []), ...(discovered || [])]);
+  all.sort((a, b) => a - b);
+  return all;
 }
 
 function stopTv2GradientLoop() {
@@ -340,21 +346,32 @@ function stopTv2PulseLoop() {
   }
 }
 
-function brightnessPctToHueBri(pct) {
-  const p = clampInt(pct, 0, 100);
+function brightnessPctToHueBri(pct, maxPct = 100) {
+  const p = clampInt(pct, 0, clampInt(maxPct, 0, 100));
   if (p <= 0) return 0;
   return clampInt(Math.round((p / 100) * 254), 1, 254);
 }
 
-function pickSparklyBrightnessPct() {
-  // Bias toward obvious flashes:
-  // - mostly OFF
-  // - often FULL
-  // - sometimes medium
+function pickSparklyBrightnessPct({ minPct = 1, maxPct = 100 } = {}) {
+  const minP = clampInt(minPct, 0, 100);
+  const maxP = clampInt(maxPct, minP, 100);
+  if (maxP <= 0) return 0;
+
+  // Keep ALL bulbs on (no "0/off") but still very sparkly:
+  // - low twinkle band near min
+  // - high flash band near max
+  // - occasional mid values
   const r = Math.random();
-  if (r < 0.55) return 0;
-  if (r < 0.87) return 100;
-  return 30 + Math.floor(Math.random() * 61); // 30..90
+  const lowHi = Math.min(maxP, minP + 3);
+  const highLo = Math.max(minP, maxP - 3);
+
+  if (r < 0.45) {
+    return clampInt(minP + Math.floor(Math.random() * (lowHi - minP + 1)), minP, maxP);
+  }
+  if (r < 0.90) {
+    return clampInt(highLo + Math.floor(Math.random() * (maxP - highLo + 1)), minP, maxP);
+  }
+  return clampInt(minP + Math.floor(Math.random() * (maxP - minP + 1)), minP, maxP);
 }
 
 async function tv2PulseTick(genAtStart) {
@@ -367,46 +384,112 @@ async function tv2PulseTick(genAtStart) {
 
   tv2PulseLoop.runningTick = true;
   try {
+    const now = Date.now();
+    // Backoff window after 429s (Hue Remote rate limiting)
+    if (cfg.backoffUntil && now < cfg.backoffUntil) return;
+
     const ids = cfg.lightIds || [];
     if (!ids.length) return;
 
     const waveMin = clampInt(cfg.waveMinDelayMs || 40, 0, 2000);
     const waveMax = clampInt(cfg.waveMaxDelayMs || 220, waveMin, 5000);
+    // Default: baseline 30%, sparkle up to 100% (no OFF)
+    const maxBrightnessPct = clampInt(cfg.maxBrightnessPct != null ? cfg.maxBrightnessPct : 100, 0, 100);
+    const minBrightnessPct = clampInt(cfg.minBrightnessPct != null ? cfg.minBrightnessPct : 30, 0, maxBrightnessPct);
+
+    // Hue Remote API is heavily rate-limited. In remote mode, update only a few bulbs per tick.
+    const isRemote = !!cfg.remoteEnabled;
+    const perTick = isRemote ? clampInt(cfg.remotePerTickCount || 2, 1, 6) : ids.length;
+
+    // Phase 1 (remote-safe): apply base color gradually until all bulbs have the desired color.
+    // This prevents "brightness changes but color never updates" when remote is throttled.
+    if (Array.isArray(cfg.pendingColorIds) && cfg.pendingColorIds.length > 0) {
+      const toApply = isRemote ? 1 : Math.min(3, cfg.pendingColorIds.length);
+      const extraSpacingMs = clampInt(cfg.remoteInterRequestMs || 250, 50, 2000);
+      for (let i = 0; i < toApply; i += 1) {
+        if (!tv2PulseLoop.active) break;
+        if (genAtStart !== tv2PulseLoop.gen) break;
+        if (!cfg.pendingColorIds.length) break;
+
+        const id = cfg.pendingColorIds[0];
+        const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(jitter + (i === 0 ? 0 : extraSpacingMs));
+        // eslint-disable-next-line no-await-in-loop
+        const r = await setLightColor({
+          color: cfg.color,
+          brightness: cfg.baseBri,
+          configOverride: cfg.configOverride,
+          targets: { lightIds: [id], groupId: undefined },
+        });
+        if (r?.ok) {
+          // remove this id from the pending queue
+          cfg.pendingColorIds.shift();
+        } else if (String(r?.error || "").includes("(429)")) {
+          cfg.backoffUntil = Date.now() + clampInt(cfg.remoteBackoffMs || 30_000, 1000, 180_000);
+          break;
+        } else {
+          // Non-rate-limit failure: drop it to avoid blocking the queue forever.
+          cfg.pendingColorIds.shift();
+        }
+      }
+      return;
+    }
 
     // Pick a random brightness per bulb, 0..100.
     const plan = ids.map((id) => ({
       id,
-      pct: pickSparklyBrightnessPct(),
+      pct: pickSparklyBrightnessPct({ minPct: minBrightnessPct, maxPct: maxBrightnessPct }),
     }));
 
     const order = shuffleInPlace([...plan]);
 
-    // Run in parallel with per-bulb jitter for more "sparkly" timing.
-    await Promise.all(
-      order.map(async ({ id, pct }) => {
-        if (!tv2PulseLoop.active) return;
-        if (genAtStart !== tv2PulseLoop.gen) return;
+    const targetsNow = order.slice(0, perTick);
 
-        const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
-        await sleep(jitter);
-        if (!tv2PulseLoop.active) return;
-        if (genAtStart !== tv2PulseLoop.gen) return;
+    if (!isRemote) {
+      // Local/proxy mode: parallel updates are OK and look sparkly.
+      await Promise.all(
+        targetsNow.map(async ({ id, pct }) => {
+          if (!tv2PulseLoop.active) return;
+          if (genAtStart !== tv2PulseLoop.gen) return;
 
-        const bri = brightnessPctToHueBri(pct);
-        if (bri <= 0) {
-          await setLightOnOff(false, {
-            configOverride: cfg.configOverride,
-            targets: { lightIds: [id], groupId: undefined },
-          });
-        } else {
-          // Ensure on + brightness; Hue will keep last color (we set it on loop start).
+          const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
+          await sleep(jitter);
+          if (!tv2PulseLoop.active) return;
+          if (genAtStart !== tv2PulseLoop.gen) return;
+
+          const bri = brightnessPctToHueBri(pct, maxBrightnessPct);
           await setLightBrightness(bri, {
             configOverride: cfg.configOverride,
             targets: { lightIds: [id], groupId: undefined },
           });
+        })
+      );
+    } else {
+      // Hue Remote mode: sequential + extra spacing to avoid 429.
+      const extraSpacingMs = clampInt(cfg.remoteInterRequestMs || 250, 50, 2000);
+      for (let i = 0; i < targetsNow.length; i += 1) {
+        if (!tv2PulseLoop.active) break;
+        if (genAtStart !== tv2PulseLoop.gen) break;
+
+        const { id, pct } = targetsNow[i];
+        const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(jitter + (i === 0 ? 0 : extraSpacingMs));
+
+        const bri = brightnessPctToHueBri(pct, maxBrightnessPct);
+        // eslint-disable-next-line no-await-in-loop
+        const r = await setLightBrightness(bri, {
+          configOverride: cfg.configOverride,
+          targets: { lightIds: [id], groupId: undefined },
+        });
+        if (!r?.ok && String(r?.error || "").includes("(429)")) {
+          // Back off hard when we hit rate limit.
+          cfg.backoffUntil = Date.now() + clampInt(cfg.remoteBackoffMs || 15_000, 1000, 120_000);
+          break;
         }
-      })
-    );
+      }
+    }
   } catch (err) {
     console.warn("[lighttest][tv2-pulse] tick failed", err?.message || String(err));
   } finally {
@@ -420,6 +503,8 @@ async function startTv2PulseLoop({
   tickMs,
   waveMinDelayMs,
   waveMaxDelayMs,
+  maxBrightnessPct,
+  minBrightnessPct,
 }) {
   // Pulse mode replaces any previous loop(s) to avoid fighting.
   stopTv2GradientLoop();
@@ -433,26 +518,95 @@ async function startTv2PulseLoop({
     return { ok: false, error: "Invalid color hex. Expected '#RRGGBB'." };
   }
 
-  // Set base color once across all bulbs (in a wave so it's obvious).
+  // Default: baseline 30%, sparkle up to 100% (no OFF)
+  const maxP = maxBrightnessPct != null ? clampInt(maxBrightnessPct, 0, 100) : 100;
+  const minP = minBrightnessPct != null ? clampInt(minBrightnessPct, 0, maxP) : 30;
+  // Baseline brightness should be minP (not maxP).
+  const baseBri = brightnessPctToHueBri(minP, maxP);
+
+  // Set base color once across all bulbs (in a wave so it's obvious), and ensure a visible baseline brightness.
   // This avoids re-sending color on every brightness tick.
+  const applyErrors = [];
+  let appliedCount = 0;
   try {
     const order = shuffleInPlace(ids.map((id) => id));
-    await Promise.all(
-      order.map(async (id) => {
+    const isRemote = !!configOverride?.remoteEnabled;
+
+    // Remote optimization: if a groupId is configured, apply base color to the whole group in ONE request.
+    // This dramatically reduces 429s compared to 13 per-light calls.
+    const gid = configOverride?.groupId;
+    if (isRemote && gid != null && Number.isFinite(Number(gid))) {
+      const r = await setLightColor({
+        color: c,
+        brightness: baseBri,
+        configOverride,
+        targets: { groupId: Number(gid) },
+      });
+      if (r?.ok) {
+        appliedCount = ids.length;
+      } else {
+        applyErrors.push({
+          id: null,
+          error: r?.error || "Hue group color apply failed",
+          status: r?.status,
+          details: r?.details,
+          raw: r?.raw,
+        });
+      }
+    }
+
+    // Fallback: per-light apply (throttled for remote).
+    if (appliedCount === 0) {
+      const spacingMs = isRemote ? 300 : 0;
+      for (let i = 0; i < order.length; i += 1) {
+        const id = order[i];
         const jitter = Math.floor(0 + Math.random() * 120);
-        await sleep(jitter);
-        await setLightColor({
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(jitter + (i === 0 ? 0 : spacingMs));
+        // eslint-disable-next-line no-await-in-loop
+        const r = await setLightColor({
           color: c,
+          brightness: baseBri,
           configOverride,
           targets: { lightIds: [id], groupId: undefined },
         });
-      })
-    );
+        if (r?.ok) {
+          appliedCount += 1;
+        } else {
+          applyErrors.push({
+            id,
+            error: r?.error || "Hue color apply failed",
+            status: r?.status,
+            details: r?.details,
+            raw: r?.raw,
+          });
+          if (String(r?.error || "").includes("(429)")) break;
+        }
+      }
+    }
   } catch (err) {
     console.warn("[lighttest][tv2-pulse] initial color apply failed", err?.message || String(err));
+    applyErrors.push({ id: null, error: err?.message || String(err), details: err?.details });
   }
 
-  const tick = clampInt(tickMs || 350, 150, 10_000);
+  const isRemote = !!configOverride?.remoteEnabled;
+  const hitRateLimit = applyErrors.some((e) => String(e?.error || "").includes("(429)") || e?.status === 429);
+  // If remote is rate-limited, start the loop anyway and let it apply base color gradually with backoff.
+  // This is better than hard-failing and never syncing colors.
+  if (appliedCount === 0 && !(isRemote && hitRateLimit)) {
+    return {
+      ok: false,
+      error:
+        "Failed to apply base Hue color. Hue may be disabled, unreachable, or blocked by proxy/auth config.",
+      details: { attempted: ids.length, applied: appliedCount, errors: applyErrors.slice(0, 10) },
+    };
+  }
+
+  // Remote needs MUCH slower ticks; local/proxy can be fast.
+  // Hue Remote API will 429 very easily with many lights.
+  const defaultTick = isRemote ? 6000 : 350;
+  // Ignore overly-aggressive client tick in remote mode by clamping the minimum high.
+  const tick = clampInt(tickMs || defaultTick, isRemote ? 4000 : 150, 30_000);
   const gen = tv2PulseLoop.gen + 1;
   tv2PulseLoop = {
     active: true,
@@ -463,9 +617,22 @@ async function startTv2PulseLoop({
       configOverride,
       lightIds: ids,
       color: c,
+      baseBri,
+      // If we didn't manage to apply the color up front (e.g. 429), keep a pending queue.
+      pendingColorIds: appliedCount === 0 ? [...ids] : [],
       tickMs: tick,
       waveMinDelayMs: waveMinDelayMs != null ? clampInt(waveMinDelayMs, 0, 5000) : 0,
       waveMaxDelayMs: waveMaxDelayMs != null ? clampInt(waveMaxDelayMs, 0, 8000) : 120,
+      // Cap overall output brightness (percent 0..100)
+      maxBrightnessPct: maxP,
+      // Keep bulbs ON: never go below this percent.
+      minBrightnessPct: minP,
+      // Remote-specific throttling
+      remoteEnabled: isRemote,
+      remotePerTickCount: 1,
+      remoteInterRequestMs: 2000,
+      remoteBackoffMs: 60_000,
+      backoffUntil: hitRateLimit ? Date.now() + 60_000 : 0,
     },
   };
 
@@ -474,7 +641,18 @@ async function startTv2PulseLoop({
     void tv2PulseTick(gen);
   }, tick);
 
-  return { ok: true, active: true, mode: "tv2-pulse", count: ids.length, tickMs: tick };
+  return {
+    ok: true,
+    active: true,
+    mode: "tv2-pulse",
+    count: ids.length,
+    tickMs: tick,
+    baseColorApplied: { attempted: ids.length, applied: appliedCount, failed: applyErrors.length },
+    ...(applyErrors.length ? { baseColorApplyErrors: applyErrors.slice(0, 10) } : {}),
+    ...(appliedCount === 0 && hitRateLimit ? { note: "Rate limited (429). Will retry base color gradually with backoff." } : {}),
+    pendingColorCount: appliedCount === 0 ? ids.length : 0,
+    backoffUntil: hitRateLimit ? Date.now() + 30_000 : 0,
+  };
 }
 
 async function tv2GradientTick(genAtStart) {
@@ -727,7 +905,13 @@ export default async function handler(req, res) {
           const listed = await listLights({ configOverride });
           lightsProbe = listed?.ok
             ? { ok: true, count: Array.isArray(listed?.lights) ? listed.lights.length : 0 }
-            : { ok: false, error: listed?.error || "listLights failed" };
+            : {
+                ok: false,
+                status: listed?.status,
+                error: listed?.error || "listLights failed",
+                raw: listed?.raw,
+                details: listed?.details,
+              };
         } catch (e) {
           lightsProbe = { ok: false, error: e?.message || String(e) };
         }
@@ -767,66 +951,13 @@ export default async function handler(req, res) {
           break;
         }
 
-        // If a continuous gradient loop is running, stop it before applying a one-shot override.
+        // Stop any continuous loops before applying a one-shot override.
         stopTv2GradientLoop();
         stopTv2PulseLoop();
 
-        // Determine targets without hardcoding IDs:
-        // - Prefer configured HUE_LIGHT_IDS (explicit list)
-        // - Otherwise, enumerate via Hue API (listLights)
-        let lightIds = toUniqueNumericLightIds(configOverride?.lightIds);
-        if (!lightIds.length) {
-          const listed = await listLights({ configOverride });
-          if (listed?.ok && Array.isArray(listed?.lights)) {
-            lightIds = toUniqueNumericLightIds(listed.lights.map((l) => l?.id));
-          }
-        }
-
-        // If we still have no ids, fall back to existing behavior.
-        if (!lightIds.length) {
-          result = await setLightColor({ color, brightness: bri, configOverride });
-          break;
-        }
-
-        // Schedule sequential per-bulb updates with random delays.
-        // We respond immediately (TV2 doesn't consume the response) while the wave continues in the background.
-        const ids = shuffleInPlace([...lightIds]);
-        const io = res?.socket?.server?.io;
-        void (async () => {
-          try {
-            // Tune these to taste; total wave time ~ N * avgDelay.
-            const minDelayMs = 60;
-            const maxDelayMs = 240;
-            for (let i = 0; i < ids.length; i += 1) {
-              const id = ids[i];
-              const jitter = Math.floor(minDelayMs + Math.random() * (maxDelayMs - minDelayMs + 1));
-              // eslint-disable-next-line no-await-in-loop
-              await sleep(jitter);
-              // eslint-disable-next-line no-await-in-loop
-              await setLightColor({
-                color,
-                brightness: bri,
-                configOverride,
-                // Force per-light targeting (avoid group apply which changes simultaneously).
-                targets: { lightIds: [id], groupId: undefined },
-              });
-            }
-
-            // After the wave finishes, broadcast latest average Hue state (if socket server is present).
-            try {
-              if (io) {
-                const state = await getHueStateAverageHex({ configOverride });
-                if (state?.ok) {
-                  io.to("livingroom").emit("hue-state", state);
-                }
-              }
-            } catch {}
-          } catch (err) {
-            console.warn("[lighttest][tv2-wave] failed", err?.message || String(err));
-          }
-        })();
-
-        result = { ok: true, scheduled: true, mode: "tv2-wave", count: ids.length };
+        // Color-only mode: apply in one call (no per-bulb wave / no pulse).
+        // This minimizes Hue Remote API traffic and avoids 429 rate limits.
+        result = await setLightColor({ color, brightness: bri, configOverride });
         break;
       }
       case "pulse": {
@@ -841,6 +972,8 @@ export default async function handler(req, res) {
           tickMs: req.body?.tickMs,
           waveMinDelayMs: req.body?.waveMinDelayMs,
           waveMaxDelayMs: req.body?.waveMaxDelayMs,
+          maxBrightnessPct: req.body?.maxBrightnessPct,
+          minBrightnessPct: req.body?.minBrightnessPct,
         });
         break;
       }

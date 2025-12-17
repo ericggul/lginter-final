@@ -566,13 +566,13 @@ export default function TV1Controls() {
         
         {/* 동적 시간 표시 (블롭 생성 시 시간대 변경 시 자동 생성) */}
         {timeMarkers.map((marker) => (
-          <React.Fragment key={`time-${marker.hour}`}>
+          <React.Fragment key={`time-${marker.key || marker.hour || marker.timestamp}`}>
             <S.LeftTime2 
               $top={`${marker.top}vw`}
               $visible={marker.visible}
               $isFocusMode={isFocusMode}
             >
-              {String(marker.hour).padStart(2, '0')}:00
+              {marker.label || `${String(marker.hour).padStart(2, '0')}:00`}
             </S.LeftTime2>
             <S.LeftWhiteShape 
               $top={`${marker.top}vw`}
@@ -668,6 +668,15 @@ export default function TV1Controls() {
         {newBlobs.map((blob) => {
           const BlobComponent = getBlobComponent(blob.blobType);
           const isNowColumn = !blob.isFixed && blob.column === 5;
+          // 해당 열에 실데이터(동적 블롭)가 존재하면, 그 열의 더미(고정 블롭)는 렌더하지 않는다.
+          // -> 시간 스탬프가 찍힌 뒤에도 더미 위로 실데이터가 겹치는 문제를 구조적으로 차단.
+          const hasDynamicInSameColumn =
+            blob.isFixed &&
+            (blob.column === 2 || blob.column === 3 || blob.column === 4) &&
+            newBlobs.some((b) => !b.isFixed && b.visible !== false && b.column === blob.column);
+          if (hasDynamicInSameColumn) {
+            return null;
+          }
 
           // logic.js COLUMN_5_TOP 과 동일 값 (Now 기본 위치)
           const baseNowTopVw = 44.6191665;

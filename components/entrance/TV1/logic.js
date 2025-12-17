@@ -325,6 +325,8 @@ const BLOB_SPACING = 3; // 상단 블롭 간격과 동일
 const ROW_HEIGHT = 4.8322915; // (spawn point top - 짜증 블롭 top) / 2 = (26.2375 - 16.572917) / 2
 const RIGHT_MARGIN = 7.817708; // Now와 화면 왼쪽 거리
 const MAX_RIGHT = 100 - RIGHT_MARGIN; // 92.182292vw - 블롭의 오른쪽 면이 이 값을 넘으면 안됨
+// 5열(Now)은 우측으로 "최대 5개"까지 채운 뒤에만 위로 밀려나가야 한다.
+const MAX_ITEMS_COLUMN5 = 5;
 
 // 좌측 시간 라벨 최대 개수
 // - 이 개수를 넘으면 가장 오래된(가장 위에 위치한) 시간 라벨을 점진적으로 숨긴다.
@@ -447,6 +449,16 @@ function calculatePositionInColumn(column, existingBlobsInColumn, newText, calcu
   // 해당 열의 마지막 블롭 찾기
   const lastBlob = existingBlobsInColumn[existingBlobsInColumn.length - 1];
   const lastBlobWidth = calculateBlobWidth(lastBlob.text);
+
+  // 5열은 "개수 기준"으로도 full 판정 (요구사항: 우측으로 5개까지 채움)
+  if (column === 5 && existingBlobsInColumn.length >= MAX_ITEMS_COLUMN5) {
+    return {
+      top: columnTop,
+      left: BLOB_SPAWN_POINT.left,
+      rowIndex: lastBlob.rowIndex || 0,
+      isColumnFull: true,
+    };
+  }
   
   // 5열(blobSpawnPoint)이 "가로로" 꽉 찼는지 체크
   // → 새 블롭을 같은 줄에 배치했을 때 오른쪽 경계를 넘으면 가득 찬 것으로 간주
@@ -559,15 +571,15 @@ function getColumnForHour(currentHour, existingBlobs) {
 
 // 시간 변경 시 블롭 이동 함수
 // 이전 시간대의 블롭들을 위 열로 이동 (5열→4열, 4열→3열, 3열→2열)
-function moveBlobsToPreviousColumn(prevBlobs, previousHour) {
+function moveBlobsToPreviousColumn(prevBlobs, previousHourKey) {
   return prevBlobs.map(blob => {
     // 고정 블롭은 이동하지 않음
     if (blob.isFixed) {
       return blob;
     }
     
-    // 이전 시간대의 블롭만 이동
-    if (blob.hour === previousHour) {
+    // 이전 시간 버킷의 블롭만 이동
+    if (blob.hourKey === previousHourKey) {
       const currentColumn = blob.column || 5;
       // 5열→4열, 4열→3열, 3열→2열, 2열→1열
       const newColumn = Math.max(1, currentColumn - 1);
@@ -591,6 +603,9 @@ function moveBlobsToPreviousColumn(prevBlobs, previousHour) {
 // - left 값은 절대 변경하지 않음
 function shiftColumn5To4(prevBlobs) {
   return prevBlobs.map(blob => {
+    // 더미(고정 블롭)는 이동시키지 않는다.
+    // -> 더미는 "빈 열에서만 보이는 배경" 역할이고, 실데이터가 들어오면 렌더링에서 숨긴다.
+    if (blob.isFixed) return blob;
     // 5열 동적 블롭들 → 4열 위치로 이동
     if (!blob.isFixed && blob.column === 5) {
       return {
@@ -657,6 +672,8 @@ function shiftColumn5To4(prevBlobs) {
 // *주의*: left 값은 절대 변경하지 않고, top/column/visible 만 조정
 function shiftAllColumnsUp(prevBlobs) {
   return prevBlobs.map(blob => {
+    // 더미(고정 블롭)는 이동시키지 않는다.
+    if (blob.isFixed) return blob;
     const currentColumn = blob.column || 5;
 
     // 1열: 위로 조금 올리면서 fadeout
@@ -685,14 +702,14 @@ function shiftAllColumnsUp(prevBlobs) {
 
 // 시간 표시 생성 함수
 // 시간 변경 시 이전 시간대의 열에 시간 표시 생성
-function createTimeMarker(currentHour, previousHour, existingTimeMarkers, existingBlobs) {
-  // 시간이 변경되었는지 확인
-  if (currentHour === previousHour) {
+function createTimeMarker(currentHourKey, previousHourKey, existingTimeMarkers, existingBlobs) {
+  // 시간 버킷이 변경되었는지 확인
+  if (currentHourKey === previousHourKey) {
     return null; // 같은 시간대면 시간 표시 생성 안 함
   }
   
   // 이전 시간대의 열 결정 (이전 시간대 블롭이 이동한 열)
-  const previousHourBlobs = existingBlobs.filter(blob => !blob.isFixed && blob.hour === previousHour);
+  const previousHourBlobs = existingBlobs.filter(blob => !blob.isFixed && blob.hourKey === previousHourKey);
   if (previousHourBlobs.length === 0) {
     return null; // 이전 시간대 블롭이 없으면 시간 표시 생성 안 함
   }
@@ -701,20 +718,32 @@ function createTimeMarker(currentHour, previousHour, existingTimeMarkers, existi
   const targetColumn = previousHourBlobs[0].column;
   const top = COLUMN_TOPS[targetColumn];
   
-  // 이미 해당 시간대의 시간 표시가 있는지 확인
-  const existingMarker = existingTimeMarkers.find(marker => marker.hour === previousHour);
+  // 이미 해당 시간 버킷의 시간 표시가 있는지 확인
+  const existingMarker = existingTimeMarkers.find(marker => marker.key === String(previousHourKey));
   if (existingMarker) {
     return null; // 이미 존재하면 null 반환
   }
   
   return {
-    hour: previousHour, // 이전 시간대 표시
+    key: String(previousHourKey),
+    label: labelFromHourKey(previousHourKey),
+    hour: new Date(previousHourKey * 3600000).getHours(), // 유지: 기존 UI에서 hour 접근 시 안전
     top: top,
     column: targetColumn,
     visible: true,
     timestamp: Date.now()
   };
 }
+
+// 시간 버킷을 "시(0~23)"가 아니라 절대 시간 기준으로 관리해야,
+// 오래 켜둔 뒤(다음날)에도 기존 더미/시간대가 충돌하지 않고 안전하게 누적된다.
+const hourKeyFromTs = (ts) => Math.floor(Number(ts || Date.now()) / 3600000); // hours since epoch
+const labelFromHourKey = (hk) => {
+  const ms = Number(hk) * 3600000;
+  const d = new Date(ms);
+  const hh = String(d.getHours()).padStart(2, '0');
+  return `${hh}:00`;
+};
 
 export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, setTopTexts, setVisibleBlobs, setNewBlobs, calculateBlobWidth, setTimeMarkers, speakKeyword }) {
   // track unique users to shift top row only when a brand-new user speaks
@@ -763,77 +792,36 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
     // 새로운 블롭 배열에 추가 (시간대별 열 배치)
     if (blobType && gradient && setNewBlobs && calculateBlobWidth) {
       const currentTimestamp = Date.now();
-      const currentDate = new Date(currentTimestamp);
-      const currentHour = currentDate.getHours(); // 0-23
+      const currentHourKey = hourKeyFromTs(currentTimestamp);
       
       setNewBlobs((prevBlobs) => {
-        // 고정 블롭 제외한 동적 블롭만 필터링
+        // 이전 시간대 확인 (시간 마커 생성 용도)
         const dynamicBlobs = prevBlobs.filter(blob => !blob.isFixed);
-        
-        // 이전 시간대 확인 (동적 블롭 중 가장 최근 시간대)
-        let previousHour = null;
+        let previousHourKey = null;
         if (dynamicBlobs.length > 0) {
-          const hours = dynamicBlobs.map(blob => blob.hour).filter(h => h !== undefined);
-          if (hours.length > 0) {
-            previousHour = Math.max(...hours);
-          }
+          const keys = dynamicBlobs.map(blob => blob.hourKey).filter((h) => typeof h === 'number');
+          if (keys.length > 0) previousHourKey = Math.max(...keys);
         }
-        
-        // 시간 변경 감지 및 블롭 이동
-        let updatedBlobs = prevBlobs;
-        if (previousHour !== null && currentHour !== previousHour && currentHour > previousHour) {
-          // 시간이 변경되었고, 새로운 시간대가 더 최신인 경우
-          updatedBlobs = moveBlobsToPreviousColumn(prevBlobs, previousHour);
-        }
-        
-        // 새 블롭 위치 계산 (업데이트된 블롭 배열 기준)
-        // 🔑 항상 5열(지금 this moment, BLOB_SPAWN_POINT.top)에서 시작하도록 강제
-        //    → 5열에 이미 있는 동적 블롭들만 기준으로, 같은 열 내에서 가로 배치/가득 참 여부 계산
-        const dynamicAfterShift = updatedBlobs.filter(blob => !blob.isFixed);
-        const blobsInColumn5AfterShift = dynamicAfterShift.filter(blob => blob.column === 5);
-        const basePosition = calculatePositionInColumn(5, blobsInColumn5AfterShift, text, calculateBlobWidth);
-        const position = {
-          ...basePosition,
-          column: 5, // 무조건 5열에서 스폰
-        };
-        
-        // 5열이 꽉 찼는지 체크
-        let finalUpdatedBlobs = updatedBlobs;
-        console.log('📺 TV1 Column check:', {
-          column: position.column,
-          isColumnFull: position.isColumnFull,
-          rowIndex: position.rowIndex,
-          existingBlobsIn5: updatedBlobs.filter(b => !b.isFixed && b.column === 5).length
-        });
-        
-        if (position.column === 5 && position.isColumnFull) {
-          console.log('📺 TV1 Column 5 is full! Shifting ONLY column 5 blobs up to column 4...');
-          // 5열이 우측으로 꽉 찼으면, 5열 동적 블롭들만 4열 위치로 올리고,
-          // 기존 4열→3열, 3열→2열, 2열→1열, 1열은 살짝 위로 이동+fadeout
-          finalUpdatedBlobs = shiftColumn5To4(updatedBlobs);
-          console.log('📺 TV1 After shiftColumn5To4:', {
-            blobsIn5: finalUpdatedBlobs.filter(b => !b.isFixed && b.column === 5).length,
-            blobsIn4: finalUpdatedBlobs.filter(b => !b.isFixed && b.column === 4).length,
-          });
 
-          // 동시에 상단 1열(짜증나, 맑아, 상쾌함) 블롭들도 fade-out 시켜서 타임라인과 동기화
-          try {
-            if (setVisibleBlobs) {
-              setVisibleBlobs(prev => ({
-                ...prev,
-                Annoyed: prev.Annoyed ? { ...prev.Annoyed, visible: false } : prev.Annoyed,
-                Interest: prev.Interest ? { ...prev.Interest, visible: false } : prev.Interest,
-                Playful: prev.Playful ? { ...prev.Playful, visible: false } : prev.Playful,
-              }));
-            }
-          } catch {}
-          // 새 블롭은 항상 Now 라인의 5열에서 시작하도록 강제
-          const newPosition = calculatePositionInColumn(
-            5,
-            [], // 시프트 후 5열에는 기존 블롭이 없으므로 빈 배열 전달 → spawn point에서 생성
-            text,
-            calculateBlobWidth
-          );
+        // 시간 버킷이 바뀌면(시간 스탬프 찍힐 타이밍) 이전 시간대의 동적 블롭만 왼쪽으로 이동
+        // (더미는 이동시키지 않고, 실데이터가 들어온 열에서만 더미를 숨기는 방식으로 겹침을 방지)
+        let updatedBlobs = prevBlobs;
+        if (previousHourKey !== null && currentHourKey > previousHourKey) {
+          updatedBlobs = moveBlobsToPreviousColumn(prevBlobs, previousHourKey);
+        }
+
+        // 5열(Now)에는 우측으로 최대 5개까지 채운 뒤에만 시프트
+        const dynamicAfterShift = updatedBlobs.filter(blob => !blob.isFixed);
+        const blobsIn5 = dynamicAfterShift.filter(blob => blob.column === 5 && blob.visible !== false);
+        const basePosition = calculatePositionInColumn(5, blobsIn5, text, calculateBlobWidth);
+        const position = { ...basePosition, column: 5 };
+
+        let finalUpdatedBlobs = updatedBlobs;
+        if (position.isColumnFull) {
+          // 5열이 5개(또는 우측 오버플로우)로 가득 찼으면 한 번에 위로 밀기
+          finalUpdatedBlobs = shiftColumn5To4(updatedBlobs);
+          // 시프트 후 새 블롭은 5열 시작점에서 새로 배치
+          const newPosition = calculatePositionInColumn(5, [], text, calculateBlobWidth);
           position.top = newPosition.top;
           position.left = newPosition.left;
           position.rowIndex = newPosition.rowIndex;
@@ -850,7 +838,7 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
           rowIndex: position.rowIndex,
           column: position.column,
           timestamp: currentTimestamp,
-          hour: currentHour,
+          hourKey: currentHourKey,
           isFixed: false,
           visible: true, // 새로 생성된 블롭은 항상 보임
           isNew: true // 새로 생성된 블롭 표시
@@ -873,10 +861,10 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
         finalBlobs = finalBlobs.filter(b => !(b.column === 1 && b.visible === false && !b.isFixed));
         
         // 시간 표시 생성 체크
-        if (setTimeMarkers && previousHour !== null && currentHour !== previousHour) {
+        if (setTimeMarkers && previousHourKey !== null && currentHourKey > previousHourKey) {
           setTimeMarkers((prevMarkers) => {
             // 이전 시간대의 열에 시간 표시 생성
-            const marker = createTimeMarker(currentHour, previousHour, prevMarkers, finalBlobs);
+            const marker = createTimeMarker(currentHourKey, previousHourKey, prevMarkers, finalBlobs);
             if (!marker) return prevMarkers;
 
             // 새 마커를 추가한 뒤, 최대 표시 개수를 초과하면

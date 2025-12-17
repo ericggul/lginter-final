@@ -13,6 +13,10 @@ const TARGET_HUMIDITY = 55; // %
 const HUM_DEADBAND = 3;
 
 const HEX_COLOR_RE = /^#[0-9A-F]{6}$/i;
+// TV2는 "표시용 UI" 디바이스이고, 실제 Hue 조명 제어는 서버/컨트롤러가 담당한다.
+// 배포 환경에서 의도치 않은 조명 변경을 막고 싶으면 NEXT_PUBLIC_TV2_HUE_SYNC=false 로 끌 수 있다.
+// (기본값은 ON: 설정이 없으면 Hue sync를 시도한다)
+const ENABLE_TV2_HUE_SYNC = process.env.NEXT_PUBLIC_TV2_HUE_SYNC !== 'false';
 
 const toNumberOrNull = (v) => {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -89,6 +93,7 @@ export function useTV2Devices(env, options = {}) {
   const lastHueSyncedColorRef = useRef('');
   const lastHueSyncedAtRef = useRef(0);
   const lastHueGradientKeyRef = useRef('');
+  const warnedHueDisabledRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -130,30 +135,29 @@ export function useTV2Devices(env, options = {}) {
       postDeviceCommand('airpurifierfan', { mode: 'AUTO' });
     }
     // --- Hue sync (lighting) ---
-    // Drive physical Hue lights from the TV2 top-panel gradient (stops).
-    // Debounce to avoid spamming if TV2 re-renders rapidly.
+    // Disabled by default. When enabled, will drive physical Hue lights.
+    if (!ENABLE_TV2_HUE_SYNC) {
+      if (!warnedHueDisabledRef.current) {
+        warnedHueDisabledRef.current = true;
+        console.warn(
+          '[TV2][hue] Hue sync is disabled (NEXT_PUBLIC_TV2_HUE_SYNC=false). ' +
+            'Top panel color may still update, but /api/lighttest will not be called.'
+        );
+      }
+      return;
+    }
+
     const now = Date.now();
     const tooSoon = now - (lastHueSyncedAtRef.current || 0) < 700;
 
-    // User request: keep the same single HEX color as the top panel, but make visibility obvious
-    // by continuously pulsing brightness per bulb on the server.
-    const pulseColor = HEX_COLOR_RE.test(hexColor) ? hexColor : (hueGradientStops?.[0] || '');
-    if (HEX_COLOR_RE.test(pulseColor)) {
-      const changed = pulseColor !== lastHueSyncedColorRef.current;
+    // Color-only mode (no pulse/sparkle): set Hue lights to the TV2 top panel hex.
+    if (HEX_COLOR_RE.test(hexColor)) {
+      const changed = hexColor !== lastHueSyncedColorRef.current;
       const tokenBump = options?.decisionToken && options?.decisionToken !== 0;
       if ((changed || tokenBump) && !tooSoon) {
-        lastHueSyncedColorRef.current = pulseColor;
+        lastHueSyncedColorRef.current = hexColor;
         lastHueSyncedAtRef.current = now;
-        postHueCommand({
-          action: 'pulse',
-          source: 'tv2',
-          color: pulseColor,
-          // Faster tick makes the pulsing clearly visible.
-          tickMs: 350,
-          // Very tight per-bulb jitter for "sparkly" effect.
-          waveMinDelayMs: 0,
-          waveMaxDelayMs: 120,
-        }).catch(() => {});
+        postHueCommand({ action: 'color', color: hexColor, source: 'tv2' }).catch(() => {});
       }
       return;
     }
