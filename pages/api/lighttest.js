@@ -384,6 +384,10 @@ async function tv2PulseTick(genAtStart) {
 
   tv2PulseLoop.runningTick = true;
   try {
+    const now = Date.now();
+    // Backoff window after 429s (Hue Remote rate limiting)
+    if (cfg.backoffUntil && now < cfg.backoffUntil) return;
+
     const ids = cfg.lightIds || [];
     if (!ids.length) return;
 
@@ -393,6 +397,10 @@ async function tv2PulseTick(genAtStart) {
     const maxBrightnessPct = clampInt(cfg.maxBrightnessPct != null ? cfg.maxBrightnessPct : 100, 0, 100);
     const minBrightnessPct = clampInt(cfg.minBrightnessPct != null ? cfg.minBrightnessPct : 30, 0, maxBrightnessPct);
 
+    // Hue Remote API is heavily rate-limited. In remote mode, update only a few bulbs per tick.
+    const isRemote = !!cfg.remoteEnabled;
+    const perTick = isRemote ? clampInt(cfg.remotePerTickCount || 2, 1, 6) : ids.length;
+
     // Pick a random brightness per bulb, 0..100.
     const plan = ids.map((id) => ({
       id,
@@ -401,25 +409,52 @@ async function tv2PulseTick(genAtStart) {
 
     const order = shuffleInPlace([...plan]);
 
-    // Run in parallel with per-bulb jitter for more "sparkly" timing.
-    await Promise.all(
-      order.map(async ({ id, pct }) => {
-        if (!tv2PulseLoop.active) return;
-        if (genAtStart !== tv2PulseLoop.gen) return;
+    const targetsNow = order.slice(0, perTick);
 
+    if (!isRemote) {
+      // Local/proxy mode: parallel updates are OK and look sparkly.
+      await Promise.all(
+        targetsNow.map(async ({ id, pct }) => {
+          if (!tv2PulseLoop.active) return;
+          if (genAtStart !== tv2PulseLoop.gen) return;
+
+          const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
+          await sleep(jitter);
+          if (!tv2PulseLoop.active) return;
+          if (genAtStart !== tv2PulseLoop.gen) return;
+
+          const bri = brightnessPctToHueBri(pct, maxBrightnessPct);
+          await setLightBrightness(bri, {
+            configOverride: cfg.configOverride,
+            targets: { lightIds: [id], groupId: undefined },
+          });
+        })
+      );
+    } else {
+      // Hue Remote mode: sequential + extra spacing to avoid 429.
+      const extraSpacingMs = clampInt(cfg.remoteInterRequestMs || 250, 50, 2000);
+      for (let i = 0; i < targetsNow.length; i += 1) {
+        if (!tv2PulseLoop.active) break;
+        if (genAtStart !== tv2PulseLoop.gen) break;
+
+        const { id, pct } = targetsNow[i];
         const jitter = Math.floor(waveMin + Math.random() * (waveMax - waveMin + 1));
-        await sleep(jitter);
-        if (!tv2PulseLoop.active) return;
-        if (genAtStart !== tv2PulseLoop.gen) return;
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(jitter + (i === 0 ? 0 : extraSpacingMs));
 
         const bri = brightnessPctToHueBri(pct, maxBrightnessPct);
-        // Keep ON always: just vary brightness (Hue keeps last color).
-        await setLightBrightness(bri, {
+        // eslint-disable-next-line no-await-in-loop
+        const r = await setLightBrightness(bri, {
           configOverride: cfg.configOverride,
           targets: { lightIds: [id], groupId: undefined },
         });
-      })
-    );
+        if (!r?.ok && String(r?.error || "").includes("(429)")) {
+          // Back off hard when we hit rate limit.
+          cfg.backoffUntil = Date.now() + clampInt(cfg.remoteBackoffMs || 15_000, 1000, 120_000);
+          break;
+        }
+      }
+    }
   } catch (err) {
     console.warn("[lighttest][tv2-pulse] tick failed", err?.message || String(err));
   } finally {
@@ -459,34 +494,33 @@ async function startTv2PulseLoop({
   let appliedCount = 0;
   try {
     const order = shuffleInPlace(ids.map((id) => id));
-    const settled = await Promise.allSettled(
-      order.map(async (id) => {
-        const jitter = Math.floor(0 + Math.random() * 120);
-        await sleep(jitter);
-        return await setLightColor({
-          color: c,
-          brightness: baseBri,
-          configOverride,
-          targets: { lightIds: [id], groupId: undefined },
-        });
-      })
-    );
-
-    settled.forEach((s, i) => {
+    const isRemote = !!configOverride?.remoteEnabled;
+    const spacingMs = isRemote ? 300 : 0;
+    for (let i = 0; i < order.length; i += 1) {
       const id = order[i];
-      if (s.status === "fulfilled" && s.value?.ok) {
+      const jitter = Math.floor(0 + Math.random() * 120);
+      // eslint-disable-next-line no-await-in-loop
+      await sleep(jitter + (i === 0 ? 0 : spacingMs));
+      // eslint-disable-next-line no-await-in-loop
+      const r = await setLightColor({
+        color: c,
+        brightness: baseBri,
+        configOverride,
+        targets: { lightIds: [id], groupId: undefined },
+      });
+      if (r?.ok) {
         appliedCount += 1;
       } else {
-        const reason = s.status === "rejected" ? s.reason : s.value;
         applyErrors.push({
           id,
-          error: reason?.error || reason?.message || String(reason),
-          status: reason?.status,
-          details: reason?.details,
-          raw: reason?.raw,
+          error: r?.error || "Hue color apply failed",
+          status: r?.status,
+          details: r?.details,
+          raw: r?.raw,
         });
+        if (String(r?.error || "").includes("(429)")) break;
       }
-    });
+    }
   } catch (err) {
     console.warn("[lighttest][tv2-pulse] initial color apply failed", err?.message || String(err));
     applyErrors.push({ id: null, error: err?.message || String(err), details: err?.details });
@@ -520,6 +554,12 @@ async function startTv2PulseLoop({
       maxBrightnessPct: maxP,
       // Keep bulbs ON: never go below this percent.
       minBrightnessPct: minP,
+      // Remote-specific throttling
+      remoteEnabled: !!configOverride?.remoteEnabled,
+      remotePerTickCount: 2,
+      remoteInterRequestMs: 250,
+      remoteBackoffMs: 15_000,
+      backoffUntil: 0,
     },
   };
 
