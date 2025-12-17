@@ -307,15 +307,19 @@ function makeWeakCyclePalette(baseHex, strength = 0.08) {
 }
 
 async function resolveLightIdsSorted({ configOverride }) {
-  let ids = toUniqueNumericLightIds(configOverride?.lightIds);
-  if (!ids.length) {
+  const configured = toUniqueNumericLightIds(configOverride?.lightIds);
+  let discovered = [];
+  try {
     const listed = await listLights({ configOverride });
     if (listed?.ok && Array.isArray(listed?.lights)) {
-      ids = toUniqueNumericLightIds(listed.lights.map((l) => l?.id));
+      discovered = toUniqueNumericLightIds(listed.lights.map((l) => l?.id));
     }
-  }
-  ids.sort((a, b) => a - b);
-  return ids;
+  } catch {}
+
+  // Use union so we can still control all lights even if HUE_LIGHT_IDS is incomplete.
+  const all = toUniqueNumericLightIds([...(configured || []), ...(discovered || [])]);
+  all.sort((a, b) => a - b);
+  return all;
 }
 
 function stopTv2GradientLoop() {
@@ -346,19 +350,26 @@ function brightnessPctToHueBri(pct, maxPct = 100) {
   return clampInt(Math.round((p / 100) * 254), 1, 254);
 }
 
-function pickSparklyBrightnessPct(maxPct = 100) {
-  const maxP = clampInt(maxPct, 0, 100);
+function pickSparklyBrightnessPct({ minPct = 1, maxPct = 100 } = {}) {
+  const minP = clampInt(minPct, 0, 100);
+  const maxP = clampInt(maxPct, minP, 100);
   if (maxP <= 0) return 0;
-  // Bias toward obvious flashes:
-  // - mostly OFF
-  // - often FULL (capped by maxPct)
-  // - sometimes medium
+
+  // Keep ALL bulbs on (no "0/off") but still very sparkly:
+  // - low twinkle band near min
+  // - high flash band near max
+  // - occasional mid values
   const r = Math.random();
-  if (r < 0.55) return 0;
-  if (r < 0.87) return maxP;
-  const lo = Math.min(10, maxP);
-  const hi = Math.max(lo, maxP);
-  return lo + Math.floor(Math.random() * (hi - lo + 1)); // lo..hi
+  const lowHi = Math.min(maxP, minP + 3);
+  const highLo = Math.max(minP, maxP - 3);
+
+  if (r < 0.45) {
+    return clampInt(minP + Math.floor(Math.random() * (lowHi - minP + 1)), minP, maxP);
+  }
+  if (r < 0.90) {
+    return clampInt(highLo + Math.floor(Math.random() * (maxP - highLo + 1)), minP, maxP);
+  }
+  return clampInt(minP + Math.floor(Math.random() * (maxP - minP + 1)), minP, maxP);
 }
 
 async function tv2PulseTick(genAtStart) {
@@ -377,11 +388,12 @@ async function tv2PulseTick(genAtStart) {
     const waveMin = clampInt(cfg.waveMinDelayMs || 40, 0, 2000);
     const waveMax = clampInt(cfg.waveMaxDelayMs || 220, waveMin, 5000);
     const maxBrightnessPct = clampInt(cfg.maxBrightnessPct != null ? cfg.maxBrightnessPct : 30, 0, 100);
+    const minBrightnessPct = clampInt(cfg.minBrightnessPct != null ? cfg.minBrightnessPct : 1, 0, maxBrightnessPct);
 
     // Pick a random brightness per bulb, 0..100.
     const plan = ids.map((id) => ({
       id,
-      pct: pickSparklyBrightnessPct(maxBrightnessPct),
+      pct: pickSparklyBrightnessPct({ minPct: minBrightnessPct, maxPct: maxBrightnessPct }),
     }));
 
     const order = shuffleInPlace([...plan]);
@@ -398,18 +410,11 @@ async function tv2PulseTick(genAtStart) {
         if (genAtStart !== tv2PulseLoop.gen) return;
 
         const bri = brightnessPctToHueBri(pct, maxBrightnessPct);
-        if (bri <= 0) {
-          await setLightOnOff(false, {
-            configOverride: cfg.configOverride,
-            targets: { lightIds: [id], groupId: undefined },
-          });
-        } else {
-          // Ensure on + brightness; Hue will keep last color (we set it on loop start).
-          await setLightBrightness(bri, {
-            configOverride: cfg.configOverride,
-            targets: { lightIds: [id], groupId: undefined },
-          });
-        }
+        // Keep ON always: just vary brightness (Hue keeps last color).
+        await setLightBrightness(bri, {
+          configOverride: cfg.configOverride,
+          targets: { lightIds: [id], groupId: undefined },
+        });
       })
     );
   } catch (err) {
@@ -426,6 +431,7 @@ async function startTv2PulseLoop({
   waveMinDelayMs,
   waveMaxDelayMs,
   maxBrightnessPct,
+  minBrightnessPct,
 }) {
   // Pulse mode replaces any previous loop(s) to avoid fighting.
   stopTv2GradientLoop();
@@ -439,7 +445,11 @@ async function startTv2PulseLoop({
     return { ok: false, error: "Invalid color hex. Expected '#RRGGBB'." };
   }
 
-  // Set base color once across all bulbs (in a wave so it's obvious).
+  const maxP = maxBrightnessPct != null ? clampInt(maxBrightnessPct, 0, 100) : 30;
+  const minP = minBrightnessPct != null ? clampInt(minBrightnessPct, 0, maxP) : 1;
+  const baseBri = brightnessPctToHueBri(Math.max(minP, maxP), maxP);
+
+  // Set base color once across all bulbs (in a wave so it's obvious), and ensure a visible baseline brightness.
   // This avoids re-sending color on every brightness tick.
   try {
     const order = shuffleInPlace(ids.map((id) => id));
@@ -449,6 +459,7 @@ async function startTv2PulseLoop({
         await sleep(jitter);
         await setLightColor({
           color: c,
+          brightness: baseBri,
           configOverride,
           targets: { lightIds: [id], groupId: undefined },
         });
@@ -473,7 +484,9 @@ async function startTv2PulseLoop({
       waveMinDelayMs: waveMinDelayMs != null ? clampInt(waveMinDelayMs, 0, 5000) : 0,
       waveMaxDelayMs: waveMaxDelayMs != null ? clampInt(waveMaxDelayMs, 0, 8000) : 120,
       // Cap overall output brightness (percent 0..100)
-      maxBrightnessPct: maxBrightnessPct != null ? clampInt(maxBrightnessPct, 0, 100) : 30,
+      maxBrightnessPct: maxP,
+      // Keep bulbs ON: never go below this percent.
+      minBrightnessPct: minP,
     },
   };
 
@@ -850,6 +863,7 @@ export default async function handler(req, res) {
           waveMinDelayMs: req.body?.waveMinDelayMs,
           waveMaxDelayMs: req.body?.waveMaxDelayMs,
           maxBrightnessPct: req.body?.maxBrightnessPct,
+          minBrightnessPct: req.body?.minBrightnessPct,
         });
         break;
       }
