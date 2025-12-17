@@ -387,8 +387,9 @@ async function tv2PulseTick(genAtStart) {
 
     const waveMin = clampInt(cfg.waveMinDelayMs || 40, 0, 2000);
     const waveMax = clampInt(cfg.waveMaxDelayMs || 220, waveMin, 5000);
-    const maxBrightnessPct = clampInt(cfg.maxBrightnessPct != null ? cfg.maxBrightnessPct : 30, 0, 100);
-    const minBrightnessPct = clampInt(cfg.minBrightnessPct != null ? cfg.minBrightnessPct : 1, 0, maxBrightnessPct);
+    // Default: baseline 30%, sparkle up to 100% (no OFF)
+    const maxBrightnessPct = clampInt(cfg.maxBrightnessPct != null ? cfg.maxBrightnessPct : 100, 0, 100);
+    const minBrightnessPct = clampInt(cfg.minBrightnessPct != null ? cfg.minBrightnessPct : 30, 0, maxBrightnessPct);
 
     // Pick a random brightness per bulb, 0..100.
     const plan = ids.map((id) => ({
@@ -445,8 +446,9 @@ async function startTv2PulseLoop({
     return { ok: false, error: "Invalid color hex. Expected '#RRGGBB'." };
   }
 
-  const maxP = maxBrightnessPct != null ? clampInt(maxBrightnessPct, 0, 100) : 30;
-  const minP = minBrightnessPct != null ? clampInt(minBrightnessPct, 0, maxP) : 1;
+  // Default: baseline 30%, sparkle up to 100% (no OFF)
+  const maxP = maxBrightnessPct != null ? clampInt(maxBrightnessPct, 0, 100) : 100;
+  const minP = minBrightnessPct != null ? clampInt(minBrightnessPct, 0, maxP) : 30;
   const baseBri = brightnessPctToHueBri(Math.max(minP, maxP), maxP);
 
   // Set base color once across all bulbs (in a wave so it's obvious), and ensure a visible baseline brightness.

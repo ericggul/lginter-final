@@ -168,6 +168,9 @@ export function useTV2Devices(env, options = {}) {
           // Very tight per-bulb jitter for "sparkly" effect.
           waveMinDelayMs: 0,
           waveMaxDelayMs: 120,
+          // Baseline 30% brightness, sparkle up to 100%
+          minBrightnessPct: 30,
+          maxBrightnessPct: 100,
         }).catch(() => {});
       }
       return;
