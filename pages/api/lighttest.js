@@ -42,6 +42,7 @@ function resolveHueConfig() {
 
   const ip = process.env.HUE_BRIDGE_IP || HUE_BRIDGE_IP_FALLBACK;
   const username = process.env.HUE_USERNAME || HUE_USERNAME_FALLBACK;
+  const bridgeId = process.env.HUE_BRIDGE_ID || process.env.HUE_REMOTE_BRIDGE_ID || "";
 
   const groupId =
     process.env.HUE_GROUP_ID != null && process.env.HUE_GROUP_ID !== ""
@@ -72,6 +73,7 @@ function resolveHueConfig() {
     enabled,
     ip,
     username,
+    bridgeId,
     groupId,
     lightIds,
     remoteEnabled,
@@ -476,12 +478,18 @@ async function startTv2PulseLoop({
         appliedCount += 1;
       } else {
         const reason = s.status === "rejected" ? s.reason : s.value;
-        applyErrors.push({ id, error: reason?.error || reason?.message || String(reason) });
+        applyErrors.push({
+          id,
+          error: reason?.error || reason?.message || String(reason),
+          status: reason?.status,
+          details: reason?.details,
+          raw: reason?.raw,
+        });
       }
     });
   } catch (err) {
     console.warn("[lighttest][tv2-pulse] initial color apply failed", err?.message || String(err));
-    applyErrors.push({ id: null, error: err?.message || String(err) });
+    applyErrors.push({ id: null, error: err?.message || String(err), details: err?.details });
   }
 
   // If we couldn't set the base color on ANY bulb, don't start a loop that only changes brightness.
