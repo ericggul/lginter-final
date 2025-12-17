@@ -325,6 +325,8 @@ const BLOB_SPACING = 3; // 상단 블롭 간격과 동일
 const ROW_HEIGHT = 4.8322915; // (spawn point top - 짜증 블롭 top) / 2 = (26.2375 - 16.572917) / 2
 const RIGHT_MARGIN = 7.817708; // Now와 화면 왼쪽 거리
 const MAX_RIGHT = 100 - RIGHT_MARGIN; // 92.182292vw - 블롭의 오른쪽 면이 이 값을 넘으면 안됨
+// 5열(Now)은 우측으로 "최대 5개"까지 채운 뒤에만 위로 밀려나가야 한다.
+const MAX_ITEMS_COLUMN5 = 5;
 
 // 좌측 시간 라벨 최대 개수
 // - 이 개수를 넘으면 가장 오래된(가장 위에 위치한) 시간 라벨을 점진적으로 숨긴다.
@@ -447,6 +449,16 @@ function calculatePositionInColumn(column, existingBlobsInColumn, newText, calcu
   // 해당 열의 마지막 블롭 찾기
   const lastBlob = existingBlobsInColumn[existingBlobsInColumn.length - 1];
   const lastBlobWidth = calculateBlobWidth(lastBlob.text);
+
+  // 5열은 "개수 기준"으로도 full 판정 (요구사항: 우측으로 5개까지 채움)
+  if (column === 5 && existingBlobsInColumn.length >= MAX_ITEMS_COLUMN5) {
+    return {
+      top: columnTop,
+      left: BLOB_SPAWN_POINT.left,
+      rowIndex: lastBlob.rowIndex || 0,
+      isColumnFull: true,
+    };
+  }
   
   // 5열(blobSpawnPoint)이 "가로로" 꽉 찼는지 체크
   // → 새 블롭을 같은 줄에 배치했을 때 오른쪽 경계를 넘으면 가득 찬 것으로 간주
@@ -591,6 +603,9 @@ function moveBlobsToPreviousColumn(prevBlobs, previousHourKey) {
 // - left 값은 절대 변경하지 않음
 function shiftColumn5To4(prevBlobs) {
   return prevBlobs.map(blob => {
+    // 더미(고정 블롭)는 이동시키지 않는다.
+    // -> 더미는 "빈 열에서만 보이는 배경" 역할이고, 실데이터가 들어오면 렌더링에서 숨긴다.
+    if (blob.isFixed) return blob;
     // 5열 동적 블롭들 → 4열 위치로 이동
     if (!blob.isFixed && blob.column === 5) {
       return {
@@ -657,6 +672,8 @@ function shiftColumn5To4(prevBlobs) {
 // *주의*: left 값은 절대 변경하지 않고, top/column/visible 만 조정
 function shiftAllColumnsUp(prevBlobs) {
   return prevBlobs.map(blob => {
+    // 더미(고정 블롭)는 이동시키지 않는다.
+    if (blob.isFixed) return blob;
     const currentColumn = blob.column || 5;
 
     // 1열: 위로 조금 올리면서 fadeout
@@ -778,73 +795,33 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
       const currentHourKey = hourKeyFromTs(currentTimestamp);
       
       setNewBlobs((prevBlobs) => {
-        // 고정 블롭 제외한 동적 블롭만 필터링
+        // 이전 시간대 확인 (시간 마커 생성 용도)
         const dynamicBlobs = prevBlobs.filter(blob => !blob.isFixed);
-        
-        // 이전 시간대 확인 (동적 블롭 중 가장 최근 시간 버킷)
         let previousHourKey = null;
         if (dynamicBlobs.length > 0) {
           const keys = dynamicBlobs.map(blob => blob.hourKey).filter((h) => typeof h === 'number');
-          if (keys.length > 0) {
-            previousHourKey = Math.max(...keys);
-          }
+          if (keys.length > 0) previousHourKey = Math.max(...keys);
         }
-        
-        // 시간 변경 감지 및 블롭 이동
+
+        // 시간 버킷이 바뀌면(시간 스탬프 찍힐 타이밍) 이전 시간대의 동적 블롭만 왼쪽으로 이동
+        // (더미는 이동시키지 않고, 실데이터가 들어온 열에서만 더미를 숨기는 방식으로 겹침을 방지)
         let updatedBlobs = prevBlobs;
         if (previousHourKey !== null && currentHourKey > previousHourKey) {
-          // 시간 버킷이 증가했을 때만 이전 시간대 그룹을 이전 열로 이동
           updatedBlobs = moveBlobsToPreviousColumn(prevBlobs, previousHourKey);
         }
-        
-        // 새 블롭 위치 계산 (업데이트된 블롭 배열 기준)
-        // 🔑 항상 5열(지금 this moment, BLOB_SPAWN_POINT.top)에서 시작하도록 강제
-        //    → 5열에 이미 있는 동적 블롭들만 기준으로, 같은 열 내에서 가로 배치/가득 참 여부 계산
-        const dynamicAfterShift = updatedBlobs.filter(blob => !blob.isFixed);
-        const blobsInColumn5AfterShift = dynamicAfterShift.filter(blob => blob.column === 5);
-        const basePosition = calculatePositionInColumn(5, blobsInColumn5AfterShift, text, calculateBlobWidth);
-        const position = {
-          ...basePosition,
-          column: 5, // 무조건 5열에서 스폰
-        };
-        
-        // 5열이 꽉 찼는지 체크
-        let finalUpdatedBlobs = updatedBlobs;
-        console.log('📺 TV1 Column check:', {
-          column: position.column,
-          isColumnFull: position.isColumnFull,
-          rowIndex: position.rowIndex,
-          existingBlobsIn5: updatedBlobs.filter(b => !b.isFixed && b.column === 5).length
-        });
-        
-        if (position.column === 5 && position.isColumnFull) {
-          console.log('📺 TV1 Column 5 is full! Shifting ONLY column 5 blobs up to column 4...');
-          // 5열이 우측으로 꽉 찼으면, 5열 동적 블롭들만 4열 위치로 올리고,
-          // 기존 4열→3열, 3열→2열, 2열→1열, 1열은 살짝 위로 이동+fadeout
-          finalUpdatedBlobs = shiftColumn5To4(updatedBlobs);
-          console.log('📺 TV1 After shiftColumn5To4:', {
-            blobsIn5: finalUpdatedBlobs.filter(b => !b.isFixed && b.column === 5).length,
-            blobsIn4: finalUpdatedBlobs.filter(b => !b.isFixed && b.column === 4).length,
-          });
 
-          // 동시에 상단 1열(짜증나, 맑아, 상쾌함) 블롭들도 fade-out 시켜서 타임라인과 동기화
-          try {
-            if (setVisibleBlobs) {
-              setVisibleBlobs(prev => ({
-                ...prev,
-                Annoyed: prev.Annoyed ? { ...prev.Annoyed, visible: false } : prev.Annoyed,
-                Interest: prev.Interest ? { ...prev.Interest, visible: false } : prev.Interest,
-                Playful: prev.Playful ? { ...prev.Playful, visible: false } : prev.Playful,
-              }));
-            }
-          } catch {}
-          // 새 블롭은 항상 Now 라인의 5열에서 시작하도록 강제
-          const newPosition = calculatePositionInColumn(
-            5,
-            [], // 시프트 후 5열에는 기존 블롭이 없으므로 빈 배열 전달 → spawn point에서 생성
-            text,
-            calculateBlobWidth
-          );
+        // 5열(Now)에는 우측으로 최대 5개까지 채운 뒤에만 시프트
+        const dynamicAfterShift = updatedBlobs.filter(blob => !blob.isFixed);
+        const blobsIn5 = dynamicAfterShift.filter(blob => blob.column === 5 && blob.visible !== false);
+        const basePosition = calculatePositionInColumn(5, blobsIn5, text, calculateBlobWidth);
+        const position = { ...basePosition, column: 5 };
+
+        let finalUpdatedBlobs = updatedBlobs;
+        if (position.isColumnFull) {
+          // 5열이 5개(또는 우측 오버플로우)로 가득 찼으면 한 번에 위로 밀기
+          finalUpdatedBlobs = shiftColumn5To4(updatedBlobs);
+          // 시프트 후 새 블롭은 5열 시작점에서 새로 배치
+          const newPosition = calculatePositionInColumn(5, [], text, calculateBlobWidth);
           position.top = newPosition.top;
           position.left = newPosition.left;
           position.rowIndex = newPosition.rowIndex;
