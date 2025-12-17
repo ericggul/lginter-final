@@ -150,28 +150,14 @@ export function useTV2Devices(env, options = {}) {
     const now = Date.now();
     const tooSoon = now - (lastHueSyncedAtRef.current || 0) < 700;
 
-    // User request: keep the same single HEX color as the top panel, but make visibility obvious
-    // by continuously pulsing brightness per bulb on the server.
-    const pulseColor = HEX_COLOR_RE.test(hexColor) ? hexColor : (hueGradientStops?.[0] || '');
-    if (HEX_COLOR_RE.test(pulseColor)) {
-      const changed = pulseColor !== lastHueSyncedColorRef.current;
+    // Color-only mode (no pulse/sparkle): set Hue lights to the TV2 top panel hex.
+    if (HEX_COLOR_RE.test(hexColor)) {
+      const changed = hexColor !== lastHueSyncedColorRef.current;
       const tokenBump = options?.decisionToken && options?.decisionToken !== 0;
       if ((changed || tokenBump) && !tooSoon) {
-        lastHueSyncedColorRef.current = pulseColor;
+        lastHueSyncedColorRef.current = hexColor;
         lastHueSyncedAtRef.current = now;
-        postHueCommand({
-          action: 'pulse',
-          source: 'tv2',
-          color: pulseColor,
-          // Faster tick makes the pulsing clearly visible.
-          tickMs: 350,
-          // Very tight per-bulb jitter for "sparkly" effect.
-          waveMinDelayMs: 0,
-          waveMaxDelayMs: 120,
-          // Baseline 30% brightness, sparkle up to 100%
-          minBrightnessPct: 30,
-          maxBrightnessPct: 100,
-        }).catch(() => {});
+        postHueCommand({ action: 'color', color: hexColor, source: 'tv2' }).catch(() => {});
       }
       return;
     }
