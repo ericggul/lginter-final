@@ -126,8 +126,10 @@ export function useTV2DisplayLogic({
 }) {
   // "lightColor" is the *decision/intended* color.
   // "hueHex" is the *actual Hue average* color pushed from server ("hue-state").
-  // Use hueHex when available so the top panel reflects real Hue lights.
-  const hexColor = (env?.hueHex || env?.lightColor || '').toUpperCase();
+  // IMPORTANT:
+  // For TV2 top panel, prefer the decision/intended color so the UI reflects the latest mobile input
+  // even if Hue state updates are delayed or missing.
+  const hexColor = (env?.lightColor || env?.hueHex || '').toUpperCase();
   // UI 표시 전용: 어떤 컬러가 오더라도 "파스텔톤(저채도/고명도)"로 보이게 변환한다.
   // IMPORTANT: 이 값은 오직 프론트 렌더링에만 사용하고, 실제 Hue 제어에는 절대 사용하지 않는다.
   const uiLightHsl = useMemo(() => {
