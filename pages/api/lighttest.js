@@ -340,21 +340,25 @@ function stopTv2PulseLoop() {
   }
 }
 
-function brightnessPctToHueBri(pct) {
-  const p = clampInt(pct, 0, 100);
+function brightnessPctToHueBri(pct, maxPct = 100) {
+  const p = clampInt(pct, 0, clampInt(maxPct, 0, 100));
   if (p <= 0) return 0;
   return clampInt(Math.round((p / 100) * 254), 1, 254);
 }
 
-function pickSparklyBrightnessPct() {
+function pickSparklyBrightnessPct(maxPct = 100) {
+  const maxP = clampInt(maxPct, 0, 100);
+  if (maxP <= 0) return 0;
   // Bias toward obvious flashes:
   // - mostly OFF
-  // - often FULL
+  // - often FULL (capped by maxPct)
   // - sometimes medium
   const r = Math.random();
   if (r < 0.55) return 0;
-  if (r < 0.87) return 100;
-  return 30 + Math.floor(Math.random() * 61); // 30..90
+  if (r < 0.87) return maxP;
+  const lo = Math.min(10, maxP);
+  const hi = Math.max(lo, maxP);
+  return lo + Math.floor(Math.random() * (hi - lo + 1)); // lo..hi
 }
 
 async function tv2PulseTick(genAtStart) {
@@ -372,11 +376,12 @@ async function tv2PulseTick(genAtStart) {
 
     const waveMin = clampInt(cfg.waveMinDelayMs || 40, 0, 2000);
     const waveMax = clampInt(cfg.waveMaxDelayMs || 220, waveMin, 5000);
+    const maxBrightnessPct = clampInt(cfg.maxBrightnessPct != null ? cfg.maxBrightnessPct : 30, 0, 100);
 
     // Pick a random brightness per bulb, 0..100.
     const plan = ids.map((id) => ({
       id,
-      pct: pickSparklyBrightnessPct(),
+      pct: pickSparklyBrightnessPct(maxBrightnessPct),
     }));
 
     const order = shuffleInPlace([...plan]);
@@ -392,7 +397,7 @@ async function tv2PulseTick(genAtStart) {
         if (!tv2PulseLoop.active) return;
         if (genAtStart !== tv2PulseLoop.gen) return;
 
-        const bri = brightnessPctToHueBri(pct);
+        const bri = brightnessPctToHueBri(pct, maxBrightnessPct);
         if (bri <= 0) {
           await setLightOnOff(false, {
             configOverride: cfg.configOverride,
@@ -420,6 +425,7 @@ async function startTv2PulseLoop({
   tickMs,
   waveMinDelayMs,
   waveMaxDelayMs,
+  maxBrightnessPct,
 }) {
   // Pulse mode replaces any previous loop(s) to avoid fighting.
   stopTv2GradientLoop();
@@ -466,6 +472,8 @@ async function startTv2PulseLoop({
       tickMs: tick,
       waveMinDelayMs: waveMinDelayMs != null ? clampInt(waveMinDelayMs, 0, 5000) : 0,
       waveMaxDelayMs: waveMaxDelayMs != null ? clampInt(waveMaxDelayMs, 0, 8000) : 120,
+      // Cap overall output brightness (percent 0..100)
+      maxBrightnessPct: maxBrightnessPct != null ? clampInt(maxBrightnessPct, 0, 100) : 30,
     },
   };
 
@@ -841,6 +849,7 @@ export default async function handler(req, res) {
           tickMs: req.body?.tickMs,
           waveMinDelayMs: req.body?.waveMinDelayMs,
           waveMaxDelayMs: req.body?.waveMaxDelayMs,
+          maxBrightnessPct: req.body?.maxBrightnessPct,
         });
         break;
       }
