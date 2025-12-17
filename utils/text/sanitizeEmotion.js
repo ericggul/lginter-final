@@ -80,6 +80,16 @@ export function sanitizeEmotion(input, { strict = true } = {}) {
   s = stripEmojiAndSymbols(s);
   if (!s) return '차분';
 
+  // Filter ambiguous negative / rejection phrases that should not appear as-is.
+  // Examples: "꺼지세요", "꺼져주세요" (interpersonal "go away", not a device command)
+  try {
+    const compact = s.replace(/\s+/g, '');
+    const isGoAway =
+      /^꺼지(세요|세여|세용|십시오|십쇼|라)?$/.test(compact) ||
+      /^꺼져(요|주세요|주세|줘요|줘|라)?$/.test(compact);
+    if (isGoAway) return '짜증';
+  } catch {}
+
   // Profanity/sexual content → map or fail-closed
   if (containsProfanity(s)) {
     const profaneSentiment = classifyProfaneSentiment(s);

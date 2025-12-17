@@ -100,6 +100,22 @@ function toEmotionKeyword(input) {
   const s = original.replace(/\s+/g, '');
   
   console.log('🔍 toEmotionKeyword processing:', { original, normalized: s });
+
+  // Ambiguous negative / rejection phrases:
+  // - These are often NOT device commands (e.g., not "turn off"), but interpersonal "go away".
+  // - If we show them as-is on TV1/SW1 keyword UI it looks broken/hostile.
+  // - Map them to a stable emotion keyword so downstream UI stays consistent.
+  try {
+    const compact = String(s || '');
+    // Examples: 꺼지세요, 꺼져요, 꺼져주세요, 꺼져, 꺼지라, 꺼져라
+    const isGoAway =
+      /^꺼지(세요|세여|세용|십시오|십쇼|라)?$/.test(compact) ||
+      /^꺼져(요|주세요|주세|줘요|줘|라)?$/.test(compact);
+    if (isGoAway) {
+      console.log('✅ toEmotionKeyword matched ambiguous negative (go-away):', compact);
+      return '짜증';
+    }
+  } catch {}
   
   // 정확한 매칭 우선 (원본 그대로 비교)
   if (original === '무기력' || s === '무기력' || original.includes('무기력') || s.includes('무기력')) {

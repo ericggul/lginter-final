@@ -13,7 +13,7 @@ const TIMELINE_WHITELIST = new Set(["t1", "t3", "t5"]);
 export function useSbmPlayer(slugKey) {
   const [socketStatus, setSocketStatus] = useState("disconnected");
   const [stageLabel, setStageLabel] = useState("idle");
-  const [lastVoiceText, setLastVoiceText] = useState("");
+  const [lastVoice, setLastVoice] = useState({ text: "", originalText: "", ts: 0 });
 
   const normalizedSlug = useMemo(() => {
     if (slugKey === "2" || slugKey === "3") return slugKey;
@@ -42,8 +42,15 @@ export function useSbmPlayer(slugKey) {
     },
     onEntranceNewUser: () => setStageLabel("t1"),
     onEntranceNewVoice: (payload = {}) => {
-      const text = payload.text || payload.originalText || payload.emotion || "";
-      if (text) setLastVoiceText(String(text));
+      const text = payload?.text || payload?.emotion || "";
+      const originalText = payload?.originalText || "";
+      const next = {
+        text: text ? String(text) : "",
+        originalText: originalText ? String(originalText) : "",
+        ts: Date.now(),
+      };
+      // Always update ts so consumers can trigger animations per event
+      setLastVoice(next);
     },
   });
 
@@ -51,6 +58,6 @@ export function useSbmPlayer(slugKey) {
     videoSrc,
     stageLabel,
     socketStatus,
-    lastVoiceText,
+    lastVoice,
   };
 }
