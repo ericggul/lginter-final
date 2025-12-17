@@ -19,9 +19,79 @@ export default function TV2Controls() {
   const [pendingAudioSrc, setPendingAudioSrc] = useState('');
   const [pendingReady, setPendingReady] = useState(false);
   const preloadTokenRef = useRef(0);
+  const swapTokenRef = useRef(0);
+  const swapRetryRef = useRef({ src: '', count: 0 });
+  const latestPendingAudioSrcRef = useRef('');
+  const latestActiveAudioSrcRef = useRef('');
   const lastGoodAudioSrcRef = useRef('');
   const lastTransitionKeyRef = useRef(null);
   const t5SpokenRef = useRef(-1);
+
+  // 배포 도메인에서는 autoplay 정책 때문에 "바로 unmuted play"가 실패하는 경우가 많다.
+  // 그래서 muted-first로 시작한 뒤, 재생이 붙으면 unmute + 볼륨 페이드인으로 안정화한다.
+  const fadeVolumeTo = (el, target = 1, ms = 700) => {
+    try {
+      if (!el) return;
+      const start = Number(el.volume || 0);
+      const end = Math.max(0, Math.min(1, Number(target)));
+      const dur = Math.max(0, Number(ms) || 0);
+      if (dur === 0) { el.volume = end; return; }
+      const t0 = performance.now();
+      const step = (t) => {
+        const p = Math.max(0, Math.min(1, (t - t0) / dur));
+        el.volume = start + (end - start) * p;
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    } catch {}
+  };
+
+  const waitForPlaying = (el, timeoutMs = 1600) => new Promise((resolve) => {
+    try {
+      if (!el) return resolve(false);
+      if (!el.paused) return resolve(true);
+      let done = false;
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        try { el.removeEventListener('playing', onOk); } catch {}
+        try { el.removeEventListener('timeupdate', onOk); } catch {}
+        clearTimeout(t);
+        resolve(ok);
+      };
+      const onOk = () => finish(true);
+      const t = setTimeout(() => finish(false), Math.max(0, Number(timeoutMs) || 0));
+      // `playing`이 가장 확실하고, 일부 브라우저에서는 `timeupdate`가 더 잘 뜨는 경우가 있어 fallback으로 둔다.
+      el.addEventListener('playing', onOk, { once: true });
+      el.addEventListener('timeupdate', onOk, { once: true });
+    } catch {
+      resolve(false);
+    }
+  });
+
+  const safeStartAudio = async (el, desiredVolume = 1) => {
+    if (!el) return { ok: false, reason: 'no-element' };
+    try {
+      // muted-first (autoplay friendly)
+      el.muted = true;
+      el.volume = 0;
+      await el.play();
+      try { el.muted = false; } catch {}
+      fadeVolumeTo(el, desiredVolume, 900);
+      return { ok: true, via: 'muted-first' };
+    } catch (e1) {
+      // fallback: direct play (autoplay가 이미 허용된 환경)
+      try {
+        el.muted = false;
+        el.volume = desiredVolume;
+        await el.play();
+        return { ok: true, via: 'direct' };
+      } catch (e2) {
+        console.warn('[TV2] audio play failed', { e1: e1?.name || e1, e2: e2?.name || e2 });
+        return { ok: false, error: e2?.name || e2?.message || String(e2) };
+      }
+    }
+  };
 
   const cssVars = useBlobVars(env);
   const { play: playTts } = useTTS({ voice: 'marin', model: 'gpt-4o-mini-tts', format: 'mp3', volume: 0.9 });
@@ -146,6 +216,14 @@ export default function TV2Controls() {
   
   const activeAudioRef = activeSlot === 'a' ? audioARef : audioBRef;
   const inactiveAudioRef = activeSlot === 'a' ? audioBRef : audioARef;
+
+  // async retry에서 stale closure를 피하기 위해 최신값을 ref로 보관한다.
+  useEffect(() => {
+    latestPendingAudioSrcRef.current = String(pendingAudioSrc || '').trim();
+  }, [pendingAudioSrc]);
+  useEffect(() => {
+    latestActiveAudioSrcRef.current = String(activeAudioSrc || '').trim();
+  }, [activeAudioSrc]);
 
   // pending src 업데이트(즉시 바꾸지 않고, preload만 수행)
   useEffect(() => {
@@ -355,12 +433,28 @@ export default function TV2Controls() {
           nextEl.loop = true;
           nextEl.preload = 'auto';
           nextEl.playsInline = true;
-          nextEl.muted = false;
-          nextEl.volume = 1;
+          try { nextEl.load(); } catch {}
           // "재생 시작"이 보장될 때까지 기존 곡은 유지
-          await nextEl.play();
-          // 새 곡이 안정적으로 시작된 뒤에만 기존 곡 정지
-          try { if (currEl && currEl !== nextEl) currEl.pause(); } catch {}
+          const token = (swapTokenRef.current || 0) + 1;
+          swapTokenRef.current = token;
+
+          if (swapRetryRef.current.src !== nextSrc) swapRetryRef.current = { src: nextSrc, count: 0 };
+
+          const started = await safeStartAudio(nextEl, 1);
+          const playingOk = await waitForPlaying(nextEl, 1600);
+          if (!started?.ok || !playingOk) throw new Error('next audio did not start playing');
+
+          // 새 곡이 실제로 붙은 뒤에만 기존 곡을 페이드아웃 → pause
+          try { if (currEl && currEl !== nextEl) fadeVolumeTo(currEl, 0, 420); } catch {}
+          try {
+            if (currEl && currEl !== nextEl) {
+              setTimeout(() => {
+                try { currEl.pause(); } catch {}
+              }, 460);
+            }
+          } catch {}
+
+          if (swapTokenRef.current !== token) return;
           setActiveSlot((s) => (s === 'a' ? 'b' : 'a'));
           setActiveAudioSrc(nextSrc);
           lastGoodAudioSrcRef.current = nextSrc;
@@ -375,6 +469,23 @@ export default function TV2Controls() {
             window.addEventListener('keydown', resume, { once: true });
             window.addEventListener('touchstart', resume, { once: true, passive: true });
           }
+
+          // 배포 환경에서 네트워크/버퍼링으로 스왑이 간헐적으로 실패할 수 있어 제한적으로 자동 재시도
+          try {
+            const current = swapRetryRef.current;
+            if (current.src === nextSrc && current.count < 3) {
+              swapRetryRef.current = { src: nextSrc, count: current.count + 1 };
+              const delay = 650 * (current.count + 1);
+              setPendingReady(false);
+              setTimeout(() => {
+                if (String(latestPendingAudioSrcRef.current || '').trim() === nextSrc && String(latestActiveAudioSrcRef.current || '').trim() !== nextSrc) {
+                  setPendingReady(true);
+                }
+              }, delay);
+            } else {
+              setPendingReady(false);
+            }
+          } catch {}
         }
       };
 
@@ -397,13 +508,30 @@ export default function TV2Controls() {
       el.loop = true;
       el.preload = 'auto';
       el.playsInline = true;
-      el.muted = false;
-      el.volume = 1;
-      el.play().catch(() => {});
+      try { el.load(); } catch {}
+      safeStartAudio(el, 1).catch(() => {});
       setActiveAudioSrc(desired);
       lastGoodAudioSrcRef.current = desired;
     } catch {}
   }, [audioSrc, activeAudioSrc, activeAudioRef]);
+
+  // Watchdog: 배포/키오스크 환경에서 오디오가 예기치 않게 pause/stall 되면 자동으로 재생을 복구한다.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const tick = () => {
+      try {
+        const el = activeAudioRef.current;
+        const src = String(activeAudioSrc || '').trim();
+        if (!el || !src) return;
+        if (document?.visibilityState && document.visibilityState !== 'visible') return;
+        if (el.paused) {
+          safeStartAudio(el, 1).catch(() => {});
+        }
+      } catch {}
+    };
+    const id = setInterval(tick, 2500);
+    return () => clearInterval(id);
+  }, [activeAudioRef, activeAudioSrc]);
 
   // T5 안내: 음악/조명/기후 정보 포함
   useEffect(() => {
