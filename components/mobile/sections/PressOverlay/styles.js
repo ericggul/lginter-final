@@ -6,16 +6,14 @@ import { z } from '../styles/shared/elevation';
 
 export const Container = styled.div`
   position: fixed;
-  bottom: ${spacing.press.bottom};
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
   z-index: ${z.overlay};
-  width: 220px;
-  height: 220px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  pointer-events: auto;
+  padding-bottom: ${spacing.press.bottom};
+  pointer-events: ${(p) => (p.$active ? 'none' : 'auto')};
+  -webkit-tap-highlight-color: transparent;
 `;
 
 export const HitArea = styled.div`

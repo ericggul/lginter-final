@@ -753,6 +753,13 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
     // 원본 텍스트를 우선 사용, 없으면 text/emotion 사용, "중립"이면 원본 텍스트 사용
     const rawText = data.originalText || data.text || data.emotion || '알 수 없음';
     const text = (rawText === '중립' && data.originalText) ? data.originalText : rawText;
+
+    // 표시 직전 안전 정규화(서버 경로를 못 타도 TV1은 안전하게 노출)
+    let displayText = text;
+    try {
+      const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
+      displayText = sanitizeEmotion(text, { strict: true });
+    } catch {}
     console.log('📺 TV1 Processing text:', text, '(raw:', rawText, ', originalText:', data.originalText, ')');
     
     const fontSize = (Math.random() * 0.35 + 0.95).toFixed(2);
@@ -761,7 +768,7 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
     const fontWeight = 800;
     setKeywords(prev => [{
       id: Date.now() + Math.random(),
-      text: text,
+      text: displayText,
       fontSize: `${fontSize}rem`,
       fontFamily,
       fontStyle,
@@ -775,15 +782,15 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
     // Read out the new keyword via TTS (non-blocking)
     if (typeof speakKeyword === 'function') {
       try {
-        speakKeyword(text);
+        speakKeyword(displayText);
       } catch {}
     }
 
     // 감정 키워드를 블롭 타입으로 매핑하고 표시
-    const blobType = mapEmotionToBlobType(text);
-    const gradient = getEmotionGradient(text);
+    const blobType = mapEmotionToBlobType(displayText);
+    const gradient = getEmotionGradient(displayText);
     console.log('📺 TV1 Processing:', {
-      text: text,
+      text: displayText,
       blobType: blobType,
       gradient: gradient ? gradient.substring(0, 80) + '...' : 'NOT FOUND'
     });
@@ -813,7 +820,7 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
         // 5열(Now)에는 우측으로 최대 5개까지 채운 뒤에만 시프트
         const dynamicAfterShift = updatedBlobs.filter(blob => !blob.isFixed);
         const blobsIn5 = dynamicAfterShift.filter(blob => blob.column === 5 && blob.visible !== false);
-        const basePosition = calculatePositionInColumn(5, blobsIn5, text, calculateBlobWidth);
+        const basePosition = calculatePositionInColumn(5, blobsIn5, displayText, calculateBlobWidth);
         const position = { ...basePosition, column: 5 };
 
         let finalUpdatedBlobs = updatedBlobs;
@@ -831,7 +838,7 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
         const newBlob = {
           id: currentTimestamp + Math.random(),
           blobType: blobType,
-          text: text,
+          text: displayText,
           gradient: gradient,
           top: position.top,
           left: position.left,
@@ -903,10 +910,10 @@ export function createSocketHandlers({ setKeywords, unifiedFont, setTv2Color, se
     const isNewUser = uid && !seenUserIds.has(uid);
     if (isNewUser) {
       seenUserIds.add(uid);
-      setTopTexts((prev) => [text, prev[0], prev[1], prev[2]].slice(0, 4));
+      setTopTexts((prev) => [displayText, prev[0], prev[1], prev[2]].slice(0, 4));
     } else {
       // for existing users, just update the first container text
-      setTopTexts((prev) => [text, prev[1], prev[2], prev[3]]);
+      setTopTexts((prev) => [displayText, prev[1], prev[2], prev[3]]);
     }
   };
 

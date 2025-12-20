@@ -285,6 +285,36 @@ export default function handler(req, res) {
     try { gcSeen(Date.now()); } catch {}
   }, 10 * 60 * 1000); // 10 minutes
 
+  // ---------------------------------------------------------------------------
+  // Auto hard-reset broadcast at a fixed interval (default: 40 minutes)
+  // - Ensures displays (tv1/tv2/sw1/sw2 etc.) fully reload periodically
+  // - Guarded to avoid duplicate timers on hot reloads
+  // - Interval overrides via HARD_RESET_INTERVAL_MS (clamped to 0..24h)
+  // ---------------------------------------------------------------------------
+  try {
+    if (!io.__autoHardResetTimer) {
+      const raw = process.env.HARD_RESET_INTERVAL_MS;
+      const intervalMs = (() => {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return 40 * 60 * 1000; // 40m default
+        return Math.max(0, Math.min(24 * 60 * 60 * 1000, n));
+      })();
+      if (intervalMs > 0) {
+        io.__autoHardResetTimer = setInterval(() => {
+          const ts = Date.now();
+          const payload = { uuid: `hard-reset-interval-${ts}`, ts, source: 'server-interval' };
+          io.to("livingroom").emit(EV.HARD_RESET, payload);
+          io.to("entrance").emit(EV.HARD_RESET, payload);
+          io.to("controller").emit(EV.HARD_RESET, payload);
+          console.log("⏱️ Auto HARD_RESET broadcast:", payload);
+        }, intervalMs);
+        console.log("✅ Auto HARD_RESET interval enabled:", { intervalMs });
+      }
+    }
+  } catch (e) {
+    console.warn("⚠️ Auto HARD_RESET setup failed:", e?.message || e);
+  }
+
   io.on("connection", (socket) => {
     console.log(`✅ Socket connected: ${socket.id}`);
 
@@ -439,7 +469,14 @@ export default function handler(req, res) {
       console.log("🎤 Raw text/emotion:", payload.text, payload.emotion);
 
       const originalText = String(payload.text || payload.emotion || '').trim();
-      const keyword = toEmotionKeyword(originalText);
+      // Pre-sanitize using shared utility (keeps pipeline behavior stable)
+      let sanitizedOriginal = originalText;
+      try {
+        const { sanitizeEmotion } = require('@/utils/text/sanitizeEmotion');
+        sanitizedOriginal = sanitizeEmotion(originalText, { strict: true });
+      } catch {}
+
+      const keyword = toEmotionKeyword(sanitizedOriginal);
       console.log("🎤 Original text:", originalText, "→ Mapped keyword:", keyword);
       
       // Entrance: 너무 긴 문장은 노출하지 않고(5자 이상), 구어체 감정 단어로 변환

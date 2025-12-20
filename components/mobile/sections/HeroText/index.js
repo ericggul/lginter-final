@@ -81,8 +81,8 @@ export default function HeroText({ isModal = false, onFinalPhase, forceFinal }) 
       return {
         line1: '오늘 하루는',
         line2: '어땠나요?',
-        // 안내 문구 카피 수정: 아래 중앙의 원을 1초간 길게 눌러 말해주세요 → 아래의 원을 1초 눌러 말해주세요
-        subText: '아래의 원을 1초 눌러 말해주세요.',
+        // 안내 문구 카피 수정: (롱프레스 제거) 탭으로 즉시 음성 입력 시작
+        subText: '아래의 원을 눌러 짧은 키워드를 말해주세요',
       };
     }
     // hidden
