@@ -1,26 +1,34 @@
 import * as S from './styles';
 
 export default function PressOverlay({
-  pressProgress = 0,
-  onPressStart,
-  onPressEnd
+  onActivateVoice,
+  active = false,
 }) {
-  const isPressing = pressProgress > 0;
+  const handleActivate = (e) => {
+    try {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+    } catch {}
+    if (typeof onActivateVoice === 'function') onActivateVoice();
+  };
 
 
   return (
     <S.Container
-      onTouchStart={onPressStart}
-      onTouchEnd={onPressEnd}
-      onMouseDown={onPressStart}
-      onMouseUp={onPressEnd}
-      onMouseLeave={onPressEnd}
-      aria-label="hold for 1 second to speak"
+      $active={active}
+      onTouchStart={handleActivate}
+      onMouseDown={handleActivate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') handleActivate(e);
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label="tap anywhere to speak"
     >
       <S.HitArea>
-        <S.RingPulse $anim={isPressing ? 'softRipple 1600ms ease-out infinite' : 'none'} />
-        <S.RingPulse $anim={isPressing ? 'softRipple 1600ms ease-out infinite 800ms' : 'none'} />
-        <S.Dot $anim={isPressing ? 'glowPulse 1.2s ease-in-out infinite' : 'none'} />
+        <S.RingPulse $anim={active ? 'softRipple 1600ms ease-out infinite' : 'none'} />
+        <S.RingPulse $anim={active ? 'softRipple 1600ms ease-out infinite 800ms' : 'none'} />
+        <S.Dot $anim={active ? 'glowPulse 1.2s ease-in-out infinite' : 'none'} />
       </S.HitArea>
     </S.Container>
   );

@@ -10,9 +10,8 @@ export default function InputForm({
   onSubmit,
   showPress,
   isListening,
-  pressProgress,
-  onPressStart,
-  onPressEnd,
+  onActivateVoice,
+  pressActive,
   showTextFallback,
 }) {
   return (
@@ -25,11 +24,10 @@ export default function InputForm({
         visible={showTextFallback}
       />
 
-      {showPress && !isListening && !showTextFallback && (
+      {showPress && !showTextFallback && (!isListening || pressActive) && (
         <PressOverlay
-          pressProgress={pressProgress}
-          onPressStart={onPressStart}
-          onPressEnd={onPressEnd}
+          onActivateVoice={onActivateVoice}
+          active={pressActive}
         />
       )}
     </UI.Form>

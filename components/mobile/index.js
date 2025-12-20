@@ -6,7 +6,6 @@ import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import OrchestratingScreen from "./sections/OrchestratingScreen";
 import HeroText from "./sections/HeroText";
 import BlobControls from "./sections/BlobControls";
-import useLongPressProgress from "./hooks/useLongPressProgress";
 import useSpeechRecognition from "./hooks/useSpeechRecognition";
 import { generateEmpathyLine } from "@/src/services/openai.service";
 import useTypewriter from "./hooks/useTypewriter";
@@ -195,6 +194,8 @@ export default function MobileControls() {
   const [submitted, setSubmitted] = useState(false);
   useEffect(() => { submittedRef.current = submitted; }, [submitted]);
   const [showPress, setShowPress] = useState(false);
+  const [pressActive, setPressActive] = useState(false);
+  const pressActiveTimerRef = useRef(null);
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
   const [orchestratingLock, setOrchestratingLock] = useState(false);
   // 최소 약 5초 동안 오케스트레이션 블롭 + 텍스트가 유지되도록 홀드 시간 설정
@@ -238,6 +239,16 @@ export default function MobileControls() {
     onError: () => setShowTextFallback(true)
   });
 
+  // cleanup pressActive timer on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        if (pressActiveTimerRef.current) clearTimeout(pressActiveTimerRef.current);
+      } catch {}
+      pressActiveTimerRef.current = null;
+    };
+  }, []);
+
   // react to listening stage for blob opacity transitions
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -273,9 +284,21 @@ export default function MobileControls() {
 
   // (moved below state/typedReason declarations)
 
-  const { pressProgress, handlePressStart, handlePressEnd } = useLongPressProgress({
-    onCompleted: () => startVoiceRecognition()
-  });
+  const activateVoiceInput = useCallback(() => {
+    if (submitted) return;
+    if (!showPress) return;
+    if (showTextFallback) return;
+    if (isListening) return;
+    setPressActive(true);
+    try {
+      if (pressActiveTimerRef.current) clearTimeout(pressActiveTimerRef.current);
+    } catch {}
+    pressActiveTimerRef.current = setTimeout(() => {
+      setPressActive(false);
+      pressActiveTimerRef.current = null;
+    }, 2000);
+    startVoiceRecognition();
+  }, [submitted, showPress, showTextFallback, isListening, startVoiceRecognition]);
 
   // Concise, single-sentence summary (stable length to avoid early cut)
   const templateText = recommendations ? buildSummaryText(mood, recommendations) : '';
@@ -424,6 +447,11 @@ export default function MobileControls() {
     setSubmitted(false);
     setShowResetButton(false);
     setShowPress(true);
+    setPressActive(false);
+    try {
+      if (pressActiveTimerRef.current) clearTimeout(pressActiveTimerRef.current);
+    } catch {}
+    pressActiveTimerRef.current = null;
     setListeningStage('idle');
     setMood('');
     setShowEmpathy(false);
@@ -672,9 +700,8 @@ export default function MobileControls() {
               onSubmit={handleSubmit}
               showPress={showPress}
               isListening={isListening}
-              pressProgress={pressProgress}
-              onPressStart={handlePressStart}
-              onPressEnd={handlePressEnd}
+              onActivateVoice={activateVoiceInput}
+              pressActive={pressActive}
               showTextFallback={showTextFallback}
             />
             {(isListening || listeningStage === 'finalHold' || listeningStage === 'fadeOut') && (

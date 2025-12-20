@@ -27,6 +27,16 @@ const PROFANE_INSULT_OR_SEXUAL = [
   /(니엄마|니애미|애미죽|씨발년|씨발놈|창녀|강간|성폭력|sex|porno|porn|섹스|야동|야사)/i,
 ];
 
+// Minimal, conservative patterns for self-harm/suicidal ideation (fail closed to '슬퍼')
+const SELF_HARM_PATTERNS = [
+  /죽고\s*싶(다|어|어요|네|음|당|다구)?/i,
+  /자살|극단(적)?\s*선택|목숨\s*(을\s*)?(끊|버리)/i,
+  /살기\s*싫(다|어|어요)/i,
+];
+
+// Minimal pattern for problematic '멘헤라' usage (map to '불쾌해')
+const MENHERA_PATTERN = /(멘헤라)/i;
+
 function toNFC(text = '') {
   try { return text.normalize('NFC'); } catch { return text; }
 }
@@ -79,6 +89,20 @@ export function sanitizeEmotion(input, { strict = true } = {}) {
   let s = toNFC(String(input || '')).trim();
   s = stripEmojiAndSymbols(s);
   if (!s) return '차분';
+
+  // Self-harm / suicidal ideation → '슬퍼' (fail-closed, very conservative)
+  try {
+    if (SELF_HARM_PATTERNS.some((re) => re.test(s))) {
+      return '슬퍼';
+    }
+  } catch {}
+
+  // '멘헤라' usage → '불쾌해' (avoid showing stigmatizing term)
+  try {
+    if (MENHERA_PATTERN.test(s)) {
+      return '불쾌해';
+    }
+  } catch {}
 
   // Filter ambiguous negative / rejection phrases that should not appear as-is.
   // Examples: "꺼지세요", "꺼져주세요" (interpersonal "go away", not a device command)
